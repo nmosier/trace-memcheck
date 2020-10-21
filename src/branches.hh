@@ -19,8 +19,8 @@ private:
     uint8_t opcode;
     InstForm iform;
   };
-  using BkptMap = std::unordered_map<void *, BranchInfo>;
-  using AddrSet = std::unordered_set<void *>;
+  using BkptMap = std::unordered_map<uint8_t *, BranchInfo>;
+  using AddrSet = std::unordered_set<uint8_t *>;
 
   int fd;
   Decoder decoder;
@@ -39,5 +39,5 @@ private:
   static uint8_t *get_dst(xed_decoded_inst_t& xedd, InstForm iform, uint8_t *pc);
   static bool jmp_can_fallthrough(xed_iclass_enum_t xed_iclass);
 
-  void insert_bkpt(void *pc, InstForm iform);  
+  void insert_bkpt(uint8_t *pc, InstForm iform);  
 };

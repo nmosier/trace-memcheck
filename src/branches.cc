@@ -34,8 +34,10 @@ void BranchPatcher::patch(void *root_) {
     if (processed_branches.find(pc) != processed_branches.end()) {
       continue;
     }
-    
+
     processed_branches.insert(pc);
+
+    printf("processing branch %p\n", pc);
 
     iform = get_iform(xed_decoded_inst_get_iform_enum(&xedd));
 
@@ -56,6 +58,7 @@ void BranchPatcher::patch(void *root_) {
       if (returning_calls.find(get_dst(xedd, iform, pc)) == returning_calls.end()) {
 	/* not known whether this call returns, so break here */
 	insert_bkpt(pc, iform);
+	todo.push_back(get_dst(xedd, iform, pc));
       } else {
 	/* this call returns, and we've already examined the destinatino, so add next instruction
 	 * to queue*/
@@ -72,7 +75,10 @@ void BranchPatcher::patch(void *root_) {
   }
 
   printf("done!\n");
-			 
+  printf("patched %zu branches\n", bkpt_map.size());
+  for (uint8_t *ptr : processed_branches) {
+    printf("%p\n", ptr);
+  }
 }
 
 uint8_t *BranchPatcher::find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass) {
@@ -261,7 +267,7 @@ bool BranchPatcher::jmp_can_fallthrough(xed_iclass_enum_t xed_iclass) {
   }
 }
 
-void BranchPatcher::insert_bkpt(void *pc, InstForm iform) {
+void BranchPatcher::insert_bkpt(uint8_t *pc, InstForm iform) {
   /* get opcode to save */
   uint8_t opcode;
   ssize_t bytes_read;
