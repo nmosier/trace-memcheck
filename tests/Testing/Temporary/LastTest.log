@@ -1,0 +1,423 @@
+Start testing: Aug 10 12:56 MST
+----------------------------------------------------------
+1/10 Testing: file
+1/10 Test: file
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/file"
+Directory: /Users/nicholas/Projects/86x64/tests
+"file" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.36 sec
+----------------------------------------------------------
+Test Passed.
+"file" end time: Aug 10 12:56 MST
+"file" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/10 Testing: exit
+2/10 Test: exit
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/exit"
+Directory: /Users/nicholas/Projects/86x64/tests
+"exit" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.38 sec
+----------------------------------------------------------
+Test Passed.
+"exit" end time: Aug 10 12:56 MST
+"exit" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/10 Testing: printf-many
+3/10 Test: printf-many
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/printf-many"
+Directory: /Users/nicholas/Projects/86x64/tests
+"printf-many" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: printf-many-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: printf-many-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 31920 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/printf-many-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.nZGvFySx"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: printf-many-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: printf-many-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 31929 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/printf-many-O1-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.ZTjGFzlp"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: printf-many-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: printf-many-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 31938 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/printf-many-O2-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.fvn61Gqm"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: printf-many-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: printf-many-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 31947 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/printf-many-O3-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.SckC604n"
+<end of output>
+Test time =   0.36 sec
+----------------------------------------------------------
+Test Failed.
+"printf-many" end time: Aug 10 12:56 MST
+"printf-many" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/10 Testing: printf
+4/10 Test: printf
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/printf"
+Directory: /Users/nicholas/Projects/86x64/tests
+"printf" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: printf-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: printf-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 31960 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/printf-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.syBQ0eSP"
+<end of output>
+Test time =   0.37 sec
+----------------------------------------------------------
+Test Passed.
+"printf" end time: Aug 10 12:56 MST
+"printf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/10 Testing: sum
+5/10 Test: sum
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/sum"
+Directory: /Users/nicholas/Projects/86x64/tests
+"sum" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: sum-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: sum-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32009 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sum-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.wS2KoJX6"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: sum-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: sum-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32018 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sum-O1-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.CgXGKTd0"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: sum-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: sum-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32027 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sum-O2-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.2ntJBMwd"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: sum-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: sum-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32036 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sum-O3-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.wSOLkqsf"
+<end of output>
+Test time =   0.35 sec
+----------------------------------------------------------
+Test Failed.
+"sum" end time: Aug 10 12:56 MST
+"sum" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/10 Testing: sprintf
+6/10 Test: sprintf
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/sprintf"
+Directory: /Users/nicholas/Projects/86x64/tests
+"sprintf" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___sprintf
+  Referenced from: sprintf-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___sprintf
+  Referenced from: sprintf-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32049 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sprintf-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.MNaBsh5K"
+dyld: lazy symbol binding failed: Symbol not found: ___sprintf
+  Referenced from: sprintf-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___sprintf
+  Referenced from: sprintf-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32058 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sprintf-O1-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.UY1cCkvM"
+dyld: lazy symbol binding failed: Symbol not found: ___sprintf
+  Referenced from: sprintf-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___sprintf
+  Referenced from: sprintf-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32067 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sprintf-O2-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.gImdf7Tf"
+dyld: lazy symbol binding failed: Symbol not found: ___sprintf
+  Referenced from: sprintf-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___sprintf
+  Referenced from: sprintf-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32076 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/sprintf-O3-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.mPeyWjAz"
+<end of output>
+Test time =   0.37 sec
+----------------------------------------------------------
+Test Failed.
+"sprintf" end time: Aug 10 12:56 MST
+"sprintf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/10 Testing: fprintf
+7/10 Test: fprintf
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/fprintf"
+Directory: /Users/nicholas/Projects/86x64/tests
+"fprintf" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___fprintf
+  Referenced from: fprintf-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___fprintf
+  Referenced from: fprintf-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32089 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/fprintf-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.Jboy2aTj"
+<end of output>
+Test time =   0.36 sec
+----------------------------------------------------------
+Test Passed.
+"fprintf" end time: Aug 10 12:56 MST
+"fprintf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/10 Testing: myls
+8/10 Test: myls
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/myls"
+Directory: /Users/nicholas/Projects/86x64/tests
+"myls" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: myls-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: myls-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32133 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/myls-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.cMyEyyxO"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: myls-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: myls-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32143 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/myls-O1-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.0gMQrk4g"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: myls-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: myls-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32153 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/myls-O2-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.YMz3ToXd"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: myls-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: myls-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32163 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/myls-O3-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.4iEdobv9"
+<end of output>
+Test time =   0.38 sec
+----------------------------------------------------------
+Test Failed.
+"myls" end time: Aug 10 12:56 MST
+"myls" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/10 Testing: in_addr
+9/10 Test: in_addr
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/in_addr"
+Directory: /Users/nicholas/Projects/86x64/tests
+"in_addr" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: in_addr-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: in_addr-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32176 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/in_addr-O0-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.kK9cagEs"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: in_addr-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: in_addr-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32185 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/in_addr-O1-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.Fpj7JUQi"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: in_addr-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: in_addr-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32194 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/in_addr-O2-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.koyLWGCh"
+dyld: lazy symbol binding failed: Symbol not found: ___printf
+  Referenced from: in_addr-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___printf
+  Referenced from: in_addr-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32203 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/in_addr-O3-64" > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.KkYp9gc9"
+<end of output>
+Test time =   0.38 sec
+----------------------------------------------------------
+Test Failed.
+"in_addr" end time: Aug 10 12:56 MST
+"in_addr" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/10 Testing: mysh
+10/10 Test: mysh
+Command: "/Users/nicholas/Projects/86x64/tests/do-test.sh" "/Users/nicholas/Projects/86x64/tests/mysh"
+Directory: /Users/nicholas/Projects/86x64/tests
+"mysh" start time: Aug 10 12:56 MST
+Output:
+----------------------------------------------------------
+cmdc = 1
+argc = 3, argv =_echo_'Hello,_world!'
+mysh: process 32214 (echo) died.
+cmdc = 1
+argc = 2, argv =_cat_mysh.c
+mysh: process 32215 (cat) died.
+cmdc = 1
+argc = 3, argv =_printf_%d_42
+mysh: process 32216 (printf) died.
+dyld: lazy symbol binding failed: Symbol not found: ___fprintf
+  Referenced from: mysh-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___fprintf
+  Referenced from: mysh-O0-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32220 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/mysh-O0-64" mysh.in > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.0dEJ4vje"
+cmdc = 1
+argc = 3, argv =_echo_'Hello,_world!'
+mysh: process 32227 (echo) died.
+cmdc = 1
+argc = 2, argv =_cat_mysh.c
+mysh: process 32228 (cat) died.
+cmdc = 1
+argc = 3, argv =_printf_%d_42
+mysh: process 32229 (printf) died.
+dyld: lazy symbol binding failed: Symbol not found: ___fprintf
+  Referenced from: mysh-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___fprintf
+  Referenced from: mysh-O1-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32233 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/mysh-O1-64" mysh.in > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.JiMgre7k"
+cmdc = 1
+argc = 3, argv =_echo_'Hello,_world!'
+mysh: process 32240 (echo) died.
+cmdc = 1
+argc = 2, argv =_cat_mysh.c
+mysh: process 32241 (cat) died.
+cmdc = 1
+argc = 3, argv =_printf_%d_42
+mysh: process 32242 (printf) died.
+dyld: lazy symbol binding failed: Symbol not found: ___fprintf
+  Referenced from: mysh-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___fprintf
+  Referenced from: mysh-O2-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32246 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/mysh-O2-64" mysh.in > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.6SM6nUas"
+cmdc = 1
+argc = 3, argv =_echo_'Hello,_world!'
+mysh: process 32253 (echo) died.
+cmdc = 1
+argc = 2, argv =_cat_mysh.c
+mysh: process 32254 (cat) died.
+cmdc = 1
+argc = 3, argv =_printf_%d_42
+mysh: process 32255 (printf) died.
+dyld: lazy symbol binding failed: Symbol not found: ___fprintf
+  Referenced from: mysh-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+dyld: Symbol not found: ___fprintf
+  Referenced from: mysh-O3-64.dylib
+  Expected in: /Users/nicholas/Projects/86x64/src/abiconv/libabiconv.dylib
+
+sh: line 2: 32259 Abort trap: 6           "/Users/nicholas/Projects/86x64/tests/mysh-O3-64" mysh.in > "/var/folders/4c/5wgcxsp166v8c69hpk80yfx80000gn/T/tmp.HyqOXsa6"
+<end of output>
+Test time =   0.49 sec
+----------------------------------------------------------
+Test Failed.
+"mysh" end time: Aug 10 12:56 MST
+"mysh" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Aug 10 12:56 MST
