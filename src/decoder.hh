@@ -17,6 +17,7 @@ public:
   bool decode(void *pc, xed_decoded_inst_t& xedd) const;
   
 private:
+  
   static xed_state_t state;
   int fd;
 };

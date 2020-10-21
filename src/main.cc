@@ -64,6 +64,10 @@ int main(int argc, char *argv[]) {
     execlp(PROG, PROG, NULL);
   }
 
+  const auto cleanup = [child] () {
+    kill(child, SIGTERM);
+  };
+
   Decoder::Init();
   BranchPatcher branch_patcher;
 
@@ -76,21 +80,24 @@ int main(int argc, char *argv[]) {
   
   int child_fd;
   if ((child_fd = open_child(child)) < 0) {
-    goto cleanup;
+    cleanup();
+    return 1;
   }
 
   branch_patcher = BranchPatcher(child_fd);  
 
   printf("ptrace pc = %p, main pc = %p\n", (void *) ptrace, (void *) main);
 
-#if 1
   void *pc;
   pc = get_pc(child);
+  
+#if 1
   printf("pc = %p\n", pc);
   char data[8];
   if (pread(child_fd, data, sizeof(data), (off_t) pc) < 0) {
     perror("read");
-    goto cleanup;
+    cleanup();
+    return 1;
   }
   hexdump(data, sizeof(data));
 #endif
@@ -98,13 +105,11 @@ int main(int argc, char *argv[]) {
   branch_patcher.patch(pc);
 
   if (close_child(child) < 0) {
-    goto cleanup;
+    cleanup();
+    return 1;
   }
 
-  exitno = 0;
+  cleanup();
   
- cleanup:
-  kill(child, SIGTERM);
-
-  return exitno;
+  return 0;
 }
