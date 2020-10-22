@@ -22,14 +22,14 @@ void BranchPatcher::patch(void *root_) {
   while (!todo.empty()) {
     xed_decoded_inst_t xedd;
     InstClass iclass;
-    InstForm iform;
+    BkptKind bkpt_kind;
     uint8_t *start_pc = todo.back();
     todo.pop_back();
 
     uint8_t *pc = (uint8_t *) find_branch(start_pc, xedd, iclass);
 
     uint8_t *next_pc = pc + xed_decoded_inst_get_length(&xedd);
-    
+
     /* find the next branch */
     pc = find_branch(pc, xedd, iclass);
 
@@ -39,47 +39,40 @@ void BranchPatcher::patch(void *root_) {
 
     processed_branches.insert(pc);
 
-    printf("processing branch %p\n", pc);
+    bkpt_kind = get_bkpt_kind(xed_decoded_inst_get_iform_enum(&xedd));
+    const unsigned instlen = xed_decoded_inst_get_length(&xedd);
 
-    iform = get_iform(xed_decoded_inst_get_iform_enum(&xedd));
-
-    switch (iform) {
-    case InstForm::JUMP_DIR:
+    switch (bkpt_kind) {
+    case BkptKind::JUMP_DIR:
       if (jmp_can_fallthrough(xed_decoded_inst_get_iclass(&xedd))) {
 	todo.push_back(next_pc);
       }
-      todo.push_back(get_dst(xedd, iform, pc));
+      todo.push_back(get_dst(xedd, bkpt_kind, pc));
       break;
       
-    case InstForm::JUMP_IND:
-    case InstForm::CALL_IND:
-      insert_bkpt(pc, iform);
+    case BkptKind::JUMP_IND:
+    case BkptKind::CALL_IND:
+      insert_bkpt(pc, bkpt_kind, instlen);
       break;
 
-    case InstForm::CALL_DIR:
-      if (returning_calls.find(get_dst(xedd, iform, pc)) == returning_calls.end()) {
+    case BkptKind::CALL_DIR:
+      if (returning_calls.find(pc) == returning_calls.end()) {
 	/* not known whether this call returns, so break here */
-	insert_bkpt(pc, iform);
-	todo.push_back(get_dst(xedd, iform, pc));
+	insert_bkpt(pc, bkpt_kind, instlen);
+	todo.push_back(get_dst(xedd, bkpt_kind, pc));
       } else {
-	/* this call returns, and we've already examined the destinatino, so add next instruction
+	/* this call returns, and we've already examined the destination, so add next instruction
 	 * to queue*/
 	todo.push_back(next_pc);
       }
       break;
 
-    case InstForm::RET:
+    case BkptKind::RET:
       break;
 
     default:
       assert(false);
     }
-  }
-
-  printf("done!\n");
-  printf("patched %zu branches\n", bkpt_map.size());
-  for (uint8_t *ptr : processed_branches) {
-    printf("%p\n", ptr);
   }
 }
 
@@ -157,19 +150,19 @@ BranchPatcher::InstClass BranchPatcher::classify(xed_iclass_enum_t iclass) {
   }
 }
 
-BranchPatcher::InstForm BranchPatcher::get_iform(xed_iform_enum_t iform) {
+BranchPatcher::BkptKind BranchPatcher::get_bkpt_kind(xed_iform_enum_t iform) {
   switch (iform) {
   case XED_IFORM_JMP_GPRv:
   case XED_IFORM_JMP_MEMv:
   case XED_IFORM_JMP_FAR_MEMp2:
   case XED_IFORM_JMP_FAR_PTRp_IMMw:
-    return InstForm::JUMP_IND;
+    return BkptKind::JUMP_IND;
     
   case XED_IFORM_CALL_FAR_MEMp2:
   case XED_IFORM_CALL_FAR_PTRp_IMMw:
   case XED_IFORM_CALL_NEAR_GPRv:
   case XED_IFORM_CALL_NEAR_MEMv:
-    return InstForm::CALL_IND;
+    return BkptKind::CALL_IND;
 
   case XED_IFORM_JB_RELBRb:
   case XED_IFORM_JB_RELBRd:
@@ -225,32 +218,32 @@ BranchPatcher::InstForm BranchPatcher::get_iform(xed_iform_enum_t iform) {
   case XED_IFORM_JZ_RELBRb:
   case XED_IFORM_JZ_RELBRd:
   case XED_IFORM_JZ_RELBRz:
-    return InstForm::JUMP_DIR;
+    return BkptKind::JUMP_DIR;
 
   case XED_IFORM_CALL_NEAR_RELBRd:
   case XED_IFORM_CALL_NEAR_RELBRz:
-    return InstForm::CALL_DIR;
+    return BkptKind::CALL_DIR;
 
   case XED_IFORM_RET_FAR:
   case XED_IFORM_RET_FAR_IMMw:
   case XED_IFORM_RET_NEAR:
   case XED_IFORM_RET_NEAR_IMMw:
-    return InstForm::RET;
+    return BkptKind::RET;
     
   default:
-    return InstForm::OTHER;
+    assert(false);
   }
 }
 
-uint8_t *BranchPatcher::get_dst(xed_decoded_inst_t& xedd, InstForm iform, uint8_t *pc) {
+uint8_t *BranchPatcher::get_dst(xed_decoded_inst_t& xedd, BkptKind iform, uint8_t *pc) {
   switch (iform) {
-  case InstForm::JUMP_DIR:
-  case InstForm::CALL_DIR:
+  case BkptKind::JUMP_DIR:
+  case BkptKind::CALL_DIR:
     return pc + xed_decoded_inst_get_length(&xedd) +
       xed_decoded_inst_get_branch_displacement(&xedd);
     
-  case InstForm::JUMP_IND:
-  case InstForm::CALL_IND:
+  case BkptKind::JUMP_IND:
+  case BkptKind::CALL_IND:
     return nullptr;
 
   default:
@@ -269,7 +262,7 @@ bool BranchPatcher::jmp_can_fallthrough(xed_iclass_enum_t xed_iclass) {
   }
 }
 
-void BranchPatcher::insert_bkpt(uint8_t *pc, InstForm iform) {
+void BranchPatcher::insert_bkpt(uint8_t *pc, BkptKind iform, unsigned instlen) {
   /* get opcode to save */
   uint8_t opcode;
   ssize_t bytes_read;
@@ -280,34 +273,75 @@ void BranchPatcher::insert_bkpt(uint8_t *pc, InstForm iform) {
   assert(bytes_read == 1);
 
   assert(bkpt_map.find(pc) == bkpt_map.end());
-  bkpt_map[pc] = {opcode, iform};
+  bkpt_map[pc].opcode = opcode;
+  bkpt_map[pc].iform = iform;
+  bkpt_map[pc].instlen = instlen;
+
+  /* set opcode */
+  write_inst_byte(pc, 0xcc);
 }
 
 bool BranchPatcher::owns_bkpt(void *pc) const {
   return bkpt_map.find((uint8_t *) pc) != bkpt_map.end();
 }
 
-void BranchPatcher::handle_bkpt(void *pc_, pid_t pid) {
+void BranchPatcher::handle_bkpt(void *pc_) {
   uint8_t *pc = (uint8_t *) pc_;
   BranchInfo& branch_info = bkpt_map.at(pc);
 
+  printf("bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(branch_info.iform));
+
   switch (branch_info.iform) {
-  case InstForm::JUMP_IND:
-    single_step_bkpt(pc, pid);
+  case BkptKind::JUMP_IND:
+    single_step_bkpt(pc);
     patch(get_pc(pid));
     break;
     
-  case InstForm::CALL_IND:
-    // TODO
-    single_step_bkpt(pc, pid);
+  case BkptKind::CALL_IND:
+    single_step_bkpt(pc);
+    insert_bkpt(pc + 1, BkptKind::CALL_IND_PEND, branch_info.instlen);
     patch(get_pc(pid));
+    set_retaddr(pc + 1);
     break;
 
-  case InstForm::CALL_DIR:
-    single_step_bkpt(pc, pid);
+  case BkptKind::CALL_DIR:
+    /* we know that it is unknown whether this function returns */
+    assert(returning_calls.find(pc) == returning_calls.end());
+    single_step_bkpt(pc);
+    insert_bkpt(pc + 1, BkptKind::CALL_DIR_PEND, branch_info.instlen);
+    set_retaddr(pc + 1);
     break;
 
-  default: assert(false);
+  case BkptKind::CALL_DIR_PEND:
+    {
+      /* this function does return.
+       * - disable pending and call breakpoints
+       * - add to list of returning calls 
+     */
+      assert(returning_calls.find(pc - 1) == returning_calls.end());
+      returning_calls.insert(pc - 1);
+      remove_bkpt(pc); // pending breakpoint
+      remove_bkpt(pc - 1); // call breakpoint
+      uint8_t *next_pc = pc - 1 + branch_info.instlen;
+      set_pc(pid, (void *) next_pc);
+      patch(next_pc);
+    }
+    break;
+
+  case BkptKind::CALL_IND_PEND:
+    {
+      /* This call does return */
+      returning_calls.insert(pc - 1);
+      remove_bkpt(pc);
+      uint8_t *next_pc = pc - 1 + branch_info.instlen;
+      set_pc(pid, (void *) next_pc);
+      patch(next_pc);
+    }
+    break;
+    
+  case BkptKind::JUMP_DIR:
+  case BkptKind::RET:
+    assert(false);
   }
   
 }
@@ -333,9 +367,15 @@ void BranchPatcher::write_inst_byte(uint8_t *pc, uint8_t opcode) {
     abort();
   }
   assert(bytes == 1);
+
+#if 1
+  uint8_t opcode2;
+  pread(fd, &opcode2, 1, (off_t) pc);
+  assert(opcode == opcode2);
+#endif
 }
 
-void BranchPatcher::single_step_bkpt(uint8_t *pc, pid_t pid) {
+void BranchPatcher::single_step_bkpt(uint8_t *pc) {
   /* restore original instruction */
   write_inst_byte(pc, bkpt_map.at(pc).opcode);
 
@@ -348,8 +388,31 @@ void BranchPatcher::single_step_bkpt(uint8_t *pc, pid_t pid) {
   if (wait(&status) < 0) {
     perror("wait");
   }
-  assert(!WIFSTOPPED(status) || WSTOPSIG(status) != SIGTRAP);
+  assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
 
   /* re-enable breakpoint */
   write_inst_byte(pc, 0xcc);
+}
+
+void BranchPatcher::set_retaddr(uint8_t *ra) {
+  uint64_t *sp = (uint64_t *) get_sp(pid);
+  pwrite(fd, &ra, sizeof(ra), (off_t) sp);
+}
+
+const char *BranchPatcher::bkpt_kind_to_str(BkptKind kind) {
+  switch (kind) {
+  case BkptKind::JUMP_DIR:      return "JUMP_DIR";
+  case BkptKind::JUMP_IND:      return "JUMP_IND";
+  case BkptKind::CALL_DIR:      return "CALL_DIR";
+  case BkptKind::CALL_IND:      return "CALL_IND";
+  case BkptKind::RET:           return "RET";
+  case BkptKind::CALL_DIR_PEND: return "CALL_DIR_PEND";
+  case BkptKind::CALL_IND_PEND: return "CALL_IND_PEND";
+  }
+}
+
+void BranchPatcher::print_bkpts(void) const {
+  for (const auto& it : bkpt_map) {
+    printf("bkpt %p %s\n", it.first, bkpt_kind_to_str(it.second.iform));
+  }
 }
