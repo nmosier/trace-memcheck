@@ -10,6 +10,12 @@ public:
   BranchPatcher(int fd): fd(fd), decoder(fd) {}
 
   void patch(void *root);
+
+  /* whether this patcher owns the breakpoint at the given address */
+  bool owns_bkpt(void *pc) const;
+
+  /* handle breakpoint hit at given address */
+  void handle_bkpt(void *pc, pid_t pid);
   
 private:
   enum class InstClass {JUMP, CALL, RET, OTHER};
@@ -38,6 +44,10 @@ private:
   static bool iclass_is_ret(xed_iclass_enum_t iclass);
   static uint8_t *get_dst(xed_decoded_inst_t& xedd, InstForm iform, uint8_t *pc);
   static bool jmp_can_fallthrough(xed_iclass_enum_t xed_iclass);
+  void write_inst_byte(uint8_t *pc, uint8_t opcode);
+  
+  void insert_bkpt(uint8_t *pc, InstForm iform);
+  void remove_bkpt(uint8_t *pc);
+  void single_step_bkpt(uint8_t *pc, pid_t pid);
 
-  void insert_bkpt(uint8_t *pc, InstForm iform);  
 };

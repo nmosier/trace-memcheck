@@ -7,8 +7,10 @@ extern "C" {
 #include <sys/ptrace.h>
 #include <vector>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "branches.hh"
+#include "util.hh"
 
 void BranchPatcher::patch(void *root_) {
   uint8_t *root = (uint8_t *) root_;
@@ -279,4 +281,75 @@ void BranchPatcher::insert_bkpt(uint8_t *pc, InstForm iform) {
 
   assert(bkpt_map.find(pc) == bkpt_map.end());
   bkpt_map[pc] = {opcode, iform};
+}
+
+bool BranchPatcher::owns_bkpt(void *pc) const {
+  return bkpt_map.find((uint8_t *) pc) != bkpt_map.end();
+}
+
+void BranchPatcher::handle_bkpt(void *pc_, pid_t pid) {
+  uint8_t *pc = (uint8_t *) pc_;
+  BranchInfo& branch_info = bkpt_map.at(pc);
+
+  switch (branch_info.iform) {
+  case InstForm::JUMP_IND:
+    single_step_bkpt(pc, pid);
+    patch(get_pc(pid));
+    break;
+    
+  case InstForm::CALL_IND:
+    // TODO
+    single_step_bkpt(pc, pid);
+    patch(get_pc(pid));
+    break;
+
+  case InstForm::CALL_DIR:
+    single_step_bkpt(pc, pid);
+    break;
+
+  default: assert(false);
+  }
+  
+}
+
+void BranchPatcher::remove_bkpt(uint8_t *pc) {
+  const auto it = bkpt_map.find(pc);
+  assert(it != bkpt_map.end());
+
+  ssize_t bytes_written;
+  if ((bytes_written = pwrite(fd, &it->second.opcode, 1, (off_t) pc)) < 0) {
+    perror("pwrite");
+    abort();
+  }
+  assert(bytes_written == 1);
+
+  bkpt_map.erase(it);
+}
+
+void BranchPatcher::write_inst_byte(uint8_t *pc, uint8_t opcode) {
+  ssize_t bytes;
+  if ((bytes = pwrite(fd, &opcode, 1, (off_t) pc)) < 0) {
+    perror("pwrite");
+    abort();
+  }
+  assert(bytes == 1);
+}
+
+void BranchPatcher::single_step_bkpt(uint8_t *pc, pid_t pid) {
+  /* restore original instruction */
+  write_inst_byte(pc, bkpt_map.at(pc).opcode);
+
+  /* single step */
+  if (ptrace(PTRACE_SINGLESTEP, pid, nullptr, nullptr) < 0) {
+    perror("ptrace");
+    abort();
+  }
+  int status;
+  if (wait(&status) < 0) {
+    perror("wait");
+  }
+  assert(!WIFSTOPPED(status) || WSTOPSIG(status) != SIGTRAP);
+
+  /* re-enable breakpoint */
+  write_inst_byte(pc, 0xcc);
 }

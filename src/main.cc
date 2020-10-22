@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 
 #include "branches.hh"
+#include "util.hh"
 
 #define PROG "/bin/ls"
 
@@ -23,11 +24,6 @@ static void print_pc(pid_t child) {
 	 ptrace(PTRACE_PEEKTEXT, child, regs.rip, NULL));
 }
 
-static void *get_pc(pid_t child) {
-  struct user_regs_struct regs;
-  ptrace(PTRACE_GETREGS, child, NULL, &regs);
-  return (void *) regs.rip;
-}
 
 static void hexdump(const void *buf, size_t count) {
   const char *buf_ = (const char *) buf;
@@ -91,18 +87,18 @@ int main(int argc, char *argv[]) {
   void *pc;
   pc = get_pc(child);
   
-#if 1
-  printf("pc = %p\n", pc);
-  char data[8];
-  if (pread(child_fd, data, sizeof(data), (off_t) pc) < 0) {
-    perror("read");
-    cleanup();
-    return 1;
-  }
-  hexdump(data, sizeof(data));
-#endif
-
   branch_patcher.patch(pc);
+
+  while (1) {
+    ptrace(PTRACE_CONT, child, NULL, NULL);
+    wait(&status);
+    if (WIFSTOPPED(status)) {
+      branch_patcher.handle_bkpt(get_pc(child), child);
+    } else {
+      break;
+    }
+  }
+  
 
   if (close_child(child) < 0) {
     cleanup();
