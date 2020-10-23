@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <sys/user.h>
 #include <sys/mman.h>
+#include <vector>
 
 #include "branches.hh"
 #include "util.hh"
@@ -52,7 +53,7 @@ static int close_child(int fd) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
     return 1;
   }
@@ -72,7 +73,9 @@ int main(int argc, char *argv[]) {
   Decoder::Init();
   BranchPatcher branch_patcher;
 
+#if DEBUG
   printf("child pid = %d\n", child);
+#endif
 
   int exitno = 1;
   int status;
@@ -87,29 +90,38 @@ int main(int argc, char *argv[]) {
 
   branch_patcher = BranchPatcher(child, child_fd);
 
-  printf("ptrace pc = %p, main pc = %p\n", (void *) ptrace, (void *) main);
-
   void *pc;
   pc = get_pc(child);
   
   branch_patcher.patch(pc);
 
+  std::vector<void *> insts;
+
+  void *bkpt_pc;
   while (1) {
     ptrace(PTRACE_CONT, child, NULL, NULL);
     wait(&status);
+#if DEBUG
     printf("before pc = %p\n", (uint8_t *) get_pc(child) - 1);
+#endif
     if (WIFSTOPPED(status)) {
-      void *bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
+      assert(WSTOPSIG(status) == SIGTRAP);
+      bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
+      insts.push_back(bkpt_pc);
       set_pc(child, bkpt_pc);
       branch_patcher.handle_bkpt(bkpt_pc);
     } else {
       break;
     }
+#if DEBUG
     printf("after pc = %p\n", get_pc(child));
     branch_patcher.print_bkpts();
+#endif
   }
 
+#if DEBUG
   printf("done\n");
+#endif
   
   if (close_child(child_fd) < 0) {
     cleanup();

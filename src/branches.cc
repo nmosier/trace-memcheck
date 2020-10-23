@@ -27,11 +27,9 @@ void BranchPatcher::patch(void *root_) {
     todo.pop_back();
 
     uint8_t *pc = (uint8_t *) find_branch(start_pc, xedd, iclass);
-
     uint8_t *next_pc = pc + xed_decoded_inst_get_length(&xedd);
 
-    /* find the next branch */
-    pc = find_branch(pc, xedd, iclass);
+    fprintf(stderr, "%p -> %p\n", start_pc, pc);
 
     if (processed_branches.find(pc) != processed_branches.end()) {
       continue;
@@ -255,10 +253,10 @@ bool BranchPatcher::jmp_can_fallthrough(xed_iclass_enum_t xed_iclass) {
   switch (xed_iclass) {
   case XED_ICLASS_JMP:
   case XED_ICLASS_JMP_FAR:
-    return true;
+    return false;
 
   default:
-    return false;
+    return true;
   }
 }
 
@@ -289,7 +287,9 @@ void BranchPatcher::handle_bkpt(void *pc_) {
   uint8_t *pc = (uint8_t *) pc_;
   BranchInfo& branch_info = bkpt_map.at(pc);
 
+#if DEBUG
   printf("bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(branch_info.iform));
+#endif
 
   switch (branch_info.iform) {
   case BkptKind::JUMP_IND:
