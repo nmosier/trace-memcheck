@@ -21,7 +21,8 @@ public:
   
 private:
   enum class InstClass {JUMP, CALL, RET, OTHER};
-  enum class BkptKind {JUMP_DIR, JUMP_IND, CALL_DIR, CALL_IND, RET, CALL_DIR_PEND, CALL_IND_PEND};
+  enum class BkptKind {JUMP_DIR, JUMP_DIR_POST, JUMP_IND, CALL_DIR, CALL_IND, RET, CALL_DIR_PEND,
+      CALL_IND_PEND};
 
   struct BranchInfo {
     uint8_t   opcode;
@@ -37,6 +38,7 @@ private:
   BkptMap bkpt_map;
   AddrSet processed_branches; // branches that have already been handled
   AddrSet returning_calls; // calls that return (i.e. aren't noreturn, like exit(3)
+  std::unordered_map<uint8_t *, unsigned> call_pend_counts;
 
   /* follow basic block until next branch */
   uint8_t *find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass);
@@ -51,6 +53,7 @@ private:
   void write_inst_byte(uint8_t *pc, uint8_t opcode);
   
   void insert_bkpt(uint8_t *pc, BkptKind iform, unsigned instlen);
+  bool has_bkpt(uint8_t *pc) const;
   void remove_bkpt(uint8_t *pc);
   void single_step_bkpt(uint8_t *pc);
 

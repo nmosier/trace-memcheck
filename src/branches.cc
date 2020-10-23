@@ -27,9 +27,10 @@ void BranchPatcher::patch(void *root_) {
     todo.pop_back();
 
     uint8_t *pc = (uint8_t *) find_branch(start_pc, xedd, iclass);
+    if (pc == nullptr) {
+      continue;
+    }
     uint8_t *next_pc = pc + xed_decoded_inst_get_length(&xedd);
-
-    fprintf(stderr, "%p -> %p\n", start_pc, pc);
 
     if (processed_branches.find(pc) != processed_branches.end()) {
       continue;
@@ -43,7 +44,10 @@ void BranchPatcher::patch(void *root_) {
     switch (bkpt_kind) {
     case BkptKind::JUMP_DIR:
       if (jmp_can_fallthrough(xed_decoded_inst_get_iclass(&xedd))) {
-	todo.push_back(next_pc);
+	uint8_t *post_jump_pc = pc + instlen;
+	if (!has_bkpt(post_jump_pc)) {
+	  insert_bkpt(post_jump_pc, BkptKind::JUMP_DIR_POST, 0);
+	}
       }
       todo.push_back(get_dst(xedd, bkpt_kind, pc));
       break;
@@ -75,11 +79,19 @@ void BranchPatcher::patch(void *root_) {
 }
 
 uint8_t *BranchPatcher::find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass) {
+  // DEBUG
+  std::vector<uint8_t *> insts = {pc};
+  
   const bool decoded = decoder.decode(pc, xedd);
   assert(decoded);
   iclass = classify(xed_decoded_inst_get_iclass(&xedd));
   while (iclass == InstClass::OTHER) {
+    /* ignore any breakpoints */
+    if (xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_INT3) {
+      return nullptr;
+    }
     pc += xed_decoded_inst_get_length(&xedd);
+    insts.push_back(pc);
     const bool decoded = decoder.decode(pc, xedd);
     assert(decoded);
     iclass = classify(xed_decoded_inst_get_iclass(&xedd));
@@ -270,7 +282,7 @@ void BranchPatcher::insert_bkpt(uint8_t *pc, BkptKind iform, unsigned instlen) {
   }
   assert(bytes_read == 1);
 
-  assert(bkpt_map.find(pc) == bkpt_map.end());
+  assert(!has_bkpt(pc));
   bkpt_map[pc].opcode = opcode;
   bkpt_map[pc].iform = iform;
   bkpt_map[pc].instlen = instlen;
@@ -287,6 +299,8 @@ void BranchPatcher::handle_bkpt(void *pc_) {
   uint8_t *pc = (uint8_t *) pc_;
   BranchInfo& branch_info = bkpt_map.at(pc);
 
+  assert(branch_info.instlen >= 0 && branch_info.instlen <= 16);
+
 #if DEBUG
   printf("bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(branch_info.iform));
 #endif
@@ -298,18 +312,28 @@ void BranchPatcher::handle_bkpt(void *pc_) {
     break;
     
   case BkptKind::CALL_IND:
-    single_step_bkpt(pc);
-    insert_bkpt(pc + 1, BkptKind::CALL_IND_PEND, branch_info.instlen);
-    patch(get_pc(pid));
-    set_retaddr(pc + 1);
+    {
+      uint8_t *pend_pc = pc + 1;
+      single_step_bkpt(pc);
+      insert_bkpt(pend_pc, BkptKind::CALL_IND_PEND, branch_info.instlen);
+      patch(get_pc(pid));
+      set_retaddr(pend_pc);
+      ++call_pend_counts[pend_pc];
+    }
     break;
 
   case BkptKind::CALL_DIR:
-    /* we know that it is unknown whether this function returns */
-    assert(returning_calls.find(pc) == returning_calls.end());
-    single_step_bkpt(pc);
-    insert_bkpt(pc + 1, BkptKind::CALL_DIR_PEND, branch_info.instlen);
-    set_retaddr(pc + 1);
+    {
+      /* we know that it is unknown whether this function returns */
+      assert(returning_calls.find(pc) == returning_calls.end());
+      uint8_t *pend_pc = pc + 1;
+      single_step_bkpt(pc);
+      if (!has_bkpt(pend_pc)) {
+	insert_bkpt(pend_pc, BkptKind::CALL_DIR_PEND, branch_info.instlen);
+      }
+      set_retaddr(pend_pc);
+      ++call_pend_counts[pend_pc];
+    }
     break;
 
   case BkptKind::CALL_DIR_PEND:
@@ -319,9 +343,11 @@ void BranchPatcher::handle_bkpt(void *pc_) {
        * - add to list of returning calls 
      */
       assert(returning_calls.find(pc - 1) == returning_calls.end());
-      returning_calls.insert(pc - 1);
-      remove_bkpt(pc); // pending breakpoint
-      remove_bkpt(pc - 1); // call breakpoint
+      if (--call_pend_counts[pc] == 0) {
+	returning_calls.insert(pc - 1);
+	remove_bkpt(pc); // pending breakpoint
+	remove_bkpt(pc - 1); // call breakpoint	
+      }
       uint8_t *next_pc = pc - 1 + branch_info.instlen;
       set_pc(pid, (void *) next_pc);
       patch(next_pc);
@@ -331,11 +357,22 @@ void BranchPatcher::handle_bkpt(void *pc_) {
   case BkptKind::CALL_IND_PEND:
     {
       /* This call does return */
-      returning_calls.insert(pc - 1);
-      remove_bkpt(pc);
+      if (--call_pend_counts[pc] == 0) {
+	returning_calls.insert(pc - 1);
+	remove_bkpt(pc);
+      }
       uint8_t *next_pc = pc - 1 + branch_info.instlen;
       set_pc(pid, (void *) next_pc);
       patch(next_pc);
+    }
+    break;
+
+  case BkptKind::JUMP_DIR_POST:
+    {
+      /* this was after a conditional jump */
+      remove_bkpt(pc);
+      set_pc(pid, pc);
+      patch(pc);
     }
     break;
     
@@ -402,6 +439,7 @@ void BranchPatcher::set_retaddr(uint8_t *ra) {
 const char *BranchPatcher::bkpt_kind_to_str(BkptKind kind) {
   switch (kind) {
   case BkptKind::JUMP_DIR:      return "JUMP_DIR";
+  case BkptKind::JUMP_DIR_POST: return "JUMP_DIR_POST";
   case BkptKind::JUMP_IND:      return "JUMP_IND";
   case BkptKind::CALL_DIR:      return "CALL_DIR";
   case BkptKind::CALL_IND:      return "CALL_IND";
@@ -415,4 +453,8 @@ void BranchPatcher::print_bkpts(void) const {
   for (const auto& it : bkpt_map) {
     printf("bkpt %p %s\n", it.first, bkpt_kind_to_str(it.second.iform));
   }
+}
+
+bool BranchPatcher::has_bkpt(uint8_t *pc) const {
+  return bkpt_map.find(pc) != bkpt_map.end();
 }

@@ -12,6 +12,8 @@
 #include "branches.hh"
 #include "util.hh"
 
+#define DEBUG 0
+
 static bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
 }
@@ -99,13 +101,25 @@ int main(int argc, char *argv[]) {
 
   void *bkpt_pc;
   while (1) {
+    if (get_pc(child) == (void *) 0x7ffff7a5a92b + 1) {
+      printf("here");
+      single_step_print(child, child_fd, -1);
+    }
+    
     ptrace(PTRACE_CONT, child, NULL, NULL);
     wait(&status);
 #if DEBUG
     printf("before pc = %p\n", (uint8_t *) get_pc(child) - 1);
 #endif
+    
     if (WIFSTOPPED(status)) {
-      assert(WSTOPSIG(status) == SIGTRAP);
+      const int stopsig = WSTOPSIG(status);
+       if (stopsig != SIGTRAP) {
+	 fprintf(stderr, "unexpected signal %d\n", stopsig);
+	 char pid_str[16];
+	 sprintf(pid_str, "%d", child);
+	 execlp("gdb", "gdb", command[0], pid_str, 0);
+       }
       bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
       insts.push_back(bkpt_pc);
       set_pc(child, bkpt_pc);
