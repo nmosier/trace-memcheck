@@ -93,3 +93,9 @@ void single_step_print(pid_t pid, int fd, size_t count) {
 	    xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&xedd)));
   }
 }
+
+void enable_trap(pid_t pid) {
+  auto regs = get_regs(pid);
+  regs.eflags |= 1 << 8;
+  set_regs(pid, regs);
+}

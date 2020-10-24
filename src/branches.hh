@@ -18,11 +18,15 @@ public:
   void handle_bkpt(void *pc);
 
   void print_bkpts(void) const;
-  
-private:
-  enum class InstClass {JUMP, CALL, RET, OTHER};
+  std::string bkpt_to_str(void *pc) const;
+
   enum class BkptKind {JUMP_DIR, JUMP_DIR_POST, JUMP_IND, CALL_DIR, CALL_IND, RET, CALL_DIR_PEND,
       CALL_IND_PEND};
+
+  BkptKind get_bkpt_kind(void *pc) const { return bkpt_map.at((uint8_t *) pc).iform; }
+
+private:
+  enum class InstClass {JUMP, CALL, RET, OTHER};
 
   struct BranchInfo {
     uint8_t   opcode;

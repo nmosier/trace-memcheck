@@ -8,9 +8,11 @@ extern "C" {
 #include <vector>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sstream>
 
 #include "branches.hh"
 #include "util.hh"
+#include "debug.h"
 
 void BranchPatcher::patch(void *root_) {
   uint8_t *root = (uint8_t *) root_;
@@ -301,8 +303,8 @@ void BranchPatcher::handle_bkpt(void *pc_) {
 
   assert(branch_info.instlen >= 0 && branch_info.instlen <= 16);
 
-#if DEBUG
-  printf("bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(branch_info.iform));
+#if BKPTS
+  fprintf(stderr, "handle bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(branch_info.iform));
 #endif
 
   switch (branch_info.iform) {
@@ -387,6 +389,10 @@ void BranchPatcher::remove_bkpt(uint8_t *pc) {
   const auto it = bkpt_map.find(pc);
   assert(it != bkpt_map.end());
 
+#if BKPTS
+  fprintf(stderr, "remove bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(it->second.iform));
+#endif
+  
   ssize_t bytes_written;
   if ((bytes_written = pwrite(fd, &it->second.opcode, 1, (off_t) pc)) < 0) {
     perror("pwrite");
@@ -413,10 +419,33 @@ void BranchPatcher::write_inst_byte(uint8_t *pc, uint8_t opcode) {
 }
 
 void BranchPatcher::single_step_bkpt(uint8_t *pc) {
-  /* restore original instruction */
-  write_inst_byte(pc, bkpt_map.at(pc).opcode);
+  /* construct save/restore list */
+  std::vector<std::pair<uint8_t *, uint8_t>> bkpt_list;
+
+  const BranchInfo& bkpt_info = bkpt_map.at(pc);
+  bkpt_list.emplace_back(pc, bkpt_info.opcode);
+
+  switch (bkpt_info.iform) {
+  case BkptKind::CALL_DIR:
+  case BkptKind::CALL_IND:
+    {
+      const auto pend_it = bkpt_map.find(pc + 1);
+      if (pend_it != bkpt_map.end()) {
+	bkpt_list.emplace_back(pc + 1, pend_it->second.opcode);
+      }
+    }
+    break;
+  }
+
+  /* restore original opcode(s) */
+  for (const auto& pair : bkpt_list) {
+    write_inst_byte(pair.first, pair.second);
+  }
 
   /* single step */
+#if SINGLE_STEP
+  fprintf(stderr, "ss pc = %p\n", pc);
+#endif
   if (ptrace(PTRACE_SINGLESTEP, pid, nullptr, nullptr) < 0) {
     perror("ptrace");
     abort();
@@ -427,8 +456,10 @@ void BranchPatcher::single_step_bkpt(uint8_t *pc) {
   }
   assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
 
-  /* re-enable breakpoint */
-  write_inst_byte(pc, 0xcc);
+  /* restore breakpoint opcode(s) */
+  for (const auto& pair : bkpt_list) {
+    write_inst_byte(pair.first, 0xcc);
+  }
 }
 
 void BranchPatcher::set_retaddr(uint8_t *ra) {
@@ -451,10 +482,18 @@ const char *BranchPatcher::bkpt_kind_to_str(BkptKind kind) {
 
 void BranchPatcher::print_bkpts(void) const {
   for (const auto& it : bkpt_map) {
-    printf("bkpt %p %s\n", it.first, bkpt_kind_to_str(it.second.iform));
+    fprintf(stderr, "bkpt %p %s\n", it.first, bkpt_kind_to_str(it.second.iform));
   }
 }
 
 bool BranchPatcher::has_bkpt(uint8_t *pc) const {
   return bkpt_map.find(pc) != bkpt_map.end();
+}
+
+std::string BranchPatcher::bkpt_to_str(void *pc) const {
+  assert(has_bkpt((uint8_t *) pc));
+  auto pair = bkpt_map.at((uint8_t *) pc);
+  std::stringstream ss;
+  ss << "{" << ".iform = " << bkpt_kind_to_str(pair.iform) << "}";
+  return ss.str();
 }

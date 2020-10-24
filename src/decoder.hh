@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 extern "C" {
 #include <xed/xed-interface.h>
 }
@@ -15,6 +16,11 @@ public:
 
   /* returns whether successfully decoded */
   bool decode(void *pc, xed_decoded_inst_t& xedd) const;
+
+  std::string disas(void *pc) const;
+
+  // returns 0 on error 
+  unsigned instlen(void *pc) const;
   
 private:
   

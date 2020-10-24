@@ -7,3 +7,11 @@ add_executable(memcheck
 add_dependencies(memcheck xed)
 target_link_libraries(memcheck PRIVATE ${xed_LIBRARIES})
 target_include_directories(memcheck PRIVATE ${xed_INCLUDE_DIRS})
+
+add_executable(ss
+  ss.cc
+  util.cc
+  decoder.cc
+  )
+target_link_libraries(ss PRIVATE ${xed_LIBRARIES})
+target_include_directories(ss PRIVATE ${xed_INCLUDE_DIRS})

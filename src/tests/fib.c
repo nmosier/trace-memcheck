@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static unsigned fib(unsigned n) {
-  printf("fib(%u) -- begin\n", n);
+unsigned fib(unsigned n) {
   unsigned ans;
   if (n < 2) {
     ans = n;
   } else {
     ans = fib(n - 2) + fib(n - 1);
   }
-  printf("fib(%u) -- end\n", n);
   return ans;
 }
 

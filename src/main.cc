@@ -8,11 +8,12 @@
 #include <sys/user.h>
 #include <sys/mman.h>
 #include <vector>
+#include <cstring>
 
 #include "branches.hh"
 #include "util.hh"
+#include "debug.h"
 
-#define DEBUG 0
 
 static bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
@@ -100,13 +101,21 @@ int main(int argc, char *argv[]) {
   std::vector<void *> insts;
 
   void *bkpt_pc;
+#if SINGLE_STEP
+  void *prev_pc = nullptr;
+#endif
   while (1) {
-    if (get_pc(child) == (void *) 0x7ffff7a5a92b + 1) {
-      printf("here");
-      single_step_print(child, child_fd, -1);
+    auto regs = get_regs(child);
+    if (regs.rbp == (regs.rsp & ((1ULL << 32) - 1))) {
+      printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
     }
-    
+
+#if SINGLE_STEP
+    prev_pc = get_pc(child);
+    ptrace(PTRACE_SINGLESTEP, child, nullptr, nullptr);
+#else
     ptrace(PTRACE_CONT, child, NULL, NULL);
+#endif
     wait(&status);
 #if DEBUG
     printf("before pc = %p\n", (uint8_t *) get_pc(child) - 1);
@@ -116,14 +125,67 @@ int main(int argc, char *argv[]) {
       const int stopsig = WSTOPSIG(status);
        if (stopsig != SIGTRAP) {
 	 fprintf(stderr, "unexpected signal %d\n", stopsig);
+	 void *stop_pc = get_pc(child);
+	 
+	 Decoder decoder(child_fd);
+	 fprintf(stderr, "stopped at inst: %s\n", decoder.disas(stop_pc).c_str());
+
+#if GDB
+	 const unsigned instlen = decoder.instlen(stop_pc);
+	 uint8_t instbuf[Decoder::max_inst_len];
+	 memset(instbuf, 0x90, instlen); // NOPs
+	 instbuf[0] = 0xeb;
+	 instbuf[1] = 0xfe;
+	 
+	 /* run in infinite loop */
+	 write_proc(child, child_fd, get_pc(child), instbuf, instlen);
+	 ptrace(PTRACE_DETACH, child, 0, 0);
+	 
 	 char pid_str[16];
 	 sprintf(pid_str, "%d", child);
-	 execlp("gdb", "gdb", command[0], pid_str, 0);
+	 execlp("gdb", "gdb", command[0], pid_str, nullptr);
+#else
+	 abort();
+#endif
        }
-      bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
-      insts.push_back(bkpt_pc);
-      set_pc(child, bkpt_pc);
-      branch_patcher.handle_bkpt(bkpt_pc);
+
+#if SINGLE_STEP
+       uint8_t pc_byte;
+       read_proc(child, child_fd, get_pc(child), &pc_byte, 1);
+       while (pc_byte == 0xcc) {
+	 // printf("bkpt pc = %p\n", get_pc(child));
+	 bkpt_pc = (void *) ((uint8_t *) get_pc(child));
+	 insts.push_back(bkpt_pc);
+	 set_pc(child, bkpt_pc);
+	 branch_patcher.handle_bkpt(bkpt_pc);
+	 read_proc(child, child_fd, get_pc(child), &pc_byte, 1);
+       }
+       fprintf(stderr, "ss pc = %p\n", get_pc(child));
+
+       if (branch_patcher.owns_bkpt(get_pc(child) - 1)) {
+	 switch (branch_patcher.get_bkpt_kind(get_pc(child) - 1)) {
+	 case BranchPatcher::BkptKind::JUMP_DIR_POST:
+	   break;
+
+	 default:
+	   {
+	     fprintf(stderr, "bad bkpt pc = %p, %s\n", get_pc(child) - 1, branch_patcher.bkpt_to_str(get_pc(child) - 1).c_str());
+	     ptrace(PTRACE_CONT, child, nullptr, (void *) SIGSTOP);
+	     wait(NULL);
+	     ptrace(PTRACE_DETACH, child, 0, 0);
+	     char pid_str[16];
+	     sprintf(pid_str, "%d", child);
+	     execlp("gdb", "gdb", command[0], pid_str, nullptr);
+	   }
+	   break;
+	 }
+       }
+#else
+	 bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
+	 insts.push_back(bkpt_pc);
+	 set_pc(child, bkpt_pc);
+	 branch_patcher.handle_bkpt(bkpt_pc);       
+#endif
     } else {
       break;
     }
@@ -144,6 +206,8 @@ int main(int argc, char *argv[]) {
 
   assert(WIFEXITED(status));
   // cleanup();
+
+  fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));
   
   return 0;
 }
