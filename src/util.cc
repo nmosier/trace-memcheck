@@ -99,3 +99,22 @@ void enable_trap(pid_t pid) {
   regs.eflags |= 1 << 8;
   set_regs(pid, regs);
 }
+
+void syscall_proc(pid_t pid, int fd, user_regs_struct& regs) {
+  const user_regs_struct saved_regs = get_regs(pid);
+  set_regs(pid, regs);
+  void *rip = (void *) regs.rip;
+  const uint8_t syscall[] = {0x0f, 0x05};
+  uint8_t saved_code[arrlen(syscall)];
+  read_proc(pid, fd, rip, &saved_code, sizeof(saved_code));
+  write_proc(pid, fd, rip, &syscall, sizeof(syscall));
+  ptrace(PTRACE_SINGLESTEP, pid, nullptr, nullptr);
+
+  int status;
+  wait(&status);
+  assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
+  
+  write_proc(pid, fd, rip, &saved_code, sizeof(saved_code));
+  get_regs(pid, regs);
+  set_regs(pid, saved_regs);
+}

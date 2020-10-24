@@ -1,95 +1,105 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ptrace.h>
-#include <sys/wait.h>
-#include <sys/user.h>
-#include <sys/mman.h>
-#include <vector>
-#include <cstring>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <assert.h>
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <sys/ptrace.h>
+ #include <sys/wait.h>
+ #include <sys/user.h>
+ #include <sys/mman.h>
+ #include <vector>
+ #include <cstring>
 
-#include "branches.hh"
-#include "util.hh"
-#include "debug.h"
-
-
-static bool stopped_trace(int status) {
-  return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
-}
-
-static void print_pc(pid_t child) {
-  struct user_regs_struct regs;
-  ptrace(PTRACE_GETREGS, child, NULL, &regs);
-  printf("rip = %p, *rip = %016lx\n", (void *) regs.rip,
-	 ptrace(PTRACE_PEEKTEXT, child, regs.rip, NULL));
-}
+ #include "branches.hh"
+ #include "util.hh"
+ #include "debug.h"
 
 
-static void hexdump(const void *buf, size_t count) {
-  const char *buf_ = (const char *) buf;
-  for (size_t i = 0; i < count; ++i) {
-    printf("%02hhx", buf_[i]);
-  }
-  printf("\n");
-}
+ static bool stopped_trace(int status) {
+   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
+ }
 
-static int open_child(pid_t child) {
-  char *path;
-  if (asprintf(&path, "/proc/%d/mem", child) < 0) {
-    perror("asprintf");
-    return -1;
-  }
+ static void print_pc(pid_t child) {
+   struct user_regs_struct regs;
+   ptrace(PTRACE_GETREGS, child, NULL, &regs);
+   printf("rip = %p, *rip = %016lx\n", (void *) regs.rip,
+ 	 ptrace(PTRACE_PEEKTEXT, child, regs.rip, NULL));
+ }
 
-  int fd;
-  if ((fd = open(path, O_RDWR)) < 0) {
-    perror("open");
-  }
 
-  free(path);
-  return fd;
-}
+ static void hexdump(const void *buf, size_t count) {
+   const char *buf_ = (const char *) buf;
+   for (size_t i = 0; i < count; ++i) {
+     printf("%02hhx", buf_[i]);
+   }
+   printf("\n");
+ }
 
-static int close_child(int fd) {
-  return close(fd);
-}
+ static int open_child(pid_t child) {
+   char *path;
+   if (asprintf(&path, "/proc/%d/mem", child) < 0) {
+     perror("asprintf");
+     return -1;
+   }
 
-int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
-    return 1;
-  }
+   int fd;
+   if ((fd = open(path, O_RDWR)) < 0) {
+     perror("open");
+   }
 
-  char **command = &argv[1];
-  
-  pid_t child = fork();
-  if (child == 0) {
-    ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-    execvp(command[0], command);
-  }
+   free(path);
+   return fd;
+ }
 
-  const auto cleanup = [child] () {
-    kill(child, SIGTERM);
-  };
+ static int close_child(int fd) {
+   return close(fd);
+ }
 
-  Decoder::Init();
-  BranchPatcher branch_patcher;
+ int main(int argc, char *argv[]) {
+   if (argc < 2) {
+     fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
+     return 1;
+   }
 
-#if DEBUG
-  printf("child pid = %d\n", child);
-#endif
+   char **command = &argv[1];
 
-  int exitno = 1;
-  int status;
-  wait(&status);
-  assert(stopped_trace(status));
-  
-  int child_fd;
-  if ((child_fd = open_child(child)) < 0) {
-    cleanup();
-    return 1;
-  }
+   pid_t child = fork();
+   if (child == 0) {
+     ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+     execvp(command[0], command);
+   }
+
+   const auto cleanup = [child] () {
+     kill(child, SIGTERM);
+   };
+
+   Decoder::Init();
+   BranchPatcher branch_patcher;
+
+ #if DEBUG
+   printf("child pid = %d\n", child);
+ #endif
+
+   int exitno = 1;
+   int status;
+   wait(&status);
+   assert(stopped_trace(status));
+
+   int child_fd;
+   if ((child_fd = open_child(child)) < 0) {
+     cleanup();
+     return 1;
+   }
+
+
+   /* EXPERIMENTAL: try making system call */
+   user_regs_struct regs = get_regs(child);
+   regs.rax = 0; // syscall no
+   regs.rdi = 0; // int fd
+   regs.rsi = regs.rsp - 1; // void *buf
+   regs.rdx = 1; // size_t count
+   syscall_proc(child, child_fd, regs);
+   fprintf(stderr, "eax = %zd\n", regs.rax);
 
   branch_patcher = BranchPatcher(child, child_fd);
 
@@ -181,10 +191,10 @@ int main(int argc, char *argv[]) {
 	 }
        }
 #else
-	 bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
-	 insts.push_back(bkpt_pc);
-	 set_pc(child, bkpt_pc);
-	 branch_patcher.handle_bkpt(bkpt_pc);       
+       bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
+       insts.push_back(bkpt_pc);
+       set_pc(child, bkpt_pc);
+       branch_patcher.handle_bkpt(bkpt_pc);       
 #endif
     } else {
       break;

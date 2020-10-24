@@ -21,3 +21,7 @@ user_regs_struct get_regs(pid_t pid);
 void enable_trap(pid_t pid);
 
 void read_proc(pid_t pid, int fd, const void *proc_ptr, void *buf, size_t count);
+
+#define arrlen(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+void syscall_proc(pid_t pid, int fd, user_regs_struct& regs);
