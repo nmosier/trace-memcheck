@@ -3,6 +3,8 @@ add_executable(memcheck
   branches.cc
   decoder.cc
   util.cc
+  usermem.cc
+  bkpt.cc
   )
 add_dependencies(memcheck xed)
 target_link_libraries(memcheck PRIVATE ${xed_LIBRARIES})

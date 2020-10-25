@@ -3,11 +3,12 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "decoder.hh"
+#include "bkpt.hh"
 
 class BranchPatcher {
 public:
-  BranchPatcher() {}
-  BranchPatcher(pid_t pid, int fd): pid(pid), fd(fd), decoder(fd) {}
+  // BranchPatcher() {}
+  BranchPatcher(pid_t pid, int fd);
 
   void patch(void *root);
 
@@ -43,6 +44,10 @@ private:
   AddrSet processed_branches; // branches that have already been handled
   AddrSet returning_calls; // calls that return (i.e. aren't noreturn, like exit(3)
   std::unordered_map<uint8_t *, unsigned> call_pend_counts;
+  std::unordered_map<uint8_t *, uint8_t *> pend2call_map;
+  static constexpr size_t pend_pool_size = 0x1000;
+  BkptPool pend_pool;
+  
 
   /* follow basic block until next branch */
   uint8_t *find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass);
@@ -66,4 +71,5 @@ private:
 
   static const char *bkpt_kind_to_str(BkptKind kind);
 
+  // uint8_t *pend2call(uint8_t *pend_bkpt);
 };

@@ -497,3 +497,17 @@ std::string BranchPatcher::bkpt_to_str(void *pc) const {
   ss << "{" << ".iform = " << bkpt_kind_to_str(pair.iform) << "}";
   return ss.str();
 }
+
+BranchPatcher::BranchPatcher(pid_t pid, int fd):
+  pid(pid), fd(fd), decoder(fd), pend_pool(pid, fd, pend_pool_size) {
+#if 0
+  constexpr int sys_mmap = 9;
+  
+  /* get scratch memory */
+  user_regs_struct regs = get_regs(pid);
+  regs.rax = sys_mmap;
+  regs.rdi = 0;       // void *addr
+  regs.rsi = 0x1000;  // size_t length
+  syscall_proc(pid, fd, regs);
+#endif
+}

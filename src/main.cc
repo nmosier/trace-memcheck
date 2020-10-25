@@ -74,7 +74,6 @@
    };
 
    Decoder::Init();
-   BranchPatcher branch_patcher;
 
  #if DEBUG
    printf("child pid = %d\n", child);
@@ -99,9 +98,9 @@
    regs.rsi = regs.rsp - 1; // void *buf
    regs.rdx = 1; // size_t count
    syscall_proc(child, child_fd, regs);
-   fprintf(stderr, "eax = %zd\n", regs.rax);
+   fprintf(stderr, "eax = %lld\n", regs.rax);
 
-  branch_patcher = BranchPatcher(child, child_fd);
+   BranchPatcher branch_patcher(child, child_fd);
 
   void *pc;
   pc = get_pc(child);
