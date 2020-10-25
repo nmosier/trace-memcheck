@@ -315,10 +315,14 @@ void BranchPatcher::handle_bkpt(void *pc_) {
     
   case BkptKind::CALL_IND:
     {
-      uint8_t *pend_pc = pc + 1;
       single_step_bkpt(pc);
-      insert_bkpt(pend_pc, BkptKind::CALL_IND_PEND, branch_info.instlen);
       patch(get_pc(pid));
+      user_ptr_t<uint8_t> pend_pc;
+      if (!has_pend(pc)) {
+	pend_pc = insert_pend(pc, branch_info.instlen);
+      } else {
+	pend_pc = get_pend(pc);
+      }
       set_retaddr(pend_pc);
       ++call_pend_counts[pend_pc];
     }
@@ -328,44 +332,34 @@ void BranchPatcher::handle_bkpt(void *pc_) {
     {
       /* we know that it is unknown whether this function returns */
       assert(returning_calls.find(pc) == returning_calls.end());
-      uint8_t *pend_pc = pc + 1;
       single_step_bkpt(pc);
-      if (!has_bkpt(pend_pc)) {
-	insert_bkpt(pend_pc, BkptKind::CALL_DIR_PEND, branch_info.instlen);
+
+      user_ptr_t<uint8_t> pend_pc;
+      if (!has_pend(pc)) {
+	pend_pc = insert_pend(pc, branch_info.instlen);
+      } else {
+	pend_pc = get_pend(pc);
       }
       set_retaddr(pend_pc);
       ++call_pend_counts[pend_pc];
     }
     break;
 
-  case BkptKind::CALL_DIR_PEND:
+  case BkptKind::CALL_PEND:
     {
       /* this function does return.
        * - disable pending and call breakpoints
        * - add to list of returning calls 
-     */
-      assert(returning_calls.find(pc - 1) == returning_calls.end());
-      if (--call_pend_counts[pc] == 0) {
-	returning_calls.insert(pc - 1);
-	remove_bkpt(pc); // pending breakpoint
-	remove_bkpt(pc - 1); // call breakpoint	
+       */
+      const user_ptr_t<uint8_t> call_pc = get_call(pc);
+      returning_calls.insert(call_pc);
+      const auto call_bkpt_it = bkpt_map.find(call_pc);
+      const user_ptr_t<uint8_t> next_pc = call_pc + branch_info.instlen;
+      if (call_bkpt_it != bkpt_map.end()) {
+	remove_bkpt(call_pc);
+	patch(next_pc);
       }
-      uint8_t *next_pc = pc - 1 + branch_info.instlen;
       set_pc(pid, (void *) next_pc);
-      patch(next_pc);
-    }
-    break;
-
-  case BkptKind::CALL_IND_PEND:
-    {
-      /* This call does return */
-      if (--call_pend_counts[pc] == 0) {
-	returning_calls.insert(pc - 1);
-	remove_bkpt(pc);
-      }
-      uint8_t *next_pc = pc - 1 + branch_info.instlen;
-      set_pc(pid, (void *) next_pc);
-      patch(next_pc);
     }
     break;
 
@@ -475,8 +469,7 @@ const char *BranchPatcher::bkpt_kind_to_str(BkptKind kind) {
   case BkptKind::CALL_DIR:      return "CALL_DIR";
   case BkptKind::CALL_IND:      return "CALL_IND";
   case BkptKind::RET:           return "RET";
-  case BkptKind::CALL_DIR_PEND: return "CALL_DIR_PEND";
-  case BkptKind::CALL_IND_PEND: return "CALL_IND_PEND";
+  case BkptKind::CALL_PEND:     return "CALL_PEND";
   }
 }
 
@@ -510,4 +503,24 @@ BranchPatcher::BranchPatcher(pid_t pid, int fd):
   regs.rsi = 0x1000;  // size_t length
   syscall_proc(pid, fd, regs);
 #endif
+}
+
+user_ptr_t<uint8_t> BranchPatcher::insert_pend(user_ptr_t<uint8_t> call_pc, unsigned call_instlen) {
+  const user_ptr_t<uint8_t> pend_pc = pend_pool.alloc();
+  insert_bkpt(pend_pc, BkptKind::CALL_PEND, call_instlen);
+  call_pend_map[pend_pc] = call_pc;
+  call_pend_map[call_pc] = pend_pc;
+  return pend_pc;
+}
+
+bool BranchPatcher::has_pend(user_ptr_t<uint8_t> call_pc) const {
+  return call_pend_map.find(call_pc) != call_pend_map.end();
+}
+
+user_ptr_t<uint8_t> BranchPatcher::get_pend(user_ptr_t<uint8_t> call_pc) const {
+  return call_pend_map.at(call_pc);
+}
+
+user_ptr_t<uint8_t> BranchPatcher::get_call(user_ptr_t<uint8_t> pend_pc) const {
+  return call_pend_map.at(pend_pc);
 }

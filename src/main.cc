@@ -91,6 +91,7 @@
    }
 
 
+#if 0
    /* EXPERIMENTAL: try making system call */
    user_regs_struct regs = get_regs(child);
    regs.rax = 0; // syscall no
@@ -99,6 +100,7 @@
    regs.rdx = 1; // size_t count
    syscall_proc(child, child_fd, regs);
    fprintf(stderr, "eax = %lld\n", regs.rax);
+#endif
 
    BranchPatcher branch_patcher(child, child_fd);
 

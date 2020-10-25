@@ -21,8 +21,7 @@ public:
   void print_bkpts(void) const;
   std::string bkpt_to_str(void *pc) const;
 
-  enum class BkptKind {JUMP_DIR, JUMP_DIR_POST, JUMP_IND, CALL_DIR, CALL_IND, RET, CALL_DIR_PEND,
-      CALL_IND_PEND};
+  enum class BkptKind {JUMP_DIR, JUMP_DIR_POST, JUMP_IND, CALL_DIR, CALL_IND, RET, CALL_PEND};
 
   BkptKind get_bkpt_kind(void *pc) const { return bkpt_map.at((uint8_t *) pc).iform; }
 
@@ -44,10 +43,9 @@ private:
   AddrSet processed_branches; // branches that have already been handled
   AddrSet returning_calls; // calls that return (i.e. aren't noreturn, like exit(3)
   std::unordered_map<uint8_t *, unsigned> call_pend_counts;
-  std::unordered_map<uint8_t *, uint8_t *> pend2call_map;
+  std::unordered_map<user_ptr_t<uint8_t>, user_ptr_t<uint8_t>> call_pend_map; // convert to/from calls and pends
   static constexpr size_t pend_pool_size = 0x1000;
-  BkptPool pend_pool;
-  
+  BkptPool pend_pool;  
 
   /* follow basic block until next branch */
   uint8_t *find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass);
@@ -70,6 +68,11 @@ private:
   void set_retaddr(uint8_t *ra);
 
   static const char *bkpt_kind_to_str(BkptKind kind);
+
+  user_ptr_t<uint8_t> insert_pend(user_ptr_t<uint8_t> call_pc, unsigned call_instlen);
+  bool has_pend(user_ptr_t<uint8_t> call_pc) const;
+  user_ptr_t<uint8_t> get_pend(user_ptr_t<uint8_t> call_pc) const;
+  user_ptr_t<uint8_t> get_call(user_ptr_t<uint8_t> pend_pc) const;
 
   // uint8_t *pend2call(uint8_t *pend_bkpt);
 };
