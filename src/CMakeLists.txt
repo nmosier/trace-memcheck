@@ -7,6 +7,7 @@ add_executable(memcheck
   bkpt.cc
   tracee.cc
   patch.cc
+  block.cc
   )
 add_dependencies(memcheck xed)
 target_link_libraries(memcheck PRIVATE ${xed_LIBRARIES})

@@ -29,7 +29,21 @@ void BranchPatcher::patch(void *root_) {
     uint8_t *start_pc = todo.back();
     todo.pop_back();
 
-    uint8_t *pc = (uint8_t *) find_branch(start_pc, xedd, iclass);
+    /* find original block, if added */
+    const auto orig_block_rev_it = orig_blocks.upper_bound(start_pc);
+    const Block *orig_block;
+    auto orig_block_it = std::make_reverse_iterator(orig_block_rev_it);
+
+    if (orig_block_it != orig_blocks.rend()) {
+      --orig_block_it;
+      if (orig_block->contains(start_pc)) {
+	orig_blocks[start_pc] = orig_block_it->second.block_at(start_pc);
+	continue;
+      }
+    }
+
+    Block block;
+    uint8_t *pc = (uint8_t *) find_branch(start_pc, xedd, iclass, block);
     if (pc == nullptr) {
       continue;
     }
@@ -81,13 +95,16 @@ void BranchPatcher::patch(void *root_) {
   }
 }
 
-uint8_t *BranchPatcher::find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass) {
+uint8_t *BranchPatcher::find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass,
+				    Block& block) {
   // DEBUG
   std::vector<uint8_t *> insts = {pc};
+  block = Block(pc);
   
   const bool decoded = decoder.decode(pc, xedd);
   assert(decoded);
   iclass = classify(xed_decoded_inst_get_iclass(&xedd));
+  block.instructions().push_back(xedd);
   while (iclass == InstClass::OTHER) {
     /* ignore any breakpoints */
     if (xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_INT3) {
@@ -98,7 +115,10 @@ uint8_t *BranchPatcher::find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstC
     const bool decoded = decoder.decode(pc, xedd);
     assert(decoded);
     iclass = classify(xed_decoded_inst_get_iclass(&xedd));
+    block.instructions().push_back(xedd);
   }
+  // TODO: rewrite loop to not require duplication / loop priming
+  
   return pc;
 }
 

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <unordered_map>
+#include <map>
 #include <unordered_set>
 #include "decoder.hh"
 #include "bkpt.hh"
+#include "block.hh"
 
 class BranchPatcher {
 public:
@@ -34,6 +36,7 @@ private:
   };
   using BkptMap = std::unordered_map<uint8_t *, BranchInfo>;
   using AddrSet = std::unordered_set<uint8_t *>;
+  using BlockMap = std::map<void *, Block>;
 
   Tracee& tracee;
   Decoder decoder;
@@ -43,10 +46,11 @@ private:
   std::unordered_map<uint8_t *, unsigned> call_pend_counts;
   std::unordered_map<user_ptr_t<uint8_t>, user_ptr_t<uint8_t>> call_pend_map; // convert to/from calls and pends
   static constexpr size_t pend_pool_size = 0x1000;
-  BkptPool pend_pool;  
+  BkptPool pend_pool;
+  BlockMap orig_blocks; // original block instructions
 
   /* follow basic block until next branch */
-  uint8_t *find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass);
+  uint8_t *find_branch(uint8_t *pc, xed_decoded_inst_t& xedd, InstClass& iclass, Block& block);
 
   static InstClass classify(xed_iclass_enum_t iclass);
   static BkptKind get_bkpt_kind(xed_iform_enum_t iform); 
@@ -72,5 +76,5 @@ private:
   user_ptr_t<uint8_t> get_pend(user_ptr_t<uint8_t> call_pc) const;
   user_ptr_t<uint8_t> get_call(user_ptr_t<uint8_t> pend_pc) const;
 
-  // uint8_t *pend2call(uint8_t *pend_bkpt);
+  
 };
