@@ -7,8 +7,7 @@
 
 class BranchPatcher {
 public:
-  // BranchPatcher() {}
-  BranchPatcher(pid_t pid, int fd);
+  BranchPatcher(Tracee& tracee);
 
   void patch(void *root);
 
@@ -36,8 +35,7 @@ private:
   using BkptMap = std::unordered_map<uint8_t *, BranchInfo>;
   using AddrSet = std::unordered_set<uint8_t *>;
 
-  pid_t pid;
-  int fd;
+  Tracee& tracee;
   Decoder decoder;
   BkptMap bkpt_map;
   AddrSet processed_branches; // branches that have already been handled

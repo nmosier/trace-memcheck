@@ -7,7 +7,7 @@
 
 class BkptPool {
 public:
-  BkptPool(pid_t pid, int fd, size_t size): mem(pid, fd, size), next(mem.begin<uint8_t>()) {}
+  BkptPool(const Tracee& tracee, size_t size): mem(tracee, size), next(mem.begin<uint8_t>()) {}
 
   user_ptr_t<uint8_t> alloc();
   void free(user_ptr_t<uint8_t> user_ptr) {}

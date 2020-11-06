@@ -4,13 +4,13 @@
 extern "C" {
 #include <xed/xed-interface.h>
 }
+#include "tracee.hh"
 
 class Decoder {
 public:
   static constexpr unsigned max_inst_len = 16;
 
-  Decoder() {}
-  Decoder(int fd): fd(fd) {}
+  Decoder(Tracee& tracee): tracee(tracee) {}
 
   static void Init(void);
 
@@ -25,6 +25,5 @@ public:
 private:
   
   static xed_state_t state;
-  int fd;
+  Tracee& tracee;
 };
-

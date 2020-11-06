@@ -33,26 +33,6 @@ static void hexdump(const void *buf, size_t count) {
   printf("\n");
 }
 
-static int open_child(pid_t child) {
-  char *path;
-  if (asprintf(&path, "/proc/%d/mem", child) < 0) {
-    perror("asprintf");
-    return -1;
-  }
-
-  int fd;
-  if ((fd = open(path, O_RDWR)) < 0) {
-    perror("open");
-  }
-
-  free(path);
-  return fd;
-}
-
-static int close_child(int fd) {
-  return close(fd);
-}
-
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
@@ -81,15 +61,10 @@ int main(int argc, char *argv[]) {
   int status;
   wait(&status);
   assert(stopped_trace(status));
-  
-  int child_fd;
-  if ((child_fd = open_child(child)) < 0) {
-    cleanup();
-    return 1;
-  }
 
-  void *pc;
-  pc = get_pc(child);
+  Tracee tracee(child);
+
+  void *pc = tracee.get_pc();
   
   std::vector<void *> insts;
 
@@ -101,21 +76,18 @@ int main(int argc, char *argv[]) {
       const int stopsig = WSTOPSIG(status);
        if (stopsig != SIGTRAP) {
 	 fprintf(stderr, "unexpected signal %d\n", stopsig);
-	 void *stop_pc = get_pc(child);
+	 void *stop_pc = tracee.get_pc();
 	 
-	 Decoder decoder(child_fd);
+	 Decoder decoder(tracee);
 	 fprintf(stderr, "stopped at inst: %s\n", decoder.disas(stop_pc).c_str());
 	 abort();
        }
-       fprintf(stderr, "ss pc = %p\n", get_pc(child));
+#if DEBUG
+       fprintf(stderr, "ss pc = %p\n", tracee.get_pc());
+#endif
     } else {
       break;
     }
-  }
-
-  if (close_child(child_fd) < 0) {
-    cleanup();
-    return 1;
   }
 
   assert(WIFEXITED(status));

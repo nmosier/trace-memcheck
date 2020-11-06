@@ -5,6 +5,8 @@ add_executable(memcheck
   util.cc
   usermem.cc
   bkpt.cc
+  tracee.cc
+  patch.cc
   )
 add_dependencies(memcheck xed)
 target_link_libraries(memcheck PRIVATE ${xed_LIBRARIES})
@@ -14,6 +16,7 @@ add_executable(ss
   ss.cc
   util.cc
   decoder.cc
+  tracee.cc
   )
 target_link_libraries(ss PRIVATE ${xed_LIBRARIES})
 target_include_directories(ss PRIVATE ${xed_INCLUDE_DIRS})

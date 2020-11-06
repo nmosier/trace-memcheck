@@ -2,12 +2,13 @@ extern "C" {
 #include <xed/xed-interface.h>
 }
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 #include <sys/ptrace.h>
 #include <vector>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 #include <sstream>
 
 #include "branches.hh"
@@ -278,11 +279,7 @@ void BranchPatcher::insert_bkpt(uint8_t *pc, BkptKind iform, unsigned instlen) {
   /* get opcode to save */
   uint8_t opcode;
   ssize_t bytes_read;
-  if ((bytes_read = pread(fd, &opcode, 1, (off_t) pc)) < 0) {
-    perror("pread");
-    abort();
-  }
-  assert(bytes_read == 1);
+  tracee.read(&opcode, 1, pc);
 
   assert(!has_bkpt(pc));
   bkpt_map[pc].opcode = opcode;
@@ -310,13 +307,13 @@ void BranchPatcher::handle_bkpt(void *pc_) {
   switch (branch_info.iform) {
   case BkptKind::JUMP_IND:
     single_step_bkpt(pc);
-    patch(get_pc(pid));
+    patch(tracee.get_pc());
     break;
     
   case BkptKind::CALL_IND:
     {
       single_step_bkpt(pc);
-      patch(get_pc(pid));
+      patch(tracee.get_pc());
       user_ptr_t<uint8_t> pend_pc;
       if (!has_pend(pc)) {
 	pend_pc = insert_pend(pc, branch_info.instlen);
@@ -359,7 +356,7 @@ void BranchPatcher::handle_bkpt(void *pc_) {
 	remove_bkpt(call_pc);
 	patch(next_pc);
       }
-      set_pc(pid, (void *) next_pc);
+      tracee.set_pc((void *) next_pc);
     }
     break;
 
@@ -367,7 +364,7 @@ void BranchPatcher::handle_bkpt(void *pc_) {
     {
       /* this was after a conditional jump */
       remove_bkpt(pc);
-      set_pc(pid, pc);
+      tracee.set_pc(pc);
       patch(pc);
     }
     break;
@@ -386,28 +383,18 @@ void BranchPatcher::remove_bkpt(uint8_t *pc) {
 #if BKPTS
   fprintf(stderr, "remove bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(it->second.iform));
 #endif
-  
-  ssize_t bytes_written;
-  if ((bytes_written = pwrite(fd, &it->second.opcode, 1, (off_t) pc)) < 0) {
-    perror("pwrite");
-    abort();
-  }
-  assert(bytes_written == 1);
+
+  tracee.write(&it->second.opcode, 1, pc);
 
   bkpt_map.erase(it);
 }
 
 void BranchPatcher::write_inst_byte(uint8_t *pc, uint8_t opcode) {
-  ssize_t bytes;
-  if ((bytes = pwrite(fd, &opcode, 1, (off_t) pc)) < 0) {
-    perror("pwrite");
-    abort();
-  }
-  assert(bytes == 1);
+  tracee.write(&opcode, 1, pc);
 
 #if 1
   uint8_t opcode2;
-  pread(fd, &opcode2, 1, (off_t) pc);
+  tracee.read(&opcode2, 1, pc);
   assert(opcode == opcode2);
 #endif
 }
@@ -437,17 +424,10 @@ void BranchPatcher::single_step_bkpt(uint8_t *pc) {
   }
 
   /* single step */
-#if SINGLE_STEP
+#if SINGLE_STEP && DEBUG
   fprintf(stderr, "ss pc = %p\n", pc);
 #endif
-  if (ptrace(PTRACE_SINGLESTEP, pid, nullptr, nullptr) < 0) {
-    perror("ptrace");
-    abort();
-  }
-  int status;
-  if (wait(&status) < 0) {
-    perror("wait");
-  }
+  const int status = tracee.singlestep();
   assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
 
   /* restore breakpoint opcode(s) */
@@ -457,8 +437,8 @@ void BranchPatcher::single_step_bkpt(uint8_t *pc) {
 }
 
 void BranchPatcher::set_retaddr(uint8_t *ra) {
-  uint64_t *sp = (uint64_t *) get_sp(pid);
-  pwrite(fd, &ra, sizeof(ra), (off_t) sp);
+  uint64_t *sp = (uint64_t *) tracee.get_sp();
+  tracee.write(&ra, sizeof(ra), sp);
 }
 
 const char *BranchPatcher::bkpt_kind_to_str(BkptKind kind) {
@@ -491,8 +471,8 @@ std::string BranchPatcher::bkpt_to_str(void *pc) const {
   return ss.str();
 }
 
-BranchPatcher::BranchPatcher(pid_t pid, int fd):
-  pid(pid), fd(fd), decoder(fd), pend_pool(pid, fd, pend_pool_size) {
+BranchPatcher::BranchPatcher(Tracee& tracee):
+  tracee(tracee), decoder(tracee), pend_pool(tracee, pend_pool_size) {
 #if 0
   constexpr int sys_mmap = 9;
   

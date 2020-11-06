@@ -15,6 +15,7 @@
  #include "debug.h"
 
 
+
  static bool stopped_trace(int status) {
    return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
  }
@@ -33,26 +34,6 @@
      printf("%02hhx", buf_[i]);
    }
    printf("\n");
- }
-
- static int open_child(pid_t child) {
-   char *path;
-   if (asprintf(&path, "/proc/%d/mem", child) < 0) {
-     perror("asprintf");
-     return -1;
-   }
-
-   int fd;
-   if ((fd = open(path, O_RDWR)) < 0) {
-     perror("open");
-   }
-
-   free(path);
-   return fd;
- }
-
- static int close_child(int fd) {
-   return close(fd);
  }
 
  int main(int argc, char *argv[]) {
@@ -84,12 +65,7 @@
    wait(&status);
    assert(stopped_trace(status));
 
-   int child_fd;
-   if ((child_fd = open_child(child)) < 0) {
-     cleanup();
-     return 1;
-   }
-
+   Tracee tracee(child);
 
 #if 0
    /* EXPERIMENTAL: try making system call */
@@ -102,10 +78,10 @@
    fprintf(stderr, "eax = %lld\n", regs.rax);
 #endif
 
-   BranchPatcher branch_patcher(child, child_fd);
+   BranchPatcher branch_patcher(tracee);
 
   void *pc;
-  pc = get_pc(child);
+  pc = tracee.get_pc();
   
   branch_patcher.patch(pc);
 
@@ -116,29 +92,29 @@
   void *prev_pc = nullptr;
 #endif
   while (1) {
-    auto regs = get_regs(child);
+    auto regs = tracee.get_regs();
     if (regs.rbp == (regs.rsp & ((1ULL << 32) - 1))) {
       printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
     }
 
 #if SINGLE_STEP
-    prev_pc = get_pc(child);
+    prev_pc = tracee.get_pc();
     ptrace(PTRACE_SINGLESTEP, child, nullptr, nullptr);
 #else
     ptrace(PTRACE_CONT, child, NULL, NULL);
 #endif
     wait(&status);
 #if DEBUG
-    printf("before pc = %p\n", (uint8_t *) get_pc(child) - 1);
+    printf("before pc = %p\n", (uint8_t *) tracee.get_pc() - 1);
 #endif
     
     if (WIFSTOPPED(status)) {
       const int stopsig = WSTOPSIG(status);
        if (stopsig != SIGTRAP) {
 	 fprintf(stderr, "unexpected signal %d\n", stopsig);
-	 void *stop_pc = get_pc(child);
+	 void *stop_pc = tracee.get_pc();
 	 
-	 Decoder decoder(child_fd);
+	 Decoder decoder(tracee);
 	 fprintf(stderr, "stopped at inst: %s\n", decoder.disas(stop_pc).c_str());
 
 #if GDB
@@ -149,7 +125,7 @@
 	 instbuf[1] = 0xfe;
 	 
 	 /* run in infinite loop */
-	 write_proc(child, child_fd, get_pc(child), instbuf, instlen);
+	 tracee.write(instbuf, instlen, tracee.get_pc());
 	 ptrace(PTRACE_DETACH, child, 0, 0);
 	 
 	 char pid_str[16];
@@ -162,25 +138,27 @@
 
 #if SINGLE_STEP
        uint8_t pc_byte;
-       read_proc(child, child_fd, get_pc(child), &pc_byte, 1);
+       tracee.read(&pc_byte, 1, tracee.get_pc());
        while (pc_byte == 0xcc) {
 	 // printf("bkpt pc = %p\n", get_pc(child));
-	 bkpt_pc = (void *) ((uint8_t *) get_pc(child));
+	 bkpt_pc = (void *) ((uint8_t *) tracee.get_pc());
 	 insts.push_back(bkpt_pc);
-	 set_pc(child, bkpt_pc);
+	 tracee.set_pc(bkpt_pc);
 	 branch_patcher.handle_bkpt(bkpt_pc);
-	 read_proc(child, child_fd, get_pc(child), &pc_byte, 1);
+	 tracee.read(&pc_byte, 1, tracee.get_pc());
        }
-       fprintf(stderr, "ss pc = %p\n", get_pc(child));
+# if DEBUG
+       fprintf(stderr, "ss pc = %p\n", tracee.get_pc());
+# endif
 
-       if (branch_patcher.owns_bkpt(get_pc(child) - 1)) {
-	 switch (branch_patcher.get_bkpt_kind(get_pc(child) - 1)) {
+       if (branch_patcher.owns_bkpt((uint8_t *) tracee.get_pc() - 1)) {
+	 switch (branch_patcher.get_bkpt_kind((uint8_t *) tracee.get_pc() - 1)) {
 	 case BranchPatcher::BkptKind::JUMP_DIR_POST:
 	   break;
 
 	 default:
 	   {
-	     fprintf(stderr, "bad bkpt pc = %p, %s\n", get_pc(child) - 1, branch_patcher.bkpt_to_str(get_pc(child) - 1).c_str());
+	     fprintf(stderr, "bad bkpt pc = %p, %s\n", (uint8_t *) tracee.get_pc() - 1, branch_patcher.bkpt_to_str((uint8_t *) tracee.get_pc() - 1).c_str());
 	     ptrace(PTRACE_CONT, child, nullptr, (void *) SIGSTOP);
 	     wait(NULL);
 	     ptrace(PTRACE_DETACH, child, 0, 0);
@@ -192,16 +170,16 @@
 	 }
        }
 #else
-       bkpt_pc = (void *) ((uint8_t *) get_pc(child) - 1);
+       bkpt_pc = (void *) ((uint8_t *) tracee.get_pc() - 1);
        insts.push_back(bkpt_pc);
-       set_pc(child, bkpt_pc);
+       tracee.set_pc(bkpt_pc);
        branch_patcher.handle_bkpt(bkpt_pc);       
 #endif
     } else {
       break;
     }
 #if DEBUG
-    printf("after pc = %p\n", get_pc(child));
+    printf("after pc = %p\n", tracee.get_pc());
     branch_patcher.print_bkpts();
 #endif
   }
@@ -210,11 +188,6 @@
   printf("done\n");
 #endif
   
-  if (close_child(child_fd) < 0) {
-    cleanup();
-    return 1;
-  }
-
   assert(WIFEXITED(status));
   // cleanup();
 

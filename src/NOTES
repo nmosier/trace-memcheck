@@ -1,0 +1,17 @@
+Different approach:
+Copy entire blocks.
+Upon detecting block, copy to new memory block pool.
+
+Hmm, could directly patch like in valgrind.
+My approach makes indirect jumps faster -- don't have to do translation.
+
+What to do when new block b is discovered:
+1. Allocate b' in code pool.
+2. Set breakpoint at end. Upon reaching breakpoint, code will then patch the next block.
+
+Whenever a breakpoint is reached, find next
+
+
+COMPONENTS:
+[ ] Block class.
+[ ] Set of blocks holding original code.

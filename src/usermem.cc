@@ -6,30 +6,19 @@
 #include "usermem.hh"
 #include "util.hh"
 
-
-UserMemory::UserMemory(pid_t pid, int fd, size_t size): pid(pid), fd(fd), size_(size) {
-  user_regs_struct regs = get_regs(pid);
-  regs.rax = 9; // mmap
-  regs.rdi = 0; // void *addr = NULL
-  regs.rsi = size_; // size_t length = size
-  regs.rdx = PROT_READ | PROT_EXEC; // int prot
-  regs.r10 = MAP_PRIVATE | MAP_ANONYMOUS; // int flags
-  regs.r8  = -1; // int fd
-  regs.r9  = 0; // off_t offset
-  syscall_proc(pid, fd, regs);
-  if ((void *) regs.rax == MAP_FAILED) {
-    fprintf(stderr, "error: mmap\n");
+UserMemory::UserMemory(const Tracee& tracee, size_t size): tracee(tracee), size_(size) {
+  user_regs_struct regs = tracee.get_regs();
+  user_map = (user_ptr_t<char>) tracee.syscall(9 /* mmap */,
+					       0 /* void *addr */,
+					       size_ /* size_t length */,
+					       PROT_READ | PROT_EXEC /* int prot */,
+					       MAP_PRIVATE | MAP_ANONYMOUS /* int flags */,
+					       -1 /* int fd */,
+					       0 /* off_t offset */);
+  if (user_map == MAP_FAILED) {
+    tracee.perror();
     abort();
   }
-  user_map = (user_ptr_t<char>) regs.rax;
-
-#if 0 // it appears that this is not possible
-  if ((dbg_map = (char *) mmap(nullptr, size_, PROT_READ | PROT_WRITE,
-			       MAP_SHARED, fd, (off_t) user_map)) == MAP_FAILED) {
-    perror("mmap");
-    abort();
-  }
-#endif
 }
 
 UserMemory::~UserMemory() {

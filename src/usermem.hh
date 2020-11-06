@@ -1,13 +1,14 @@
 #pragma once
 
 #include <unistd.h>
+#include "tracee.hh"
 
 template <typename T>
 using user_ptr_t = T *;
 
 class UserMemory {
 public:
-  UserMemory(pid_t pid, int fd, size_t size);
+  UserMemory(const Tracee& tracee, size_t size);
   ~UserMemory();
 
   size_t size() const { return size_; }
@@ -22,8 +23,7 @@ public:
   user_ptr_t<T> end() { return reinterpret_cast<user_ptr_t<T>>(begin<char>() + size()); }
 
 private:
-  pid_t      pid;
-  int         fd;
-  size_t    size_;
+  const Tracee& tracee;
+  size_t size_;
   user_ptr_t<char> user_map;
 };

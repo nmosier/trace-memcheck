@@ -18,11 +18,7 @@ bool Decoder::decode(void *pc, xed_decoded_inst_t& xedd) const {
 
   ssize_t bytes_read;
   uint8_t buf[max_inst_len];
-  if ((bytes_read = pread(fd, buf, max_inst_len, (off_t) pc)) < 0) {
-    perror("pread");
-    return false;
-  }
-  assert(bytes_read == max_inst_len);
+  tracee.read(buf, max_inst_len, pc);
 
   if (xed_decode(&xedd, buf, max_inst_len) != XED_ERROR_NONE) {
     return false;
