@@ -49,6 +49,7 @@ void BranchPatcher::patch(void *root_) {
     Block block;
     // fprintf(stderr, "(start_pc, end_pc) = (%p, %p)\n", start_pc, end_pc);
     uint8_t *pc = (uint8_t *) find_branch(start_pc, end_pc, xedd, iclass, block);
+    assert(pc != nullptr);
     if (pc == end_pc) {
       /* prepend instructions to existing block */
       block.instructions().insert(block.instructions().end(), end_block->instructions().begin(),
@@ -57,10 +58,6 @@ void BranchPatcher::patch(void *root_) {
       continue;
     }
 
-    if (pc == nullptr) {
-      // TODO: in future, shouldn't continue
-      continue;
-    }
     uint8_t *next_pc = pc + xed_decoded_inst_get_length(&xedd);
 
     // fprintf(stderr, "(%p, %p)\n", start_pc, pc);
@@ -114,23 +111,31 @@ uint8_t *BranchPatcher::find_branch(uint8_t *begin_pc, uint8_t *end_pc, xed_deco
 
   uint8_t *pc = begin_pc;
 
+  bool removed_bkpt = false;
   while (pc < end_pc) {
     const bool decoded = decoder.decode(pc, xedd);
     assert(decoded);
     iclass = classify(xed_decoded_inst_get_iclass(&xedd));
+
+    /* EXPERIMENTAL: If breakpoint encountered, it must be a JUMP_DIR_POST. 
+     * Can process it anyway. */
+    if (xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_INT3) {
+      /* replace with original instruction */
+      assert(!removed_bkpt);
+      assert(bkpt_map.find(pc) != bkpt_map.end());
+      assert(bkpt_map.at(pc).iform == BkptKind::JUMP_DIR_POST);
+      
+      removed_bkpt = true;
+      remove_bkpt(pc);
+      continue;
+    }
+    
     block.instructions().push_back(xedd);
     
     if (iclass != InstClass::OTHER) {
       break;
     }
 
-    /* ignore any breakpoints */
-    if (xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_INT3) {
-#if TODOS
-      fprintf(stderr, "warning: hit 'int3' in find_branch()\n");
-#endif
-      return nullptr;
-    }
     pc += xed_decoded_inst_get_length(&xedd);
     insts.push_back(pc);
   }
