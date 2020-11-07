@@ -65,16 +65,7 @@ void BranchPatcher::patch(void *root_) {
 
     // fprintf(stderr, "(%p, %p)\n", start_pc, pc);
 
-#if 0    
-    if (processed_branches.find(pc) != processed_branches.end()) {
-      continue;
-    }
-#else
-    assert(processed_branches.find(pc) == processed_branches.end());
     orig_blocks[start_pc] = block;
-#endif
-
-    processed_branches.insert(pc);
 
     bkpt_kind = get_bkpt_kind(xed_decoded_inst_get_iform_enum(&xedd));
     const unsigned instlen = xed_decoded_inst_get_length(&xedd);

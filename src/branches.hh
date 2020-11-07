@@ -41,7 +41,6 @@ private:
   Tracee& tracee;
   Decoder decoder;
   BkptMap bkpt_map;
-  AddrSet processed_branches; // branches that have already been handled
   AddrSet returning_calls; // calls that return (i.e. aren't noreturn, like exit(3)
   std::unordered_map<uint8_t *, unsigned> call_pend_counts;
   std::unordered_map<user_ptr_t<uint8_t>, user_ptr_t<uint8_t>> call_pend_map; // convert to/from calls and pends
