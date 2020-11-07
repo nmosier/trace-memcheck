@@ -1,5 +1,7 @@
 #pragma once
 
+class Block;
+
 #include <vector>
 #include <cstddef>
 
@@ -7,9 +9,13 @@ extern "C" {
 #include <xed/xed-interface.h>
 }
 
+#include "tracee.hh"
+#include "usermem.hh"
+#include "inst.hh"
+
 class Block {
 public:
-  using InstVec = std::vector<xed_decoded_inst_t>;
+  using InstVec = std::vector<Instruction>;
 
   Block() {}
   Block(void *addr): addr_(addr) {}
@@ -29,4 +35,19 @@ public:
 private:
   void *addr_;
   InstVec insts;
+};
+
+class BlockPool {
+public:
+  BlockPool(const Tracee& tracee, size_t size): mem(tracee, size) {}
+
+  template <typename It>
+  void add_block(It begin, It end) {
+    for (auto it = begin; it != end; ++it) {
+      // TODO
+    }
+  }
+  
+private:
+  UserMemory mem;
 };

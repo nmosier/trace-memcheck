@@ -1,10 +1,13 @@
 #pragma once
 
+class Decoder;
+
 #include <string>
 extern "C" {
 #include <xed/xed-interface.h>
 }
 #include "tracee.hh"
+#include "inst.hh"
 
 class Decoder {
 public:
@@ -15,26 +18,28 @@ public:
   static void Init(void);
 
   /* returns whether successfully decoded */
-  bool decode(void *pc, xed_decoded_inst_t& xedd) const;
+  bool decode(uint8_t *pc, xed_decoded_inst_t& xedd) const;
+
+  bool decode(uint8_t *pc, Instruction& inst) const;
 
   template <typename OutputIt>
-  bool decode(void *begin, void *end, OutputIt out_it) const {
-    void *it = begin;
+  bool decode(uint8_t *begin, uint8_t *end, OutputIt out_it) const {
+    uint8_t *it = begin;
     xed_decoded_inst_t xedd;
     while (it < end) {
       if (!decode(it, xedd)) {
 	return false;
       }
       *out_it++ = xedd;
-      it = (void *) ((char *) it + xed_decoded_inst_get_length(&xedd));
+      it += xed_decoded_inst_get_length(&xedd);;
     }
     return true; 
   }
 
-  std::string disas(void *pc) const;
+  std::string disas(uint8_t *pc) const;
 
   // returns 0 on error 
-  unsigned instlen(void *pc) const;
+  unsigned instlen(uint8_t *pc) const;
   
 private:
   

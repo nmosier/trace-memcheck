@@ -83,8 +83,8 @@ void *Tracee::get_sp(void) const {
   return (void *) get_regs().rsp;
 }
 
-void *Tracee::get_pc(void) const {
-  return (void *) get_regs().rip;
+uint8_t *Tracee::get_pc(void) const {
+  return (uint8_t *) get_regs().rip;
 }
 
 void Tracee::set_pc(void *pc) const {

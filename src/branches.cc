@@ -23,7 +23,6 @@ void BranchPatcher::patch(void *root_) {
    */
   std::vector<uint8_t *> todo = {root}; // todo addresses
   while (!todo.empty()) {
-    xed_decoded_inst_t xedd;
     InstClass iclass;
     BkptKind bkpt_kind;
     uint8_t *start_pc = todo.back();
@@ -47,8 +46,8 @@ void BranchPatcher::patch(void *root_) {
     }
 
     Block block;
-    // fprintf(stderr, "(start_pc, end_pc) = (%p, %p)\n", start_pc, end_pc);
-    uint8_t *pc = (uint8_t *) find_branch(start_pc, end_pc, xedd, iclass, block);
+    Instruction inst;
+    uint8_t *pc = (uint8_t *) find_branch(start_pc, end_pc, inst, iclass, block);
     assert(pc != nullptr);
     if (pc == end_pc) {
       /* prepend instructions to existing block */
@@ -58,24 +57,24 @@ void BranchPatcher::patch(void *root_) {
       continue;
     }
 
-    uint8_t *next_pc = pc + xed_decoded_inst_get_length(&xedd);
+    uint8_t *next_pc = pc + inst.size();
 
     // fprintf(stderr, "(%p, %p)\n", start_pc, pc);
 
     orig_blocks[start_pc] = block;
 
-    bkpt_kind = get_bkpt_kind(xed_decoded_inst_get_iform_enum(&xedd));
-    const unsigned instlen = xed_decoded_inst_get_length(&xedd);
+    bkpt_kind = get_bkpt_kind(inst.xed_iform());
+    const unsigned instlen = inst.size();
 
     switch (bkpt_kind) {
     case BkptKind::JUMP_DIR:
-      if (jmp_can_fallthrough(xed_decoded_inst_get_iclass(&xedd))) {
+      if (jmp_can_fallthrough(inst.xed_iclass())) {
 	uint8_t *post_jump_pc = pc + instlen;
 	if (!has_bkpt(post_jump_pc)) {
 	  insert_bkpt(post_jump_pc, BkptKind::JUMP_DIR_POST, 0);
 	}
       }
-      todo.push_back(get_dst(xedd, bkpt_kind, pc));
+      todo.push_back(inst.branch_dst());
       break;
       
     case BkptKind::JUMP_IND:
@@ -87,7 +86,7 @@ void BranchPatcher::patch(void *root_) {
       if (returning_calls.find(pc) == returning_calls.end()) {
 	/* not known whether this call returns, so break here */
 	insert_bkpt(pc, bkpt_kind, instlen);
-	todo.push_back(get_dst(xedd, bkpt_kind, pc));
+	todo.push_back(inst.branch_dst());
       } else {
 	/* this call returns, and we've already examined the destination, so add next instruction
 	 * to queue*/
@@ -104,7 +103,7 @@ void BranchPatcher::patch(void *root_) {
   }
 }
 
-uint8_t *BranchPatcher::find_branch(uint8_t *begin_pc, uint8_t *end_pc, xed_decoded_inst_t& xedd,
+uint8_t *BranchPatcher::find_branch(uint8_t *begin_pc, uint8_t *end_pc, Instruction& inst,
 				    InstClass& iclass, Block& block) {
   std::vector<uint8_t *> insts = {begin_pc}; // DEBUG
   block = Block(begin_pc);
@@ -113,13 +112,13 @@ uint8_t *BranchPatcher::find_branch(uint8_t *begin_pc, uint8_t *end_pc, xed_deco
 
   bool removed_bkpt = false;
   while (pc < end_pc) {
-    const bool decoded = decoder.decode(pc, xedd);
+    const bool decoded = decoder.decode(pc, inst);
     assert(decoded);
-    iclass = classify(xed_decoded_inst_get_iclass(&xedd));
+    iclass = classify(inst.xed_iclass());
 
     /* EXPERIMENTAL: If breakpoint encountered, it must be a JUMP_DIR_POST. 
      * Can process it anyway. */
-    if (xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_INT3) {
+    if (inst.xed_iclass() == XED_ICLASS_INT3) {
       /* replace with original instruction */
       assert(!removed_bkpt);
       assert(bkpt_map.find(pc) != bkpt_map.end());
@@ -130,13 +129,13 @@ uint8_t *BranchPatcher::find_branch(uint8_t *begin_pc, uint8_t *end_pc, xed_deco
       continue;
     }
     
-    block.instructions().push_back(xedd);
+    block.instructions().push_back(inst);
     
     if (iclass != InstClass::OTHER) {
       break;
     }
 
-    pc += xed_decoded_inst_get_length(&xedd);
+    pc += inst.size();
     insts.push_back(pc);
   }
 
@@ -295,10 +294,6 @@ uint8_t *BranchPatcher::get_dst(xed_decoded_inst_t& xedd, BkptKind iform, uint8_
   case BkptKind::CALL_DIR:
     return pc + xed_decoded_inst_get_length(&xedd) +
       xed_decoded_inst_get_branch_displacement(&xedd);
-    
-  case BkptKind::JUMP_IND:
-  case BkptKind::CALL_IND:
-    return nullptr;
 
   default:
     assert(false);
@@ -513,18 +508,7 @@ std::string BranchPatcher::bkpt_to_str(void *pc) const {
 }
 
 BranchPatcher::BranchPatcher(Tracee& tracee):
-  tracee(tracee), decoder(tracee), pend_pool(tracee, pend_pool_size) {
-#if 0
-  constexpr int sys_mmap = 9;
-  
-  /* get scratch memory */
-  user_regs_struct regs = get_regs(pid);
-  regs.rax = sys_mmap;
-  regs.rdi = 0;       // void *addr
-  regs.rsi = 0x1000;  // size_t length
-  syscall_proc(pid, fd, regs);
-#endif
-}
+  tracee(tracee), decoder(tracee), pend_pool(tracee, pend_pool_size) {}
 
 user_ptr_t<uint8_t> BranchPatcher::insert_pend(user_ptr_t<uint8_t> call_pc, unsigned call_instlen) {
   const user_ptr_t<uint8_t> pend_pc = pend_pool.alloc();

@@ -24,7 +24,7 @@ void single_step_print(Tracee& tracee, size_t count) {
     if (!WIFSTOPPED(status) || WSTOPSIG(status) != SIGTRAP) {
       break;
     }
-    void *pc = tracee.get_pc();
+    uint8_t *pc = tracee.get_pc();
     xed_decoded_inst_t xedd;
     const bool decoded = decoder.decode(pc, xedd);
     assert(decoded);

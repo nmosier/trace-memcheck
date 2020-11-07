@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 
   Tracee tracee(child, command[0]);
 
-  void *pc = tracee.get_pc();
+  uint8_t *pc = tracee.get_pc();
   
   std::vector<void *> insts;
 
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
       const int stopsig = WSTOPSIG(status);
        if (stopsig != SIGTRAP) {
 	 fprintf(stderr, "unexpected signal %d\n", stopsig);
-	 void *stop_pc = tracee.get_pc();
+	 uint8_t *stop_pc = tracee.get_pc();
 	 
 	 Decoder decoder(tracee);
 	 fprintf(stderr, "stopped at inst: %s\n", decoder.disas(stop_pc).c_str());

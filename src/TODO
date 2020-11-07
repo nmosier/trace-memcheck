@@ -1,2 +1,3 @@
-[ ] fix returning_calls
-[ ] add instlen to BranchInfo
+[ ] Breakpoint at 'ret' instructions for robustness
+[ ] Develop method of allocating new basic blocks in user memory
+[ ] Create instruction class

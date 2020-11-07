@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <array>
 #include <unistd.h>
 #include <sys/user.h>
 
@@ -14,6 +15,17 @@ public:
   int fd() const { return fd_; }
 
   void read(void *to, size_t count, const void *from) const;
+
+  template <typename OutputIt>
+  void read(OutputIt begin, OutputIt end, const void *from) const {
+    read(&*begin, end - begin, from);
+  }
+  
+  template <typename T, size_t N>
+  void read(std::array<T,N>& to, const void *from) const {
+    read(to.begin(), to.end(), from);
+  }
+  
   void write(const void *from, size_t count, void *to) const;
   void dump(std::ostream& os, const void *ptr, size_t count) const;
 
@@ -21,7 +33,7 @@ public:
   user_regs_struct get_regs(void) const;
   void set_regs(const user_regs_struct& regs) const;
   
-  void *get_pc(void) const;
+  uint8_t *get_pc(void) const;
   void set_pc(void *pc) const;
   void *get_sp(void) const;
 

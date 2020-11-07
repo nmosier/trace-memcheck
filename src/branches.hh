@@ -6,6 +6,7 @@
 #include "decoder.hh"
 #include "bkpt.hh"
 #include "block.hh"
+#include "inst.hh"
 
 class BranchPatcher {
 public:
@@ -49,8 +50,8 @@ private:
   BlockMap orig_blocks; // original block instructions
 
   /* follow basic block until next branch */
-  uint8_t *find_branch(uint8_t *begin_pc, uint8_t *end_pc, xed_decoded_inst_t& xedd,
-		       InstClass& iclass, Block& block);
+  uint8_t *find_branch(uint8_t *begin_pc, uint8_t *end_pc, Instruction& inst, InstClass& iclass,
+		       Block& block);
 
   static InstClass classify(xed_iclass_enum_t iclass);
   static BkptKind get_bkpt_kind(xed_iform_enum_t iform); 

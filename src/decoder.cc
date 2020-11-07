@@ -12,7 +12,7 @@ void Decoder::Init(void) {
   xed_tables_init();
 }
 
-bool Decoder::decode(void *pc, xed_decoded_inst_t& xedd) const {
+bool Decoder::decode(uint8_t *pc, xed_decoded_inst_t& xedd) const {
   xed_decoded_inst_zero_set_mode(&xedd, &state);
   xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
 
@@ -27,7 +27,7 @@ bool Decoder::decode(void *pc, xed_decoded_inst_t& xedd) const {
   return true;
 }
 
-std::string Decoder::disas(void *pc) const {
+std::string Decoder::disas(uint8_t *pc) const {
   constexpr size_t buflen = 64;
   char buf[buflen];
   xed_decoded_inst_t xedd;
@@ -39,11 +39,26 @@ std::string Decoder::disas(void *pc) const {
   }
 }
 
-unsigned Decoder::instlen(void *pc) const {
+unsigned Decoder::instlen(uint8_t *pc) const {
   xed_decoded_inst_t xedd;
   if (decode(pc, xedd)) {
     return xed_decoded_inst_get_length(&xedd);
   } else {
     return 0;
   }
+}
+
+bool Decoder::decode(uint8_t *pc, Instruction& inst) const {
+  xed_decoded_inst_zero_set_mode(&inst.xedd_, &state);
+  xed_decoded_inst_set_input_chip(&inst.xedd_, XED_CHIP_INVALID);
+
+  tracee.read(inst.data_, pc);
+
+  if (xed_decode(&inst.xedd_, inst.data_.data(), inst.data_.size()) != XED_ERROR_NONE) {
+    return false;
+  }
+
+  inst.pc_ = pc;
+  
+  return true;  
 }

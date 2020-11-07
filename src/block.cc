@@ -4,8 +4,8 @@
 
 size_t Block::size() const {
   return std::accumulate(insts.begin(), insts.end(), 0,
-			 [] (size_t acc, const xed_decoded_inst_t& inst) {
-			   return acc + xed_decoded_inst_get_length(&inst);
+			 [] (size_t acc, const Instruction& inst) {
+			   return acc + inst.size();
     });
 }
 
@@ -17,7 +17,7 @@ Block Block::block_at(void *newaddr) const {
     if (ptr == newaddr) {
       return Block(newaddr, it, instructions().end());
     }
-    ptr += xed_decoded_inst_get_length(&*it);
+    ptr += it->size();
   }
 
   abort(); // impossible
