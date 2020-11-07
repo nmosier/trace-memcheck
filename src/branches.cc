@@ -288,18 +288,6 @@ BranchPatcher::BkptKind BranchPatcher::get_bkpt_kind(xed_iform_enum_t iform) {
   }
 }
 
-uint8_t *BranchPatcher::get_dst(xed_decoded_inst_t& xedd, BkptKind iform, uint8_t *pc) {
-  switch (iform) {
-  case BkptKind::JUMP_DIR:
-  case BkptKind::CALL_DIR:
-    return pc + xed_decoded_inst_get_length(&xedd) +
-      xed_decoded_inst_get_branch_displacement(&xedd);
-
-  default:
-    assert(false);
-  }
-}
-
 bool BranchPatcher::jmp_can_fallthrough(xed_iclass_enum_t xed_iclass) {
   switch (xed_iclass) {
   case XED_ICLASS_JMP:

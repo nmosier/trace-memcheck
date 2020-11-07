@@ -25,11 +25,11 @@ void single_step_print(Tracee& tracee, size_t count) {
       break;
     }
     uint8_t *pc = tracee.get_pc();
-    xed_decoded_inst_t xedd;
-    const bool decoded = decoder.decode(pc, xedd);
+    Instruction inst;
+    const bool decoded = decoder.decode(pc, inst);
     assert(decoded);
     fprintf(stderr, "ss pc = %p, iform = %s\n", tracee.get_pc(),
-	    xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&xedd)));
+	    xed_iform_enum_t2str(inst.xed_iform()));
   }
 }
 

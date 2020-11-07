@@ -18,26 +18,26 @@ public:
   static void Init(void);
 
   /* returns whether successfully decoded */
-  bool decode(uint8_t *pc, xed_decoded_inst_t& xedd) const;
-
   bool decode(uint8_t *pc, Instruction& inst) const;
 
+#if 0
   template <typename OutputIt>
   bool decode(uint8_t *begin, uint8_t *end, OutputIt out_it) const {
     uint8_t *it = begin;
-    xed_decoded_inst_t xedd;
+    Instruction inst;
     while (it < end) {
-      if (!decode(it, xedd)) {
+      if (!decode(it, inst)) {
 	return false;
       }
-      *out_it++ = xedd;
-      it += xed_decoded_inst_get_length(&xedd);;
+      *out_it++ = inst;
+      it += inst.size();
     }
     return true; 
   }
-
+#endif
+  
   std::string disas(uint8_t *pc) const;
-
+  
   // returns 0 on error 
   unsigned instlen(uint8_t *pc) const;
   

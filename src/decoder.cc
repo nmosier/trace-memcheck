@@ -12,27 +12,12 @@ void Decoder::Init(void) {
   xed_tables_init();
 }
 
-bool Decoder::decode(uint8_t *pc, xed_decoded_inst_t& xedd) const {
-  xed_decoded_inst_zero_set_mode(&xedd, &state);
-  xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
-
-  ssize_t bytes_read;
-  uint8_t buf[max_inst_len];
-  tracee.read(buf, max_inst_len, pc);
-
-  if (xed_decode(&xedd, buf, max_inst_len) != XED_ERROR_NONE) {
-    return false;
-  }
-
-  return true;
-}
-
 std::string Decoder::disas(uint8_t *pc) const {
   constexpr size_t buflen = 64;
   char buf[buflen];
-  xed_decoded_inst_t xedd;
-  if (decode(pc, xedd)) {
-    xed_format_context(XED_SYNTAX_INTEL, &xedd, buf, buflen, (xed_uint64_t) pc, nullptr, nullptr);
+  Instruction inst;
+  if (decode(pc, inst)) {
+    xed_format_context(XED_SYNTAX_INTEL, &inst.xedd(), buf, buflen, (xed_uint64_t) pc, nullptr, nullptr);
     return std::string(buf);
   } else {
     return "(bad)";
@@ -40,9 +25,9 @@ std::string Decoder::disas(uint8_t *pc) const {
 }
 
 unsigned Decoder::instlen(uint8_t *pc) const {
-  xed_decoded_inst_t xedd;
-  if (decode(pc, xedd)) {
-    return xed_decoded_inst_get_length(&xedd);
+  Instruction inst;
+  if (decode(pc, inst)) {
+    return inst.size();
   } else {
     return 0;
   }

@@ -58,7 +58,6 @@ private:
   static bool iclass_is_jump(xed_iclass_enum_t iclass);
   static bool iclass_is_call(xed_iclass_enum_t iclass);
   static bool iclass_is_ret(xed_iclass_enum_t iclass);
-  static uint8_t *get_dst(xed_decoded_inst_t& xedd, BkptKind iform, uint8_t *pc);
   static bool jmp_can_fallthrough(xed_iclass_enum_t xed_iclass);
   void write_inst_byte(uint8_t *pc, uint8_t opcode);
   
