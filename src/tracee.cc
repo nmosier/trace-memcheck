@@ -11,8 +11,9 @@
 #include <sys/wait.h>
 #include "tracee.hh"
 #include "util.hh"
+#include "decoder.hh"
 
-Tracee::Tracee(pid_t pid_): pid_(pid_) {
+Tracee::Tracee(pid_t pid_, const char *command): pid_(pid_), command(command) {
   char *path;
   if (asprintf(&path, "/proc/%d/mem", pid_) < 0) {
     std::perror("asprintf");
@@ -38,11 +39,19 @@ Tracee::~Tracee(void) {
 
 void Tracee::read(void *to, size_t count, const void *from) const {
   const ssize_t bytes_read = pread(fd(), to, count, (off_t) from);
+  if (bytes_read < 0) {
+    std::perror("pread");
+    abort();
+  }
   assert(bytes_read == count);
 }
 
 void Tracee::write(const void *from, size_t count, void *to) const {
   const ssize_t bytes_written = pwrite(fd(), from, count, (off_t) to);
+  if (bytes_written < 0) {
+    std::perror("pwrite");
+    abort();
+  }
   assert(bytes_written == count);
 }
 
@@ -127,5 +136,55 @@ uintptr_t Tracee::syscall(uintptr_t syscallno, uintptr_t a0, uintptr_t a1, uintp
 
 void Tracee::perror(void) const {
   // TODO: need to call dlsym()
+  abort();
+}
+
+void Tracee::gdb(void) {
+  Decoder decoder(*this);
+  const unsigned instlen = decoder.instlen(get_pc());
+  uint8_t instbuf[Decoder::max_inst_len];
+  memset(instbuf, 0x90, instlen); // NOPs
+  instbuf[0] = 0xeb;
+  instbuf[1] = 0xfe;
+  
+  /* run in infinite loop */
+  write(instbuf, instlen, get_pc());
+  ptrace(PTRACE_DETACH, pid(), 0, 0);
+  
+  char pid_str[16];
+  sprintf(pid_str, "%d", pid());
+  execlp("gdb", "gdb", command, pid_str, nullptr);  
+}
+
+std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {
+  char path[32];
+  sprintf(path, "/proc/%d/maps", pid());
+
+  FILE *f;
+  if ((f = fopen(path, "r")) == nullptr) {
+    std::perror("fopen");
+    abort();
+  }
+
+  char line[1024];
+  uintptr_t addr = (uintptr_t) addr_;
+  for (; fgets(line, sizeof(line), f) != nullptr; ) {
+    uintptr_t begin, end;
+    const int items = sscanf(line, "%lx-%lx", &begin, &end);
+    if (items != 2) {
+      fprintf(stderr, "Trace::addr_loc: bad maps format\n");
+      abort();
+    }
+
+    if (begin <= addr && addr < end) {
+      /* get filename */
+      char *filename = strchr(line, '/');
+      assert(filename != nullptr);
+      fclose(f);
+      return std::make_pair(addr - begin, filename);
+    }
+  }
+
+  fprintf(stderr, "Trace::addr_loc: address not found\n");
   abort();
 }

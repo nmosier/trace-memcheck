@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
   wait(&status);
   assert(stopped_trace(status));
 
-  Tracee tracee(child);
+  Tracee tracee(child, command[0]);
 
   void *pc = tracee.get_pc();
   

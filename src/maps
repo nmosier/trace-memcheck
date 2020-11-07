@@ -1,0 +1,10 @@
+00400000-004f4000 r-xp 00000000 08:01 8257615                            /bin/bash
+006f3000-006f4000 r--p 000f3000 08:01 8257615                            /bin/bash
+006f4000-006fd000 rw-p 000f4000 08:01 8257615                            /bin/bash
+006fd000-00703000 rw-p 00000000 00:00 0 
+017f5000-01a2b000 rw-p 00000000 00:00 0                                  [heap]
+7f66c02f6000-7f66c0303000 r-xp 00000000 08:01 11021442                   /usr/lib/x86_64-linux-gnu/sasl2/libdigestmd5.so.2.0.25
+7f66c0303000-7f66c0502000 ---p 0000d000 08:01 11021442                   /usr/lib/x86_64-linux-gnu/sasl2/libdigestmd5.so.2.0.25
+7f66c0502000-7f66c0503000 r--p 0000c000 08:01 11021442                   /usr/lib/x86_64-linux-gnu/sasl2/libdigestmd5.so.2.0.25
+7f66c0503000-7f66c0504000 rw-p 0000d000 08:01 11021442                   /usr/lib/x86_64-linux-gnu/sasl2/libdigestmd5.so.2.0.25
+7f66c0504000-7f66c0508000 r-xp 00000000 08:01 11021444                   /usr/lib/x86_64-linux-gnu/sasl2/libanonymous.so.2.0.25

@@ -7,7 +7,7 @@
 class Tracee {
 public:
   Tracee(void) {}
-  Tracee(pid_t pid);
+  Tracee(pid_t pid, const char *command);
   ~Tracee(void);
   
   pid_t pid() const { return pid_; }
@@ -34,8 +34,13 @@ public:
 		    uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0) const;
 
   void perror(void) const;
+
+  void gdb(void);
+
+  std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
   
 private:
   pid_t pid_;
   int    fd_;
+  const char *command;
 };

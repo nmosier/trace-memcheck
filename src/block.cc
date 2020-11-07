@@ -10,7 +10,7 @@ size_t Block::size() const {
 }
 
 Block Block::block_at(void *newaddr) const {
-  assert((char *) addr() + size() < (char *) newaddr); // make sure in range
+  assert(contains(newaddr));
 
   const char *ptr = (char *) addr();
   for (auto it = instructions().begin(); it != instructions().end(); ++it) {

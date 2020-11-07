@@ -65,7 +65,7 @@
    wait(&status);
    assert(stopped_trace(status));
 
-   Tracee tracee(child);
+   Tracee tracee(child, command[0]);
 
 #if 0
    /* EXPERIMENTAL: try making system call */
@@ -118,19 +118,7 @@
 	 fprintf(stderr, "stopped at inst: %s\n", decoder.disas(stop_pc).c_str());
 
 #if GDB
-	 const unsigned instlen = decoder.instlen(stop_pc);
-	 uint8_t instbuf[Decoder::max_inst_len];
-	 memset(instbuf, 0x90, instlen); // NOPs
-	 instbuf[0] = 0xeb;
-	 instbuf[1] = 0xfe;
-	 
-	 /* run in infinite loop */
-	 tracee.write(instbuf, instlen, tracee.get_pc());
-	 ptrace(PTRACE_DETACH, child, 0, 0);
-	 
-	 char pid_str[16];
-	 sprintf(pid_str, "%d", child);
-	 execlp("gdb", "gdb", command[0], pid_str, nullptr);
+	 tracee.gdb();
 #else
 	 abort();
 #endif
