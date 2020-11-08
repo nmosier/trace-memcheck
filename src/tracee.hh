@@ -27,6 +27,19 @@ public:
   }
   
   void write(const void *from, size_t count, void *to) const;
+
+  template <typename InputIt>
+  void write(InputIt begin, InputIt end, void *to) const {
+    write(&*begin, end - begin, to);
+  }
+
+#if 0
+  template <typename T, size_t N>
+  void write(const std::array<T,N>& from, size_t count, void *to) const {
+    write(from.begin(), from.end(), to);
+  }
+#endif
+
   void dump(std::ostream& os, const void *ptr, size_t count) const;
 
   void get_regs(user_regs_struct& regs) const;

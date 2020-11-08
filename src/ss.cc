@@ -12,6 +12,7 @@
 
 #include "branches.hh"
 #include "util.hh"
+#include "inst.hh"
 
 static bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
@@ -77,9 +78,8 @@ int main(int argc, char *argv[]) {
        if (stopsig != SIGTRAP) {
 	 fprintf(stderr, "unexpected signal %d\n", stopsig);
 	 uint8_t *stop_pc = tracee.get_pc();
-	 
-	 Decoder decoder(tracee);
-	 fprintf(stderr, "stopped at inst: %s\n", decoder.disas(stop_pc).c_str());
+	 Instruction inst(stop_pc, tracee);
+	 fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
 	 abort();
        }
 #if DEBUG

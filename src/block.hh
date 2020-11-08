@@ -4,6 +4,7 @@ class Block;
 
 #include <vector>
 #include <cstddef>
+#include <cassert>
 
 extern "C" {
 #include <xed/xed-interface.h>
@@ -39,15 +40,23 @@ private:
 
 class BlockPool {
 public:
-  BlockPool(const Tracee& tracee, size_t size): mem(tracee, size) {}
+  BlockPool(const Tracee& tracee, size_t size):
+    tracee(tracee), mem(tracee, size), alloc_ptr(mem.begin<uint8_t>()) {}
 
   template <typename It>
   void add_block(It begin, It end) {
     for (auto it = begin; it != end; ++it) {
+      Instruction inst = *it;
+      tracee.write(inst.data().begin(), inst.data().begin() + inst.size(), alloc(inst.size()));
       // TODO
+      assert(false);
     }
   }
   
 private:
+  const Tracee& tracee;
   UserMemory mem;
+  uint8_t *alloc_ptr;
+
+  uint8_t *alloc(size_t size);
 };

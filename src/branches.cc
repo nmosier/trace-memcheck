@@ -59,8 +59,6 @@ void BranchPatcher::patch(void *root_) {
 
     uint8_t *next_pc = pc + inst.size();
 
-    // fprintf(stderr, "(%p, %p)\n", start_pc, pc);
-
     orig_blocks[start_pc] = block;
 
     bkpt_kind = get_bkpt_kind(inst.xed_iform());
@@ -112,8 +110,8 @@ uint8_t *BranchPatcher::find_branch(uint8_t *begin_pc, uint8_t *end_pc, Instruct
 
   bool removed_bkpt = false;
   while (pc < end_pc) {
-    const bool decoded = decoder.decode(pc, inst);
-    assert(decoded);
+    inst = Instruction(pc, tracee);
+    assert(inst);
     iclass = classify(inst.xed_iclass());
 
     /* EXPERIMENTAL: If breakpoint encountered, it must be a JUMP_DIR_POST. 
@@ -496,7 +494,7 @@ std::string BranchPatcher::bkpt_to_str(void *pc) const {
 }
 
 BranchPatcher::BranchPatcher(Tracee& tracee):
-  tracee(tracee), decoder(tracee), pend_pool(tracee, pend_pool_size) {}
+  tracee(tracee), pend_pool(tracee, pend_pool_size) {}
 
 user_ptr_t<uint8_t> BranchPatcher::insert_pend(user_ptr_t<uint8_t> call_pc, unsigned call_instlen) {
   const user_ptr_t<uint8_t> pend_pc = pend_pool.alloc();

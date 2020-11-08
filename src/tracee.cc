@@ -140,8 +140,8 @@ void Tracee::perror(void) const {
 }
 
 void Tracee::gdb(void) {
-  Decoder decoder(*this);
-  const unsigned instlen = decoder.instlen(get_pc());
+  Instruction inst(get_pc(), *this);
+  const unsigned instlen = inst.size();
   uint8_t instbuf[Decoder::max_inst_len];
   memset(instbuf, 0x90, instlen); // NOPs
   instbuf[0] = 0xeb;

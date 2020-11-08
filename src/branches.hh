@@ -40,7 +40,6 @@ private:
   using BlockMap = std::map<void *, Block>;
 
   Tracee& tracee;
-  Decoder decoder;
   BkptMap bkpt_map;
   AddrSet returning_calls; // calls that return (i.e. aren't noreturn, like exit(3)
   std::unordered_map<uint8_t *, unsigned> call_pend_counts;

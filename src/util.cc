@@ -13,10 +13,9 @@ extern "C" {
 
 #include "util.hh"
 #include "decoder.hh"
+#include "inst.hh"
 
 void single_step_print(Tracee& tracee, size_t count) {
-  Decoder decoder(tracee);
-  
   for (size_t i = 0; i < count; ++i) {
     ptrace(PTRACE_SINGLESTEP, tracee.pid(), NULL, NULL);
     int status;
@@ -25,9 +24,7 @@ void single_step_print(Tracee& tracee, size_t count) {
       break;
     }
     uint8_t *pc = tracee.get_pc();
-    Instruction inst;
-    const bool decoded = decoder.decode(pc, inst);
-    assert(decoded);
+    Instruction inst(pc, tracee);
     fprintf(stderr, "ss pc = %p, iform = %s\n", tracee.get_pc(),
 	    xed_iform_enum_t2str(inst.xed_iform()));
   }

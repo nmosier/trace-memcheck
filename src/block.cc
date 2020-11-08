@@ -28,3 +28,10 @@ bool Block::contains(void *ptr_) const {
   char *base = (char *) addr();
   return ptr >= base && ptr < base + size();
 }
+
+uint8_t *BlockPool::alloc(size_t size) {
+  assert(alloc_ptr + size <= mem.end<uint8_t>());
+  uint8_t *ptr = alloc_ptr;
+  alloc_ptr += size;
+  return ptr;
+}
