@@ -35,3 +35,20 @@ uint8_t *BlockPool::alloc(size_t size) {
   alloc_ptr += size;
   return ptr;
 }
+
+uint8_t *BlockPool::add_block(const Block& block) {
+  return add_block(block.instructions().begin(), block.instructions().end());
+}
+
+std::ostream& BlockPool::print(std::ostream& os) const {
+  uint8_t *begin = mem.begin<uint8_t>();
+  size_t size = alloc_next() - begin;
+  uint8_t *buf = (uint8_t *) malloc(size);
+  assert(buf != nullptr);
+  for (uint8_t *it = buf; it < buf + size; ) {
+    Instruction inst(it, tracee);
+    os << inst << std::endl;
+    it += inst.size();
+  }
+  return os;
+}

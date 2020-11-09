@@ -15,7 +15,7 @@ public:
   using Data = std::array<uint8_t, max_inst_len>;
 
   Instruction(): good_(false) {}
-  Instruction(uint8_t *pc, Tracee& tracee);
+  Instruction(uint8_t *pc, const Tracee& tracee);
 
   const Data& data() const { return data_; }
   void data(const uint8_t *newdata, size_t len);
@@ -40,12 +40,15 @@ public:
   bool good() const { return good_; }
   operator bool() const { return good(); }
 
+  std::ostream& print(std::ostream& os) const;
+  std::ostream& operator<<(std::ostream& os) const { return print(os); }
+
 private:
   bool good_;
   uint8_t *pc_;
   Data data_;
   xed_decoded_inst_t xedd_;
-  Tracee *tracee;
+  const Tracee *tracee;
 
   bool relocate_relbr8(ptrdiff_t diff);
   bool relocate_relbr32(ptrdiff_t diff);

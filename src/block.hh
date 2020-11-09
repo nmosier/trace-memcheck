@@ -33,6 +33,7 @@ public:
 
   Block block_at(void *addr) const;
 
+  
 private:
   void *addr_;
   InstVec insts;
@@ -44,14 +45,21 @@ public:
     tracee(tracee), mem(tracee, size), alloc_ptr(mem.begin<uint8_t>()) {}
 
   template <typename It>
-  void add_block(It begin, It end) {
+  uint8_t *add_block(It begin, It end) {
+    uint8_t *addr = alloc_next();
     for (auto it = begin; it != end; ++it) {
       Instruction inst = *it;
+      inst.relocate(alloc_next());
+      alloc(inst.size());
       tracee.write(inst.data().begin(), inst.data().begin() + inst.size(), alloc(inst.size()));
-      // TODO
-      assert(false);
     }
+    return addr;
   }
+
+  uint8_t *add_block(const Block& block); // returns user pointer to first instruction
+
+  std::ostream& print(std::ostream& os) const;
+  std::ostream& operator<<(std::ostream& os) const { return print(os); }
   
 private:
   const Tracee& tracee;
@@ -59,4 +67,5 @@ private:
   uint8_t *alloc_ptr;
 
   uint8_t *alloc(size_t size);
+  uint8_t *alloc_next(void) const { return alloc_ptr; }
 };

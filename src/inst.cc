@@ -90,7 +90,7 @@ bool Instruction::relocate_mem(ptrdiff_t diff) {
   return true;
 }
 
-Instruction::Instruction(uint8_t *pc, Tracee& tracee): pc_(pc), tracee(&tracee) {
+Instruction::Instruction(uint8_t *pc, const Tracee& tracee): pc_(pc), tracee(&tracee) {
   tracee.read(data_, pc_);
   good_ = Decoder::decode(data_.data(), max_inst_len, xedd_);
 }
@@ -98,4 +98,8 @@ Instruction::Instruction(uint8_t *pc, Tracee& tracee): pc_(pc), tracee(&tracee) 
 void Instruction::data(const uint8_t *newdata, size_t len) {
   memcpy(data_.data(), newdata, len);
   good_ = Decoder::decode(newdata, len, xedd_);
+}
+
+std::ostream& Instruction::print(std::ostream& os) const {
+  os << Decoder::disas(*this);
 }
