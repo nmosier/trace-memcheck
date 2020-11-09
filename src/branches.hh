@@ -74,6 +74,4 @@ private:
   bool has_pend(user_ptr_t<uint8_t> call_pc) const;
   user_ptr_t<uint8_t> get_pend(user_ptr_t<uint8_t> call_pc) const;
   user_ptr_t<uint8_t> get_call(user_ptr_t<uint8_t> pend_pc) const;
-
-  
 };

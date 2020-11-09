@@ -24,7 +24,7 @@ std::string Decoder::disas(const Instruction& inst) {
   }
 }
 
-bool Decoder::decode(uint8_t *data, size_t size, xed_decoded_inst_t& xedd) {
+bool Decoder::decode(const uint8_t *data, size_t size, xed_decoded_inst_t& xedd) {
   xed_decoded_inst_zero_set_mode(&xedd, &state);
   xed_decoded_inst_set_input_chip(&xedd, XED_CHIP_INVALID);
 

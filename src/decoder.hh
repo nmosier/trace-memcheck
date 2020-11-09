@@ -16,7 +16,7 @@ public:
   static void Init(void);
 
   /* returns whether successfully decoded */
-  static bool decode(uint8_t *data, size_t size, xed_decoded_inst_t& xedd);
+  static bool decode(const uint8_t *data, size_t size, xed_decoded_inst_t& xedd);
   
   static std::string disas(const Instruction& inst);
   

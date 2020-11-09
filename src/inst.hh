@@ -18,6 +18,15 @@ public:
   Instruction(uint8_t *pc, Tracee& tracee);
 
   const Data& data() const { return data_; }
+  void data(const uint8_t *newdata, size_t len);
+  template <size_t N>
+  void data(const uint8_t (&newdata)[N]) {
+    data(newdata, N);
+  }
+  void data(const Data& newdata) {
+    data(newdata.data(), newdata.size());
+  }
+  
   uint8_t *pc() const { return pc_; }
   const xed_decoded_inst_t& xedd() const { return xedd_; }
   size_t size() const { return xed_decoded_inst_get_length(&xedd()); }
@@ -30,7 +39,7 @@ public:
 
   bool good() const { return good_; }
   operator bool() const { return good(); }
-  
+
 private:
   bool good_;
   uint8_t *pc_;
@@ -38,10 +47,10 @@ private:
   xed_decoded_inst_t xedd_;
   Tracee *tracee;
 
-  bool is_jump_short(void) const;
+  bool relocate_relbr8(ptrdiff_t diff);
+  bool relocate_relbr32(ptrdiff_t diff);
+  bool relocate_mem(ptrdiff_t diff);
 
-  void relocate_relbr32(ptrdiff_t diff);
-  
   friend class Decoder;
 };
 
