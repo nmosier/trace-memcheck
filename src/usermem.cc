@@ -7,7 +7,6 @@
 #include "util.hh"
 
 UserMemory::UserMemory(const Tracee& tracee, size_t size): tracee(tracee), size_(size) {
-  user_regs_struct regs = tracee.get_regs();
   user_map = (user_ptr_t<char>) tracee.syscall(9 /* mmap */,
 					       0 /* void *addr */,
 					       size_ /* size_t length */,

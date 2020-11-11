@@ -43,7 +43,7 @@ void Tracee::read(void *to, size_t count, const void *from) const {
     std::perror("pread");
     abort();
   }
-  assert(bytes_read == count);
+  assert((size_t) bytes_read == count);
 }
 
 void Tracee::write(const void *from, size_t count, void *to) const {
@@ -52,7 +52,7 @@ void Tracee::write(const void *from, size_t count, void *to) const {
     std::perror("pwrite");
     abort();
   }
-  assert(bytes_written == count);
+  assert((size_t) bytes_written == count);
 }
 
 void Tracee::dump(std::ostream& os, const void *ptr, size_t count) const {

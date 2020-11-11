@@ -27,6 +27,10 @@ public:
 
   BkptKind get_bkpt_kind(void *pc) const { return bkpt_map.at((uint8_t *) pc).iform; }
 
+  std::ostream& print_block_pool(std::ostream& os) const {
+    return block_pool.print(os);
+  }
+
 private:
   enum class InstClass {JUMP, CALL, RET, OTHER};
 
@@ -47,6 +51,8 @@ private:
   static constexpr size_t pend_pool_size = 0x1000;
   BkptPool pend_pool;
   BlockMap orig_blocks; // original block instructions
+  static constexpr size_t block_pool_size = 0x100000;
+  BlockPool block_pool; // pool of modified blocks
 
   /* follow basic block until next branch */
   uint8_t *find_branch(uint8_t *begin_pc, uint8_t *end_pc, Instruction& inst, InstClass& iclass,

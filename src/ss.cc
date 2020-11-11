@@ -18,22 +18,6 @@ static bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
 }
 
-static void print_pc(pid_t child) {
-  struct user_regs_struct regs;
-  ptrace(PTRACE_GETREGS, child, NULL, &regs);
-  printf("rip = %p, *rip = %016lx\n", (void *) regs.rip,
-	 ptrace(PTRACE_PEEKTEXT, child, regs.rip, NULL));
-}
-
-
-static void hexdump(const void *buf, size_t count) {
-  const char *buf_ = (const char *) buf;
-  for (size_t i = 0; i < count; ++i) {
-    printf("%02hhx", buf_[i]);
-  }
-  printf("\n");
-}
-
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
@@ -48,25 +32,18 @@ int main(int argc, char *argv[]) {
     execvp(command[0], command);
   }
 
-  const auto cleanup = [child] () {
-    kill(child, SIGTERM);
-  };
-
   Decoder::Init();
 
 #if DEBUG
   printf("child pid = %d\n", child);
 #endif
 
-  int exitno = 1;
   int status;
   wait(&status);
   assert(stopped_trace(status));
 
   Tracee tracee(child, command[0]);
 
-  uint8_t *pc = tracee.get_pc();
-  
   std::vector<void *> insts;
 
   while (1) {

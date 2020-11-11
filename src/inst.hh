@@ -15,6 +15,7 @@ public:
   using Data = std::array<uint8_t, max_inst_len>;
 
   Instruction(): good_(false) {}
+  Instruction(uint8_t *pc, const Data& opcode);
   Instruction(uint8_t *pc, const Tracee& tracee);
 
   const Data& data() const { return data_; }
@@ -43,13 +44,16 @@ public:
   std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }
 
+  static Instruction jmp(uint8_t *pc, uint8_t *dst);
+
 private:
   bool good_;
   uint8_t *pc_;
   Data data_;
   xed_decoded_inst_t xedd_;
-  const Tracee *tracee;
 
+  void decode(void);
+  
   bool relocate_relbr8(ptrdiff_t diff);
   bool relocate_relbr32(ptrdiff_t diff);
   bool relocate_mem(ptrdiff_t diff);

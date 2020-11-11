@@ -60,6 +60,7 @@ void BranchPatcher::patch(void *root_) {
     uint8_t *next_pc = pc + inst.size();
 
     orig_blocks[start_pc] = block;
+    block_pool.add_block(block);
 
     bkpt_kind = get_bkpt_kind(inst.xed_iform());
     const unsigned instlen = inst.size();
@@ -300,7 +301,6 @@ bool BranchPatcher::jmp_can_fallthrough(xed_iclass_enum_t xed_iclass) {
 void BranchPatcher::insert_bkpt(uint8_t *pc, BkptKind iform, unsigned instlen) {
   /* get opcode to save */
   uint8_t opcode;
-  ssize_t bytes_read;
   tracee.read(&opcode, 1, pc);
 
   assert(!has_bkpt(pc));
@@ -320,7 +320,7 @@ void BranchPatcher::handle_bkpt(void *pc_) {
   uint8_t *pc = (uint8_t *) pc_;
   BranchInfo& branch_info = bkpt_map.at(pc);
 
-  assert(branch_info.instlen >= 0 && branch_info.instlen <= 16);
+  assert(branch_info.instlen <= 16);
 
 #if BKPTS
   fprintf(stderr, "handle bkpt pc = %p, kind = %s\n", pc, bkpt_kind_to_str(branch_info.iform));
@@ -472,6 +472,7 @@ const char *BranchPatcher::bkpt_kind_to_str(BkptKind kind) {
   case BkptKind::CALL_IND:      return "CALL_IND";
   case BkptKind::RET:           return "RET";
   case BkptKind::CALL_PEND:     return "CALL_PEND";
+  default: assert(false);
   }
 }
 
@@ -494,7 +495,7 @@ std::string BranchPatcher::bkpt_to_str(void *pc) const {
 }
 
 BranchPatcher::BranchPatcher(Tracee& tracee):
-  tracee(tracee), pend_pool(tracee, pend_pool_size) {}
+  tracee(tracee), pend_pool(tracee, pend_pool_size), block_pool(tracee, block_pool_size) {}
 
 user_ptr_t<uint8_t> BranchPatcher::insert_pend(user_ptr_t<uint8_t> call_pc, unsigned call_instlen) {
   const user_ptr_t<uint8_t> pend_pc = pend_pool.alloc();
