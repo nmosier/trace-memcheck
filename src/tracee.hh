@@ -1,9 +1,13 @@
 #pragma once
 
+class Tracee;
+
 #include <iostream>
 #include <array>
 #include <unistd.h>
 #include <sys/user.h>
+
+#include "inst.hh"
 
 class Tracee {
 public:
@@ -32,6 +36,8 @@ public:
   void write(InputIt begin, InputIt end, void *to) const {
     write(&*begin, end - begin, to);
   }
+
+  void write(const Instruction& inst) const;
 
 #if 0
   template <typename T, size_t N>

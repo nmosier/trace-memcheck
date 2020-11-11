@@ -15,3 +15,15 @@ Whenever a breakpoint is reached, find next
 COMPONENTS:
 [ ] Block class.
 [ ] Set of blocks holding original code.
+
+
+;;;;;;
+
+Preserve origianl code.
+Completely rewrite.
+Translate orig block addresses to rewritten block addresses.
+Jump directly there.
+
+DIRECT, UNCONDITONAL JUMPS: Easy. Just jump to next rewritten block. This includes CALLs!
+DIRECT, CONDITONAL JUMPS: Use conditional jump to next rewritten block. Then either (1) BKPT or (2) unconditional jump to fallthrough block.
+INDIRECT JUMPS: bkpt for now to translate into rewritten block address. This includes CALLs and RETs!

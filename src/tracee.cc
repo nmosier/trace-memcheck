@@ -188,3 +188,7 @@ std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {
   fprintf(stderr, "Trace::addr_loc: address not found\n");
   abort();
 }
+
+void Tracee::write(const Instruction& inst) const {
+  write(inst.data().data(), inst.size(), inst.pc());
+}
