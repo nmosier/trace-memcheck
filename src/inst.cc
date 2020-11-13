@@ -6,16 +6,23 @@ uint8_t *Instruction::branch_dst(void) const {
   return pc() + size() + xed_decoded_inst_get_branch_displacement(&xedd());
 }
 
-void Instruction::relocate(uint8_t *newpc) {
-  const ptrdiff_t diff = pc() - newpc;
-  pc_ = newpc;
-
-  if (relocate_relbr8(diff)) {}
-  else if (relocate_relbr32(diff)) {}
-  else if (relocate_mem(diff)) {}
+void Instruction::retarget(uint8_t *newdst) {
+  if (retarget_jmp_relbr8([newdst] (uint8_t *dst) { return newdst; })) {}
+  else if (retarget_jmp_relbr32([newdst] (uint8_t *dst) { return newdst; })) {}
+  else if (retarget_call_relbr32([newdst] (uint8_t *dst) { return newdst; })) {}
 }
 
-bool Instruction::relocate_relbr8(ptrdiff_t diff) {
+void Instruction::relocate(uint8_t *newpc) {
+  const ptrdiff_t diff = pc() - newpc;
+  if (relocate_jmp_relbr8(diff)) {}
+  else if (relocate_jmp_relbr32(diff)) {}
+  else if (relocate_call_relbr32(diff)) {}
+  else if (relocate_mem(diff)) {}
+  pc_ = newpc;
+}
+
+template <typename Op>
+bool Instruction::retarget_jmp_relbr8(Op get_dst_ptr) {
   Data newdata;
   uint8_t *offset;
   if (size() == 2 && (data()[0] & 0xf0) == 0x70) {
@@ -34,30 +41,60 @@ bool Instruction::relocate_relbr8(ptrdiff_t diff) {
   assert(xed_decoded_inst_get_branch_displacement_width_bits(&xedd()) == 8);
 
   const ptrdiff_t relbr = xed_decoded_inst_get_branch_displacement(&xedd());
-  *offset = relbr + diff;
+  uint8_t *baseaddr = pc() + size();
+  *offset = get_dst_ptr(baseaddr + relbr) - baseaddr;
   data(newdata);
 
   return true;
 }
 
-bool Instruction::relocate_relbr32(ptrdiff_t diff) {
-  if ((data()[0] == 0x0f && (data()[1] & 0xf0) == 0x80) || /* conditional */
-      data()[0] == 0xe9) { /* unconditional */
-    /*  32-bit branch */
+template <typename Op>
+void Instruction::patch_relbr(Op get_dst_ptr) {
     assert(xed_decoded_inst_get_branch_displacement_width_bits(&xedd()) == 32);
     xed_encoder_operand_t disp;
     disp.type = XED_ENCODER_OPERAND_TYPE_BRDISP;
-    disp.u.brdisp = (int32_t) (diff + xed_decoded_inst_get_branch_displacement(&xedd()));
+    uint8_t *baseaddr = pc() + size();
+    disp.u.brdisp = (int32_t)
+      (get_dst_ptr(baseaddr + xed_decoded_inst_get_branch_displacement(&xedd())) - baseaddr);
     disp.width_bits = 32;
   
     if (!xed_patch_relbr(&xedd_, data_.data(), disp)) {
       fprintf(stderr, "failed to patch branch\n");
       abort();
     }
+}
+
+template <typename Op>
+bool Instruction::retarget_jmp_relbr32(Op get_dst_ptr) {
+  if ((data()[0] == 0x0f && (data()[1] & 0xf0) == 0x80) || /* conditional */
+      data()[0] == 0xe9) { /* unconditional */
+    patch_relbr(get_dst_ptr);
     return true;
   } else {
     return false;
   }
+}
+
+template <typename Op>
+bool Instruction::retarget_call_relbr32(Op get_dst_ptr) {
+  if (data()[0] == 0xe8) {
+    patch_relbr(get_dst_ptr);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Instruction::relocate_jmp_relbr8(ptrdiff_t diff) {
+  return retarget_jmp_relbr8([diff] (uint8_t *old_dst) { return old_dst + diff; });
+}
+
+bool Instruction::relocate_jmp_relbr32(ptrdiff_t diff) {
+  return retarget_jmp_relbr32([diff] (uint8_t *old_dst) { return old_dst + diff; });
+}
+
+bool Instruction::relocate_call_relbr32(ptrdiff_t diff) {
+  return retarget_call_relbr32([diff] (uint8_t *old_dst) { return old_dst + diff; });
 }
 
 bool Instruction::relocate_mem(ptrdiff_t diff) {

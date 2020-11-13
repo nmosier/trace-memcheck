@@ -27,3 +27,9 @@ Jump directly there.
 DIRECT, UNCONDITONAL JUMPS: Easy. Just jump to next rewritten block. This includes CALLs!
 DIRECT, CONDITONAL JUMPS: Use conditional jump to next rewritten block. Then either (1) BKPT or (2) unconditional jump to fallthrough block.
 INDIRECT JUMPS: bkpt for now to translate into rewritten block address. This includes CALLs and RETs!
+
+
+HMM..
+Don't overuse classes. Makes problem even harder.
+
+[ ] Map from orig addresses to blocks.
