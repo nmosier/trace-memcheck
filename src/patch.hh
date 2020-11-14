@@ -20,16 +20,6 @@ public:
 private:
   //  using BlockMap = std::unordered_map<uint8_t *, Block *>;
   using BlockMap = std::map<uint8_t *, Block *>;
-  enum class BranchKind {
-    DIR,      // direct branch: JMP, CALL
-    DIR_COND, // direct conditional branch: J{CC}
-    IND,      // indirect branch: JMP, CALL, RET
-  };
-  enum class BkptKind {
-    RET,
-    COND,
-    IND,
-  };
 
   static constexpr size_t block_pool_size = 0x100000;
   Tracee& tracee;

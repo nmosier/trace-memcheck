@@ -32,7 +32,30 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   Block *block = lookup_block(bkpt_addr);
   assert(block != nullptr);
 
-  block->handle_bkpt();
+  Block::LookupBlock lb = [&] (uint8_t *addr) -> uint8_t * {
+    BlockMap::iterator it;
+    while (true) {
+      it = block_map.find(addr);
+      if (it != block_map.end()) {
+	break;
+      }
+      patch(addr);
+    }
+    return it->second->pool_addr();
+  };
+
+  Block::PatchBlock pb = [&] (uint8_t *addr) {
+    patch(addr);
+  };
+
+  Block::SingleStep ss = [&] (void) {
+    tracee.singlestep();
+  };
+  
+  Block::HandleBkptIface hbi = {lb, pb, ss};
+  
+  block->handle_bkpt(hbi);
+		     
   
   // TODO
   abort();

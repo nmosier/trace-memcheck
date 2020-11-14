@@ -2,6 +2,7 @@
 
 #include <sys/types.h>
 #include <sys/user.h>
+#include <memory>
 
 void *get_pc(pid_t child);
 void *get_sp(pid_t pid);
@@ -30,3 +31,16 @@ template <typename RV, typename... Args>
 struct Functor {
   virtual RV operator()(Args&&... args) = 0;
 };
+
+template <typename Function, typename RV, typename... Args>
+std::unique_ptr<Functor<RV, Args...>> make_functor(Function fn) {
+  struct Functor_: Functor<RV, Args...> {
+    Function fn;
+    Functor_(Function fn): fn(fn) {}
+    virtual RV operator()(Args&&... args) override {
+      return fn(args...);
+    }
+  };
+
+  return std::make_unique<Functor_>(fn);
+}

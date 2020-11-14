@@ -3,8 +3,8 @@
 #include "block.hh"
 #include "block-pool.hh"
 
-size_t Block::size() const {
-  return std::accumulate(insts().begin(), insts().end(), 0,
+size_t Block::size(const InstVec& insts) {
+  return std::accumulate(insts.begin(), insts.end(), 0,
 			 [] (size_t acc, const Instruction& inst) {
 			   return acc + inst.size();
 			 });
@@ -34,22 +34,24 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
 
   block->orig_branch_ = inst;
 
-  block->insts_.emplace_back(nullptr, Instruction::Data {0xcc}); // add branch breakpoint
-  block->insts_.emplace_back(nullptr, Instruction::Data {0xcc}); // add fallthrough breakpoint
+  block->branch_insts_.emplace_back(nullptr, Instruction::Data {0xcc});
+  block->fallthrough_insts_.emplace_back(nullptr, Instruction::Data {0xcc});
 
-  /* relocate instructions */
-  block->pool_addr_ = block->block_pool_.add_insts(block->insts_.begin(), block->insts_.end());
-
-  /* allocate a bit of extra space for later */
-  block->block_pool_.alloc(Instruction::max_inst_len * 2);
-
+  /* allocate space */
+  block->maxsize_ = size(block->insts_) + Instruction::max_inst_len * 2;
+  block->pool_addr_ = block->block_pool_.alloc(block->maxsize_);
+  
+  /* write (& relocate) instructions */
+  block->write();
+  
   return block;
 }
 
-void Block::write(void) const {
-  for (const Instruction& inst : insts()) {
-    tracee_.write(inst);
-  }
+void Block::write(void) {
+  uint8_t *addr = pool_addr_;
+  addr = block_pool_.write_insts(addr, insts_);
+  addr = block_pool_.write_insts(addr, branch_insts_);
+  addr = block_pool_.write_insts(addr, fallthrough_insts_);
 }
 
 Block::Kind Block::classify_inst(xed_iclass_enum_t iclass, xed_iform_enum_t iform) {
@@ -124,19 +126,74 @@ std::ostream& BlockPool::print(std::ostream& os) const {
   return os;
 }
 
-uint8_t *BlockPool::add_inst(Instruction& inst) {
-  uint8_t *addr = alloc_next();
+uint8_t *BlockPool::write_inst(uint8_t *addr, Instruction& inst) {
   inst.relocate(addr);
-  alloc(inst.size());
   tracee.write(inst);
-  return addr;
+  return addr + inst.size();
 }
 
 void Block::jump_to(void) const {
   tracee_.set_pc(pool_addr());
 }
 
-void Block::handle_bkpt(void) {
+void Block::handle_bkpt(const HandleBkptIface& iface) {
+  switch (expect_bkpt_) {
+  case BkptKind::BRANCH:
+    handle_bkpt_branch(iface);
+    break;
+  case BkptKind::FALLTHROUGH:
+    handle_bkpt_fallthrough(iface);
+    break;
+  default: abort();
+  }
+}
+
+void Block::handle_bkpt_branch(const HandleBkptIface& iface) {
+  assert(branch_insts_.size() == 1);
+  switch (kind()) {
+  case Kind::DIR:
+    handle_bkpt_branch_dir(iface);
+    break;
+  case Kind::IND:
+    handle_bkpt_branch_ind(iface);
+    break;
+  default: abort();
+  }
+}
+
+void Block::handle_bkpt_branch_dir(const HandleBkptIface& iface) {
+  Instruction& branch_inst = branch_insts_.front() = orig_branch_;
+
+  uint8_t *branch_pool_dst = iface.lb(orig_branch_.branch_dst());
+  branch_inst.retarget(branch_pool_dst);
+
+  write();
+  
+  expect_bkpt_ = BkptKind::FALLTHROUGH;
+}
+
+void Block::handle_bkpt_branch_ind(const HandleBkptIface& iface) {
+  branch_insts_.front() = orig_branch_;
+  write();
+
+  /* single-step thru indirect branch */
+  iface.ss();
+
+  /* patch destination block */
+  iface.pb(tracee_.get_pc());
+
+  
+  
+  /* TODO:
+   * Need to set branch and then single-step through. Then patch as necessary.
+   *
+   */
+
+  
   // TODO
   abort();
+}
+
+void Block::handle_bkpt_fallthrough(const HandleBkptIface& iface) {
+  
 }

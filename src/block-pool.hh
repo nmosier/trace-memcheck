@@ -13,15 +13,19 @@ public:
   std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }
 
-  uint8_t *add_inst(Instruction& inst); // TODO: write this function
-  
+  uint8_t *write_inst(uint8_t *addr, Instruction& inst);
+
   template <typename InputIt>
-  uint8_t *add_insts(InputIt begin, InputIt end) {
-    uint8_t *block_addr = alloc_next();
+  uint8_t *write_insts(uint8_t *addr, InputIt begin, InputIt end) {
     for (InputIt it = begin; it != end; ++it) {
-      add_inst(*it);
+      addr = write_inst(addr, *it);
     }
-    return block_addr;
+    return addr;
+  }
+
+  template <typename Container>
+  uint8_t *write_insts(uint8_t *addr, Container& c) {
+    return write_insts(addr, c.begin(), c.end());
   }
 
   uint8_t *alloc(size_t size);

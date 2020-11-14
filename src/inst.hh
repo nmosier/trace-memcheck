@@ -9,6 +9,14 @@ extern "C" {
 }
 #include "decoder.hh"
 
+class Blob {
+public:
+
+  virtual void relocate(uint8_t *newpc);
+  
+private:
+};
+
 class Instruction {
 public:
   static constexpr unsigned max_inst_len = 16;
