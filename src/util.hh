@@ -25,3 +25,8 @@ void read_proc(pid_t pid, int fd, const void *proc_ptr, void *buf, size_t count)
 #define arrlen(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 void syscall_proc(pid_t pid, int fd, user_regs_struct& regs);
+
+template <typename RV, typename... Args>
+struct Functor {
+  virtual RV operator()(Args&&... args) = 0;
+};

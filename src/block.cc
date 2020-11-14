@@ -1,6 +1,7 @@
 #include <cassert>
 #include <algorithm>
 #include "block.hh"
+#include "block-pool.hh"
 
 size_t Block::size() const {
   return std::accumulate(insts().begin(), insts().end(), 0,
@@ -9,9 +10,8 @@ size_t Block::size() const {
 			 });
 }
 
-Block Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_pool,
-		    uint8_t **next_addr) {
-  Block block(tracee, orig_addr, block_pool);
+Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_pool) {
+  Block *block = new Block(tracee, orig_addr, block_pool);
 
   uint8_t *it = orig_addr;
   Instruction inst;
@@ -23,30 +23,26 @@ Block Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_p
 
     it += inst.size();
 
-    block.kind_ = classify_inst(inst);
+    block->kind_ = classify_inst(inst);
 
-    if (block.kind_ != Kind::OTH) {
+    if (block->kind_ != Kind::OTH) {
       break;
     }
 
-    block.insts_.push_back(inst);
+    block->insts_.push_back(inst);
   }
 
-  block.orig_branch_ = inst;
+  block->orig_branch_ = inst;
 
-  block.insts_.emplace_back(nullptr, Instruction::Data {0xcc}); // add branch breakpoint
-  block.insts_.emplace_back(nullptr, Instruction::Data {0xcc}); // add fallthrough breakpoint
+  block->insts_.emplace_back(nullptr, Instruction::Data {0xcc}); // add branch breakpoint
+  block->insts_.emplace_back(nullptr, Instruction::Data {0xcc}); // add fallthrough breakpoint
 
   /* relocate instructions */
-  block.pool_addr_ = block.block_pool_.add_insts(block.insts_.begin(), block.insts_.end());
+  block->pool_addr_ = block->block_pool_.add_insts(block->insts_.begin(), block->insts_.end());
 
   /* allocate a bit of extra space for later */
-  block.block_pool_.alloc(Instruction::max_inst_len * 2);
+  block->block_pool_.alloc(Instruction::max_inst_len * 2);
 
-  /* cleanup */
-  if (next_addr != nullptr) {
-    *next_addr = it;
-  }
   return block;
 }
 
@@ -134,4 +130,13 @@ uint8_t *BlockPool::add_inst(Instruction& inst) {
   alloc(inst.size());
   tracee.write(inst);
   return addr;
+}
+
+void Block::jump_to(void) const {
+  tracee_.set_pc(pool_addr());
+}
+
+void Block::handle_bkpt(void) {
+  // TODO
+  abort();
 }
