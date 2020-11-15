@@ -59,6 +59,9 @@ private:
   size_t maxsize_;
   enum class BkptKind {BRANCH, FALLTHROUGH};
 
+  static const char *bkpt_kind_to_str(BkptKind bkpt_kind);
+  static const char *kind_to_str(Kind kind);
+
   Block(const Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
     tracee_(tracee), block_pool_(block_pool), orig_addr_(orig_addr) {}
 

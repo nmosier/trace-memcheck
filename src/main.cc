@@ -126,6 +126,7 @@ int main(int argc, char *argv[]) {
       tracee.set_pc(bkpt_pc);
 
       patcher.handle_bkpt(bkpt_pc);
+
 #endif
     } else {
       break;

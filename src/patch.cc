@@ -70,7 +70,11 @@ Block *Patcher::lookup_block_range(uint8_t *addr) const {
     return nullptr;
   } else {
     --it;
-    return it->second;
+    if (it->second->pool_addr() > addr) {
+      return nullptr;
+    } else {
+      return it->second;
+    }
   }
 }
 

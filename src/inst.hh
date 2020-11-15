@@ -27,6 +27,8 @@ public:
   uint8_t *pc() const { return pc_; }
   uint8_t *after_pc() const { return pc() + size(); }
 
+  virtual std::ostream& print(std::ostream& os) const = 0;
+
 protected:
   void pc(uint8_t *pc) { pc_ = pc; }
   
@@ -50,6 +52,8 @@ public:
   uint8_t *data(void) override {return data_.data(); }
   const uint8_t *data(void) const override { return data_.data(); }
   size_t size(void) const override { return data_.size(); }
+
+  virtual std::ostream& print(std::ostream& os) const override;
   
 private:
   Content data_;
@@ -79,6 +83,8 @@ public:
   virtual size_t size() const override { return xed_decoded_inst_get_length(&xedd()); }
   xed_iform_enum_t xed_iform() const { return xed_decoded_inst_get_iform_enum(&xedd()); }
   xed_iclass_enum_t xed_iclass() const { return xed_decoded_inst_get_iclass(&xedd()); }
+  const char *xed_iform_str() const { return xed_iform_enum_t2str(xed_iform()); }
+  const char *xed_iclass_str() const { return xed_iclass_enum_t2str(xed_iclass()); }
 
   uint8_t *branch_dst(void) const;
   
@@ -88,7 +94,6 @@ public:
   bool good() const { return good_; }
   operator bool() const { return good(); }
 
-  std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }
 
   /* generates instruction of XED_JMP_RELBRd iform */
@@ -96,6 +101,8 @@ public:
 
   /* generates instruction of XED_JMP_MEMv iform with rip-relative addressing */
   static Instruction jmp_mem(uint8_t *pc, uint8_t *mem);
+
+  virtual std::ostream& print(std::ostream& os) const override;
 
 private:
   bool good_;
@@ -118,4 +125,4 @@ private:
   friend class Decoder;
 };
 
-// TODO
+std::ostream& operator<<(std::ostream& os, const Blob& blob);

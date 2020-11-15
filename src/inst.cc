@@ -3,13 +3,16 @@
 #include "inst.hh"
 
 uint8_t *Instruction::branch_dst(void) const {
-  return pc() + size() + xed_decoded_inst_get_branch_displacement(&xedd());
+  return after_pc() + xed_decoded_inst_get_branch_displacement(&xedd());
 }
 
 void Instruction::retarget(uint8_t *newdst) {
-  if (retarget_jmp_relbr8([newdst] (uint8_t *dst) { return newdst; })) {}
-  else if (retarget_jmp_relbr32([newdst] (uint8_t *dst) { return newdst; })) {}
-  else if (retarget_call_relbr32([newdst] (uint8_t *dst) { return newdst; })) {}
+  auto get_dst_ptr = [newdst] (uint8_t *dst) {
+    return newdst;
+  };
+  if (retarget_jmp_relbr8(get_dst_ptr)) {}
+  else if (retarget_jmp_relbr32(get_dst_ptr)) {}
+  else if (retarget_call_relbr32(get_dst_ptr)) {}
 }
 
 void Instruction::relocate(uint8_t *newpc) {
@@ -54,16 +57,25 @@ template <typename Op>
 void Instruction::patch_relbr(Op get_dst_ptr) {
     assert(xed_decoded_inst_get_branch_displacement_width_bits(&xedd()) == 32);
     xed_encoder_operand_t disp;
-    disp.type = XED_ENCODER_OPERAND_TYPE_BRDISP;
+    // disp.type = XED_ENCODER_OPERAND_TYPE_BRDISP;
     uint8_t *baseaddr = pc() + size();
-    disp.u.brdisp = (int32_t)
-      (get_dst_ptr(baseaddr + xed_decoded_inst_get_branch_displacement(&xedd())) - baseaddr);
+    int32_t orig_disp = xed_decoded_inst_get_branch_displacement(&xedd());
+    uint8_t *orig_dst_ptr = baseaddr + orig_disp;
+    uint8_t *new_dst_ptr = get_dst_ptr(orig_dst_ptr);
+    int32_t new_disp = new_dst_ptr - baseaddr;
+    disp.u.brdisp = new_disp;
     disp.width_bits = 32;
-  
+
+    fprintf(stderr, "inst: %s\n", Decoder::disas(*this).c_str());
     if (!xed_patch_relbr(&xedd_, data_.data(), disp)) {
       fprintf(stderr, "failed to patch branch\n");
       abort();
     }
+
+    decode(); // TODO: This is unecessary -- only makes following assert() work.
+    
+    int32_t found_disp = xed_decoded_inst_get_branch_displacement(&xedd_);
+    assert(found_disp == new_disp);
 }
 
 template <typename Op>
@@ -136,10 +148,6 @@ void Instruction::data(const uint8_t *newdata, size_t len) {
   decode();
 }
 
-std::ostream& Instruction::print(std::ostream& os) const {
-  return os << Decoder::disas(*this);
-}
-
 void Instruction::decode(void) {
   good_ = Decoder::decode(data_.data(), data_.size(), xedd_);
 }
@@ -170,4 +178,21 @@ Instruction Instruction::jmp_mem(uint8_t *pc, uint8_t *mem) {
 
 void Blob::relocate(uint8_t *newpc) {
   pc_ = newpc;
+}
+
+std::ostream& Data::print(std::ostream& os) const {
+  os << std::hex;
+  for (auto byte : data_) {
+    os << byte << " ";
+  }
+  return os;
+}
+
+std::ostream& Instruction::print(std::ostream& os) const {
+  os << Decoder::disas(*this);
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Blob& blob) {
+  return blob.print(os);
 }
