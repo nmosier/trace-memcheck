@@ -182,8 +182,6 @@ void Block::handle_bkpt_branch_ind(const HandleBkptIface& iface) {
   /* patch destination block */
   iface.pb(tracee_.get_pc());
 
-  
-  
   /* TODO:
    * Need to set branch and then single-step through. Then patch as necessary.
    *
