@@ -29,7 +29,7 @@ public:
   void read(std::array<T,N>& to, const void *from) const {
     read(to.begin(), to.end(), from);
   }
-  
+
   void write(const void *from, size_t count, void *to) const;
 
   template <typename InputIt>

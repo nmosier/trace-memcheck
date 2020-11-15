@@ -146,12 +146,22 @@ Instruction::Instruction(uint8_t *pc, const Data& opcode): pc_(pc), data_(opcode
   decode();
 }
 
-Instruction Instruction::jmp(uint8_t *pc, uint8_t *dst) {
+Instruction Instruction::jmp_relbrd(uint8_t *pc, uint8_t *dst) {
   /* calculate instruction length */
   constexpr unsigned instlen = 5;
   const int32_t disp = dst - (pc + instlen);
   Data opcode;
   opcode[0] = 0xe9;
   * (int32_t *) &opcode[1] = disp;
+  return Instruction(pc, opcode);
+}
+
+Instruction Instruction::jmp_mem(uint8_t *pc, uint8_t *mem) {
+  constexpr unsigned instlen = 6;
+  const int32_t disp = mem - (pc + instlen);
+  Data opcode;
+  opcode[0] = 0xff;
+  opcode[1] = 0x25;
+  * (int32_t *) &opcode[2] = disp;
   return Instruction(pc, opcode);
 }

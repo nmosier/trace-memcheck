@@ -54,7 +54,7 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   
   Block::HandleBkptIface hbi = {lb, pb, ss};
   
-  block->handle_bkpt(hbi);
+  block->handle_bkpt(bkpt_addr, hbi);
 		     
   
   // TODO

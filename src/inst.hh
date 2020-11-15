@@ -24,7 +24,8 @@ public:
   virtual const uint8_t *data(void) const = 0;
   virtual size_t size(void) const = 0;
 
-  virtual uint8_t *pc() const { return pc_; }
+  uint8_t *pc() const { return pc_; }
+  uint8_t *after_pc() const { return pc() + size(); }
   
 private:
   uint8_t *pc_;
@@ -87,7 +88,11 @@ public:
   std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }
 
-  static Instruction jmp(uint8_t *pc, uint8_t *dst);
+  /* generates instruction of XED_JMP_RELBRd iform */
+  static Instruction jmp_relbrd(uint8_t *pc, uint8_t *dst);
+
+  /* generates instruction of XED_JMP_MEMv iform with rip-relative addressing */
+  static Instruction jmp_mem(uint8_t *pc, uint8_t *mem);
 
 private:
   bool good_;

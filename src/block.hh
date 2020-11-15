@@ -44,7 +44,7 @@ public:
 
   void jump_to(void) const;
 
-  void handle_bkpt(const HandleBkptIface& iface);
+  void handle_bkpt(uint8_t *pc, const HandleBkptIface& iface);
 
 private:
   const Tracee& tracee_;
@@ -58,7 +58,6 @@ private:
   Instruction orig_branch_;
   size_t maxsize_;
   enum class BkptKind {BRANCH, FALLTHROUGH};
-  BkptKind expect_bkpt_ = BkptKind::BRANCH;
 
   Block(const Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
     tracee_(tracee), block_pool_(block_pool), orig_addr_(orig_addr) {}
@@ -72,10 +71,10 @@ private:
 
   static size_t size(const InstVec& insts);
 
-  void handle_bkpt_branch(const HandleBkptIface& iface);
-  void handle_bkpt_branch_dir(const HandleBkptIface& iface);
-  void handle_bkpt_branch_ind(const HandleBkptIface& iface);
-  void handle_bkpt_fallthrough(const HandleBkptIface& iface);
+  void handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface);
+  void handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface);
+  void handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface);
+  void handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface);
 
 #if 0
   uint8_t *branch_addr(void) const { return branch_insts_.front().addr(); }

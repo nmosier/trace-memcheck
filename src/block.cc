@@ -1,5 +1,6 @@
 #include <cassert>
 #include <algorithm>
+#include <cstring>
 #include "block.hh"
 #include "block-pool.hh"
 
@@ -36,9 +37,14 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
 
   block->branch_insts_.push_back
     (std::make_unique<Instruction>(nullptr, Instruction::Data {0xcc}));
+  block->branch_insts_.push_back
+    (std::make_unique<Data>(Data::Content {static_cast<uint8_t>(BkptKind::BRANCH)}));
+  
   block->fallthrough_insts_.push_back
     (std::make_unique<Instruction>(nullptr, Instruction::Data {0xcc}));
-
+  block->fallthrough_insts_.push_back
+    (std::make_unique<Data>(Data::Content {static_cast<uint8_t>(BkptKind::FALLTHROUGH)}));
+  
   /* allocate space */
   block->maxsize_ = size(block->insts_) + Instruction::max_inst_len * 2;
   block->pool_addr_ = block->block_pool_.alloc(block->maxsize_);
@@ -138,32 +144,34 @@ void Block::jump_to(void) const {
   tracee_.set_pc(pool_addr());
 }
 
-void Block::handle_bkpt(const HandleBkptIface& iface) {
-  switch (expect_bkpt_) {
+void Block::handle_bkpt(uint8_t *pc, const HandleBkptIface& iface) {
+  BkptKind bkpt_kind;
+  tracee_.read(&bkpt_kind, sizeof(bkpt_kind), pc + 1);
+  switch (bkpt_kind) {
   case BkptKind::BRANCH:
-    handle_bkpt_branch(iface);
+    handle_bkpt_branch(pc, iface);
     break;
   case BkptKind::FALLTHROUGH:
-    handle_bkpt_fallthrough(iface);
+    handle_bkpt_fallthrough(pc, iface);
     break;
   default: abort();
   }
 }
 
-void Block::handle_bkpt_branch(const HandleBkptIface& iface) {
+void Block::handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface) {
   assert(branch_insts_.size() == 1);
   switch (kind()) {
   case Kind::DIR:
-    handle_bkpt_branch_dir(iface);
+    handle_bkpt_branch_dir(pc, iface);
     break;
   case Kind::IND:
-    handle_bkpt_branch_ind(iface);
+    handle_bkpt_branch_ind(pc, iface);
     break;
   default: abort();
   }
 }
 
-void Block::handle_bkpt_branch_dir(const HandleBkptIface& iface) {
+void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
   Instruction branch = orig_branch_;
 
   uint8_t *branch_pool_dst = iface.lb(orig_branch_.branch_dst());
@@ -171,30 +179,41 @@ void Block::handle_bkpt_branch_dir(const HandleBkptIface& iface) {
   branch_insts_.front() = std::make_unique<Instruction>(branch);
 
   write();
-  
-  expect_bkpt_ = BkptKind::FALLTHROUGH;
 }
 
-void Block::handle_bkpt_branch_ind(const HandleBkptIface& iface) {
-  branch_insts_.front() = std::make_unique<Instruction>(orig_branch_);
+void Block::handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface) {
+  branch_insts_.clear();
+  branch_insts_.push_back(std::make_unique<Instruction>(orig_branch_));
   write();
 
   /* single-step thru indirect branch */
   iface.ss();
 
-  /* patch destination block */
-  iface.pb(tracee_.get_pc());
-
-  /* TODO:
-   * Need to set branch and then single-step through. Then patch as necessary.
-   *
-   */
-
-  
-  // TODO
-  abort();
+  /* lookup destination block */
+  uint8_t *branch_pool_dst = iface.lb(tracee_.get_pc());
+  tracee_.set_pc(branch_pool_dst);
 }
 
-void Block::handle_bkpt_fallthrough(const HandleBkptIface& iface) {
+void Block::handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface) {
+  fallthrough_insts_.clear();
   
+  /* Get destination */
+  uint8_t *orig_dst = orig_branch_.after_pc();
+  uint8_t *pool_dst = iface.lb(orig_dst);
+
+  auto jmp_it = fallthrough_insts_.insert
+    (fallthrough_insts_.end(), std::make_unique<Instruction>
+     (Instruction::jmp_mem(nullptr, nullptr)));
+
+  constexpr size_t dstptr_size = sizeof(&pool_dst);
+  Data::Content dstptr(dstptr_size);
+  std::memcpy(dstptr.data(), reinterpret_cast<uint8_t *>(&pool_dst), dstptr_size);
+  auto mem_it = fallthrough_insts_.insert(fallthrough_insts_.end(), std::make_unique<Data>(dstptr));
+  
+  write(); // TODO: This is inefficient -- should directly compute address instead.
+
+  /* link JMP to mem ptr */
+  (*jmp_it)->retarget((*mem_it)->pc());
+
+  write(); // TODO: Inefficient -- should just copy one instruction.
 }
