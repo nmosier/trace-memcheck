@@ -37,7 +37,7 @@ public:
     write(&*begin, end - begin, to);
   }
 
-  void write(const Instruction& inst) const;
+  void write(const Blob& inst) const;
 
 #if 0
   template <typename T, size_t N>

@@ -24,7 +24,7 @@ void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
 
   /* add todo blocks */
   if (block->kind() == Block::Kind::DIR) {
-    *output_it++ = block->insts().back().branch_dst();
+    *output_it++ = block->orig_branch().branch_dst();
   }
 }
 

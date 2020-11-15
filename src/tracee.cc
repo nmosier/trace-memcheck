@@ -189,6 +189,6 @@ std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {
   abort();
 }
 
-void Tracee::write(const Instruction& inst) const {
-  write(inst.data().data(), inst.size(), inst.pc());
+void Tracee::write(const Blob& blob) const {
+  write(blob.data(), blob.size(), blob.pc());
 }

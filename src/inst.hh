@@ -1,6 +1,8 @@
 #pragma once
 
 class Instruction;
+class Blob;
+class Data;
 
 #include <cstddef>
 #include <array>
@@ -19,7 +21,10 @@ public:
   virtual void retarget(uint8_t *newdst) = 0;
 
   virtual uint8_t *data(void) = 0;
+  virtual const uint8_t *data(void) const = 0;
   virtual size_t size(void) const = 0;
+
+  virtual uint8_t *pc() const { return pc_; }
   
 private:
   uint8_t *pc_;
@@ -38,7 +43,8 @@ public:
   virtual void relocate(uint8_t *newpc) override {}
   virtual void retarget(uint8_t *newdst) override {}
 
-  uint8_t *data(void) override { return data_.data(); }
+  uint8_t *data(void) override {return data_.data(); }
+  const uint8_t *data(void) const override { return data_.data(); }
   size_t size(void) const override { return data_.size(); }
   
 private:
@@ -55,7 +61,7 @@ public:
   Instruction(uint8_t *pc, const Tracee& tracee);
 
   uint8_t *data() override { return data_.data(); }
-  const Data& data() const { return data_; }
+  const uint8_t *data() const override { return data_.data(); }
   void data(const uint8_t *newdata, size_t len);
   template <size_t N>
   void data(const uint8_t (&newdata)[N]) {
@@ -65,7 +71,6 @@ public:
     data(newdata.data(), newdata.size());
   }
   
-  uint8_t *pc() const { return pc_; }
   const xed_decoded_inst_t& xedd() const { return xedd_; }
   virtual size_t size() const override { return xed_decoded_inst_get_length(&xedd()); }
   xed_iform_enum_t xed_iform() const { return xed_decoded_inst_get_iform_enum(&xedd()); }

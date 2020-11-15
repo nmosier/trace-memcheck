@@ -23,7 +23,7 @@ extern "C" {
 class Block {
 public:
   enum class Kind {DIR, IND, OTH}; // treat all branches as conditional
-  using InstVec = std::list<Instruction>;
+  using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
   using PatchBlock = std::function<void (uint8_t *)>;

@@ -13,12 +13,12 @@ public:
   std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }
 
-  uint8_t *write_inst(uint8_t *addr, Instruction& inst);
+  uint8_t *write_inst(uint8_t *addr, Blob& inst);
 
   template <typename InputIt>
   uint8_t *write_insts(uint8_t *addr, InputIt begin, InputIt end) {
     for (InputIt it = begin; it != end; ++it) {
-      addr = write_inst(addr, *it);
+      addr = write_inst(addr, **it);
     }
     return addr;
   }

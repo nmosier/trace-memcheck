@@ -5,8 +5,8 @@
 
 size_t Block::size(const InstVec& insts) {
   return std::accumulate(insts.begin(), insts.end(), 0,
-			 [] (size_t acc, const Instruction& inst) {
-			   return acc + inst.size();
+			 [] (size_t acc, const auto& inst) {
+			   return acc + inst->size();
 			 });
 }
 
@@ -29,13 +29,15 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
       break;
     }
 
-    block->insts_.push_back(inst);
+    block->insts_.push_back(std::make_unique<Instruction>(inst));
   }
 
   block->orig_branch_ = inst;
 
-  block->branch_insts_.emplace_back(nullptr, Instruction::Data {0xcc});
-  block->fallthrough_insts_.emplace_back(nullptr, Instruction::Data {0xcc});
+  block->branch_insts_.push_back
+    (std::make_unique<Instruction>(nullptr, Instruction::Data {0xcc}));
+  block->fallthrough_insts_.push_back
+    (std::make_unique<Instruction>(nullptr, Instruction::Data {0xcc}));
 
   /* allocate space */
   block->maxsize_ = size(block->insts_) + Instruction::max_inst_len * 2;
@@ -126,7 +128,7 @@ std::ostream& BlockPool::print(std::ostream& os) const {
   return os;
 }
 
-uint8_t *BlockPool::write_inst(uint8_t *addr, Instruction& inst) {
+uint8_t *BlockPool::write_inst(uint8_t *addr, Blob& inst) {
   inst.relocate(addr);
   tracee.write(inst);
   return addr + inst.size();
@@ -162,10 +164,11 @@ void Block::handle_bkpt_branch(const HandleBkptIface& iface) {
 }
 
 void Block::handle_bkpt_branch_dir(const HandleBkptIface& iface) {
-  Instruction& branch_inst = branch_insts_.front() = orig_branch_;
+  Instruction branch = orig_branch_;
 
   uint8_t *branch_pool_dst = iface.lb(orig_branch_.branch_dst());
-  branch_inst.retarget(branch_pool_dst);
+  branch.retarget(branch_pool_dst);
+  branch_insts_.front() = std::make_unique<Instruction>(branch);
 
   write();
   
@@ -173,7 +176,7 @@ void Block::handle_bkpt_branch_dir(const HandleBkptIface& iface) {
 }
 
 void Block::handle_bkpt_branch_ind(const HandleBkptIface& iface) {
-  branch_insts_.front() = orig_branch_;
+  branch_insts_.front() = std::make_unique<Instruction>(orig_branch_);
   write();
 
   /* single-step thru indirect branch */
