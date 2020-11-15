@@ -13,12 +13,14 @@ void Instruction::retarget(uint8_t *newdst) {
 }
 
 void Instruction::relocate(uint8_t *newpc) {
+  Blob::relocate(newpc);
+  
   const ptrdiff_t diff = pc() - newpc;
   if (relocate_jmp_relbr8(diff)) {}
   else if (relocate_jmp_relbr32(diff)) {}
   else if (relocate_call_relbr32(diff)) {}
   else if (relocate_mem(diff)) {}
-  pc_ = newpc;
+  pc(newpc);
 }
 
 template <typename Op>
@@ -124,8 +126,8 @@ bool Instruction::relocate_mem(ptrdiff_t diff) {
   return true;
 }
 
-Instruction::Instruction(uint8_t *pc, const Tracee& tracee): pc_(pc) {
-  tracee.read(data_, pc_);
+Instruction::Instruction(uint8_t *pc_, const Tracee& tracee): Blob(pc_) {
+  tracee.read(data_, pc());
   decode();
 }
 
@@ -142,7 +144,7 @@ void Instruction::decode(void) {
   good_ = Decoder::decode(data_.data(), data_.size(), xedd_);
 }
 
-Instruction::Instruction(uint8_t *pc, const Data& opcode): pc_(pc), data_(opcode) {
+Instruction::Instruction(uint8_t *pc, const Data& opcode): Blob(pc), data_(opcode) {
   decode();
 }
 
@@ -164,4 +166,8 @@ Instruction Instruction::jmp_mem(uint8_t *pc, uint8_t *mem) {
   opcode[1] = 0x25;
   * (int32_t *) &opcode[2] = disp;
   return Instruction(pc, opcode);
+}
+
+void Blob::relocate(uint8_t *newpc) {
+  pc_ = newpc;
 }

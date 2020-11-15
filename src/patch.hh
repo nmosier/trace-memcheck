@@ -14,9 +14,9 @@ public:
 
   void patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);
-  void jump_to_block(uint8_t *orig_addr);
+  void start(uint8_t *root);
+  void start(void);
   
-
 private:
   //  using BlockMap = std::unordered_map<uint8_t *, Block *>;
   using BlockMap = std::map<uint8_t *, Block *>;
@@ -30,5 +30,8 @@ private:
   void patch_one(uint8_t *pc, OutputIt output_it);
 
   /* addr can be anywhere within block */
-  Block *lookup_block(uint8_t *addr) const;
+  Block *lookup_block_range(uint8_t *addr) const;
+  Block& lookup_block_patch(uint8_t *addr);
+
+  void jump_to_block(uint8_t *orig_addr);
 };

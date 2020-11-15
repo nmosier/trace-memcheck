@@ -8,19 +8,14 @@ add_library(core_objs STATIC
   inst.cc
   patch.cc
   block.cc
+  usermem.cc
   )
 add_dependencies(core_objs xed)
 
-if(0)
-  add_executable(memcheck
-    main.cc
-    branches.cc
-    usermem.cc
-    bkpt.cc
-    patch.cc
-    block.cc
-    $<TARGET_OBJECTS:core_objs>
-    )
+add_executable(memcheck
+  main.cc
+  $<TARGET_OBJECTS:core_objs>
+  )
 add_dependencies(memcheck xed)
 
 add_executable(ss
@@ -28,4 +23,4 @@ add_executable(ss
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(ss xed)
-endif()
+

@@ -17,7 +17,7 @@ public:
   Blob() {}
   Blob(uint8_t *pc): pc_(pc) {}
   
-  virtual void relocate(uint8_t *newpc) = 0;
+  virtual void relocate(uint8_t *newpc);
   virtual void retarget(uint8_t *newdst) = 0;
 
   virtual uint8_t *data(void) = 0;
@@ -26,6 +26,9 @@ public:
 
   uint8_t *pc() const { return pc_; }
   uint8_t *after_pc() const { return pc() + size(); }
+
+protected:
+  void pc(uint8_t *pc) { pc_ = pc; }
   
 private:
   uint8_t *pc_;
@@ -41,7 +44,7 @@ public:
   template <typename InputIt>
   Data(InputIt begin, InputIt end): Blob(nullptr), data_(begin, end) {}
   
-  virtual void relocate(uint8_t *newpc) override {}
+  // virtual void relocate(uint8_t *newpc) override { }
   virtual void retarget(uint8_t *newdst) override {}
 
   uint8_t *data(void) override {return data_.data(); }
@@ -96,7 +99,6 @@ public:
 
 private:
   bool good_;
-  uint8_t *pc_;
   Data data_;
   xed_decoded_inst_t xedd_;
 

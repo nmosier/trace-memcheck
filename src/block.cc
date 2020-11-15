@@ -51,7 +51,7 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
   
   /* write (& relocate) instructions */
   block->write();
-  
+
   return block;
 }
 
@@ -145,8 +145,9 @@ void Block::jump_to(void) const {
 }
 
 void Block::handle_bkpt(uint8_t *pc, const HandleBkptIface& iface) {
-  BkptKind bkpt_kind;
-  tracee_.read(&bkpt_kind, sizeof(bkpt_kind), pc + 1);
+  uint8_t bkpt_data;
+  tracee_.read(&bkpt_data, sizeof(bkpt_data), pc + 1);
+  const BkptKind bkpt_kind = static_cast<BkptKind>(bkpt_data);
   switch (bkpt_kind) {
   case BkptKind::BRANCH:
     handle_bkpt_branch(pc, iface);
@@ -159,7 +160,6 @@ void Block::handle_bkpt(uint8_t *pc, const HandleBkptIface& iface) {
 }
 
 void Block::handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface) {
-  assert(branch_insts_.size() == 1);
   switch (kind()) {
   case Kind::DIR:
     handle_bkpt_branch_dir(pc, iface);

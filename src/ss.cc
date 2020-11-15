@@ -10,7 +10,6 @@
 #include <vector>
 #include <cstring>
 
-#include "branches.hh"
 #include "util.hh"
 #include "inst.hh"
 

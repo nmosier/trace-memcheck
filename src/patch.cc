@@ -16,6 +16,8 @@ void Patcher::patch(uint8_t *root) {
 
 template <typename OutputIt>
 void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
+  fprintf(stderr, "patching %p\n", start_pc);
+  
   /* create block */
   const auto block_it =
     block_map.emplace(start_pc, Block::Create(start_pc, tracee, block_pool));
@@ -24,15 +26,21 @@ void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
 
   /* add todo blocks */
   if (block->kind() == Block::Kind::DIR) {
+    assert(block->orig_branch());
+    fprintf(stderr, "branch dst of %p:  %p\n", block->orig_branch().pc(),
+	    block->orig_branch().branch_dst());
     *output_it++ = block->orig_branch().branch_dst();
   }
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
-  Block *block = lookup_block(bkpt_addr);
+  fprintf(stderr, "handling breakpoint @ %p\n", bkpt_addr);
+  
+  Block *block = lookup_block_range(bkpt_addr);
   assert(block != nullptr);
 
   Block::LookupBlock lb = [&] (uint8_t *addr) -> uint8_t * {
+#if 0
     BlockMap::iterator it;
     while (true) {
       it = block_map.find(addr);
@@ -42,6 +50,9 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
       patch(addr);
     }
     return it->second->pool_addr();
+#else
+    return lookup_block_patch(addr).pool_addr();
+#endif
   };
 
   Block::PatchBlock pb = [&] (uint8_t *addr) {
@@ -55,10 +66,8 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   Block::HandleBkptIface hbi = {lb, pb, ss};
   
   block->handle_bkpt(bkpt_addr, hbi);
-		     
-  
-  // TODO
-  abort();
+
+  // TODO: is there anything else that needs to be done here?
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {
@@ -67,7 +76,7 @@ void Patcher::jump_to_block(uint8_t *orig_addr) {
   block_it->second->jump_to();
 }
 
-Block *Patcher::lookup_block(uint8_t *addr) const {
+Block *Patcher::lookup_block_range(uint8_t *addr) const {
   auto it = block_map.upper_bound(addr);
   if (it == block_map.begin()) {
     return nullptr;
@@ -75,4 +84,26 @@ Block *Patcher::lookup_block(uint8_t *addr) const {
     --it;
     return it->second;
   }
+}
+
+Block& Patcher::lookup_block_patch(uint8_t *addr) {
+  BlockMap::iterator it;
+  while (true) {
+    it = block_map.find(addr);
+    if (it != block_map.end()) {
+      break;
+    }
+    patch(addr);
+  }
+  return *it->second;
+}
+
+void Patcher::start(uint8_t *root) {
+  patch(root);
+  Block& block = lookup_block_patch(root);
+  block.jump_to();
+}
+
+void Patcher::start(void) {
+  start(tracee.get_pc());
 }
