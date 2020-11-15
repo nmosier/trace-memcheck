@@ -40,19 +40,7 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   assert(block != nullptr);
 
   Block::LookupBlock lb = [&] (uint8_t *addr) -> uint8_t * {
-#if 0
-    BlockMap::iterator it;
-    while (true) {
-      it = block_map.find(addr);
-      if (it != block_map.end()) {
-	break;
-      }
-      patch(addr);
-    }
-    return it->second->pool_addr();
-#else
     return lookup_block_patch(addr).pool_addr();
-#endif
   };
 
   Block::PatchBlock pb = [&] (uint8_t *addr) {
