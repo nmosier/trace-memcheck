@@ -24,13 +24,14 @@ private:
   static constexpr size_t block_pool_size = 0x100000;
   Tracee& tracee;
   BlockMap block_map;
+  BlockMap pool2block_map;
   BlockPool block_pool;
-
+  
   template <typename OutputIt>
   void patch_one(uint8_t *pc, OutputIt output_it);
-
+  
   /* addr can be anywhere within block */
-  Block *lookup_block_range(uint8_t *addr) const;
+  Block *lookup_block_bkpt(uint8_t *pool_addr) const;
   Block& lookup_block_patch(uint8_t *addr);
 
   void jump_to_block(uint8_t *orig_addr);

@@ -19,10 +19,11 @@ void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
   fprintf(stderr, "patching %p\n", start_pc);
   
   /* create block */
-  const auto block_it =
-    block_map.emplace(start_pc, Block::Create(start_pc, tracee, block_pool));
+  Block *block = Block::Create(start_pc, tracee, block_pool);
+  const auto block_it = block_map.emplace(start_pc, block);
+  const auto pool2block_it = pool2block_map.emplace(block->pool_addr(), block);
   assert(block_it.second);
-  const Block *block = block_it.first->second;
+  assert(pool2block_it.second);
 
   /* add todo blocks */
   if (block->kind() == Block::Kind::DIR) {
@@ -35,8 +36,15 @@ void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   fprintf(stderr, "handling breakpoint @ %p\n", bkpt_addr);
-  
-  Block *block = lookup_block_range(bkpt_addr);
+
+  Block *block = lookup_block_bkpt(bkpt_addr);
+  if (block == nullptr) {
+    printf("bkpt_addr: %p\n", bkpt_addr);
+    /* dump block map */
+    for (const auto& pair : block_map) {
+      printf("%p -> %p\n", pair.first, pair.second->pool_addr());
+    }
+  }
   assert(block != nullptr);
 
   Block::LookupBlock lb = [&] (uint8_t *addr) -> uint8_t * {
@@ -64,13 +72,13 @@ void Patcher::jump_to_block(uint8_t *orig_addr) {
   block_it->second->jump_to();
 }
 
-Block *Patcher::lookup_block_range(uint8_t *addr) const {
-  auto it = block_map.upper_bound(addr);
-  if (it == block_map.begin()) {
+Block *Patcher::lookup_block_bkpt(uint8_t *pool_addr) const {
+  auto it = pool2block_map.upper_bound(pool_addr);
+  if (it == pool2block_map.begin()) {
     return nullptr;
   } else {
     --it;
-    if (it->second->pool_addr() > addr) {
+    if (it->second->pool_addr() > pool_addr) {
       return nullptr;
     } else {
       return it->second;
