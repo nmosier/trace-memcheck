@@ -7,6 +7,7 @@ class Data;
 #include <cstddef>
 #include <array>
 #include <vector>
+
 extern "C" {
 #include <xed/xed-interface.h>
 }
@@ -45,7 +46,7 @@ public:
 
   template <typename InputIt>
   Data(InputIt begin, InputIt end): Blob(nullptr), data_(begin, end) {}
-  
+
   // virtual void relocate(uint8_t *newpc) override { }
   virtual void retarget(uint8_t *newdst) override {}
 
@@ -57,6 +58,12 @@ public:
   
 private:
   Content data_;
+};
+
+class Pointer: public Data {
+public:
+  Pointer(uint8_t *ptr): Data(reinterpret_cast<uint8_t *>(&ptr),
+			      reinterpret_cast<uint8_t *>(&ptr + 1)) {}
 };
 
 class Instruction: public Blob {
@@ -101,6 +108,7 @@ public:
 
   /* generates instruction of XED_JMP_MEMv iform with rip-relative addressing */
   static Instruction jmp_mem(uint8_t *pc, uint8_t *mem);
+  static Instruction push_mem(uint8_t *pc, uint8_t *mem);
 
   virtual std::ostream& print(std::ostream& os) const override;
 
@@ -109,6 +117,8 @@ private:
   Data data_;
   xed_decoded_inst_t xedd_;
 
+  uint8_t *is_mem_rip(void) const;
+  
   void decode(void);
   bool relocate_jmp_relbr8(ptrdiff_t diff);
   bool relocate_jmp_relbr32(ptrdiff_t diff);
@@ -119,6 +129,7 @@ private:
   template <typename Op> bool retarget_jmp_relbr8(Op get_dst_ptr);
   template <typename Op> bool retarget_jmp_relbr32(Op get_dst_ptr);
   template <typename Op> bool retarget_call_relbr32(Op get_dst_ptr);
+  template <typename Op> bool retarget_mem(Op get_dst_ptr);
 
   void patch_relbr(ptrdiff_t disp);
 

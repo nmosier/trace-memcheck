@@ -185,21 +185,38 @@ void Block::handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface) {
 void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
   uint8_t *expected_pc = branch_insts_.front()->pc();
   assert(pc == expected_pc);
-  
-  Instruction branch = orig_branch_;
 
-  fprintf(stderr, "orig branch %s\n", branch.xed_iform_str());
+  Instruction branch = orig_branch_;
 
   uint8_t *branch_pool_dst = iface.lb(orig_branch_.branch_dst());
 
-  fprintf(stderr, "branch_pool_dst = %p\n", branch_pool_dst);
-
-  // branch.relocate(branch_insts_.front()->pc());
-  branch.retarget(branch_pool_dst);
-  assert(branch.branch_dst() == branch_pool_dst);
-
   branch_insts_.clear();
-  branch_insts_.push_back(std::make_unique<Instruction>(branch));
+  
+  if (orig_branch_.xed_iclass() == XED_ICLASS_CALL_NEAR) {
+    /* push + jmp */
+    auto push_it = branch_insts_.insert
+      (branch_insts_.end(), std::make_unique<Instruction>(Instruction::push_mem(nullptr, nullptr)));
+    auto jmp_it = branch_insts_.insert
+      (branch_insts_.end(), std::make_unique<Instruction>(Instruction::jmp_mem(nullptr, nullptr)));
+
+    /* add data */
+    uint8_t *after_branch_orig = orig_branch_.after_pc();
+    auto push_ptr_it = branch_insts_.insert
+      (branch_insts_.end(), std::make_unique<Pointer>(after_branch_orig));
+    auto jmp_ptr_it = branch_insts_.insert
+      (branch_insts_.end(), std::make_unique<Pointer>(branch_pool_dst));
+
+    write(); // assign PCs
+    
+    /* link push + jmp to ptrs */
+    (*push_it)->retarget((*push_ptr_it)->pc());
+    (*jmp_it)->retarget((*jmp_ptr_it)->pc());
+    
+  } else {
+    branch.retarget(branch_pool_dst);
+    assert(branch.branch_dst() == branch_pool_dst);
+    branch_insts_.push_back(std::make_unique<Instruction>(branch));
+  }
 
   write();
 

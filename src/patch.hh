@@ -16,6 +16,9 @@ public:
   void handle_bkpt(uint8_t *bkpt_addr);
   void start(uint8_t *root);
   void start(void);
+
+  /* addr can be anywhere within block */
+  Block *lookup_block_bkpt(uint8_t *pool_addr) const;
   
 private:
   //  using BlockMap = std::unordered_map<uint8_t *, Block *>;
@@ -30,8 +33,6 @@ private:
   template <typename OutputIt>
   void patch_one(uint8_t *pc, OutputIt output_it);
   
-  /* addr can be anywhere within block */
-  Block *lookup_block_bkpt(uint8_t *pool_addr) const;
   Block& lookup_block_patch(uint8_t *addr);
 
   void jump_to_block(uint8_t *orig_addr);

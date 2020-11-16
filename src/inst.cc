@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstring>
 #include "inst.hh"
+#include "debug.h"
 
 uint8_t *Instruction::branch_dst(void) const {
   return after_pc() + xed_decoded_inst_get_branch_displacement(&xedd());
@@ -10,44 +11,59 @@ void Instruction::retarget(uint8_t *newdst) {
   auto get_dst_ptr = [newdst] (uint8_t *dst) {
     return newdst;
   };
-  if (retarget_jmp_relbr8(get_dst_ptr)) {}
-  else if (retarget_jmp_relbr32(get_dst_ptr)) {}
-  else if (retarget_call_relbr32(get_dst_ptr)) {}
+  if (retarget_jmp_relbr8(get_dst_ptr) ||
+      retarget_jmp_relbr32(get_dst_ptr) ||
+      retarget_call_relbr32(get_dst_ptr) ||
+      retarget_mem(get_dst_ptr)
+      ) {
+#if REDECODE
+    decode();
+#endif
+  }
 }
 
 void Instruction::relocate(uint8_t *newpc) {
-  Blob::relocate(newpc);
   
   const ptrdiff_t diff = pc() - newpc;
-  if (relocate_jmp_relbr8(diff)) {}
-  else if (relocate_jmp_relbr32(diff)) {}
-  else if (relocate_call_relbr32(diff)) {}
-  else if (relocate_mem(diff)) {}
-  pc(newpc);
+  if (relocate_jmp_relbr8(diff) ||
+      relocate_jmp_relbr32(diff) ||
+      relocate_call_relbr32(diff) ||
+      relocate_mem(diff)
+      ) {
+#if REDECODE
+    decode();
+#endif
+  }
+
+  Blob::relocate(newpc);
 }
 
 template <typename Op>
 bool Instruction::retarget_jmp_relbr8(Op get_dst_ptr) {
   Data newdata;
-  uint8_t *offset;
+  int32_t *offset;
+  size_t newinstlen;
   if (size() == 2 && (data()[0] & 0xf0) == 0x70) {
     const uint8_t short_opcode = data()[0];
     const uint8_t long_opcode = (short_opcode & 0x0f) | 0x80;
     newdata[0] = 0x0f;
     newdata[1] = long_opcode;
-    offset = &newdata[2];
-  } else if (size() == 1 && xed_iform() == XED_IFORM_JMP_RELBRb) {
+    offset = reinterpret_cast<int32_t *>(&newdata[2]);
+    newinstlen = 6;
+  } else if (xed_iform() == XED_IFORM_JMP_RELBRb) {
     newdata[0] = 0xe9;
-    offset = &newdata[1];
+    offset = reinterpret_cast<int32_t *>(&newdata[1]);
+    newinstlen = 5;
   } else {
     return false;
   }
 
   assert(xed_decoded_inst_get_branch_displacement_width_bits(&xedd()) == 8);
 
+  uint8_t *baseaddr = pc() + newinstlen;
   const ptrdiff_t relbr = xed_decoded_inst_get_branch_displacement(&xedd());
-  uint8_t *baseaddr = pc() + size();
-  *offset = get_dst_ptr(baseaddr + relbr) - baseaddr;
+  uint8_t *new_dst = get_dst_ptr(baseaddr + relbr);
+  *offset = new_dst - baseaddr;
   data(newdata);
 
   return true;
@@ -126,6 +142,8 @@ bool Instruction::relocate_mem(ptrdiff_t diff) {
     return false;
   }
 
+  printf("mem %p, diff %zd\n", pc(), diff);
+  
   assert(xed_decoded_inst_get_memory_displacement_width_bits(&xedd(), memidx) == 32);
   const ptrdiff_t olddisp = xed_decoded_inst_get_memory_displacement(&xedd(), memidx);
   xed_enc_displacement_t disp;
@@ -135,6 +153,44 @@ bool Instruction::relocate_mem(ptrdiff_t diff) {
     fprintf(stderr, "failed to patch memory operand\n");
     abort();
   }
+  return true;
+}
+
+uint8_t *Instruction::is_mem_rip(void) const {
+  const unsigned memops = xed_decoded_inst_number_of_memory_operands(&xedd());
+  if (memops == 0) {
+    return nullptr;
+  }
+
+  const unsigned memidx = 0; // TODO: is this right?
+  const xed_reg_enum_t reg = xed_decoded_inst_get_base_reg(&xedd(), memidx);
+  if (reg != XED_REG_RIP) {
+    return nullptr;
+  }
+
+  assert(xed_decoded_inst_get_memory_displacement_width_bits(&xedd(), memidx) == 32);
+
+  const ptrdiff_t disp =  xed_decoded_inst_get_memory_displacement(&xedd(), memidx);
+  return after_pc() + disp;
+}
+
+template <typename Op>
+bool Instruction::retarget_mem(Op get_dst_ptr) {
+  const auto orig_ptr = is_mem_rip();
+  if (!orig_ptr) {
+    return false;
+  }
+
+  uint8_t *new_ptr = get_dst_ptr(orig_ptr);
+  const int32_t new_disp = new_ptr - after_pc();
+  xed_enc_displacement_t disp;
+  disp.displacement = static_cast<int32_t>(new_disp);
+  disp.displacement_bits = 32;
+  if (!xed_patch_disp(&xedd_, data_.data(), disp)) {
+    fprintf(stderr, "failed to patch memory operand\n");
+    abort();
+  }
+  
   return true;
 }
 
@@ -172,6 +228,16 @@ Instruction Instruction::jmp_mem(uint8_t *pc, uint8_t *mem) {
   Data opcode;
   opcode[0] = 0xff;
   opcode[1] = 0x25;
+  * (int32_t *) &opcode[2] = disp;
+  return Instruction(pc, opcode);
+}
+
+Instruction Instruction::push_mem(uint8_t *pc, uint8_t *mem) {
+  constexpr unsigned instlen = 6;
+  const int32_t disp = mem - (pc + instlen);
+  Data opcode;
+  opcode[0] = 0xff;
+  opcode[1] = 0x35;
   * (int32_t *) &opcode[2] = disp;
   return Instruction(pc, opcode);
 }
