@@ -185,6 +185,8 @@ void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
 
   uint8_t *branch_pool_dst = iface.lb(orig_branch_.branch_dst());
 
+  printf("DIR %p -> %p\n", pc, branch_pool_dst);
+  
   branch_insts_.clear();
   
   if (orig_branch_.xed_iclass() == XED_ICLASS_CALL_NEAR) {
@@ -200,6 +202,8 @@ void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
       (branch_insts_.end(), std::make_unique<Pointer>(after_branch_orig));
     auto jmp_ptr_it = branch_insts_.insert
       (branch_insts_.end(), std::make_unique<Pointer>(branch_pool_dst));
+
+    printf("CALL: pushing %p\n", after_branch_orig);
 
     write(); // assign PCs
     
@@ -223,16 +227,32 @@ void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
 }
 
 void Block::handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface) {
-  branch_insts_.clear();
+  if (orig_branch_.xed_iclass() == XED_ICLASS_RET_NEAR) {
+    printf("RET\n");
+  }
+
+  InstVec saved_branch_insts;
+  std::swap(saved_branch_insts, branch_insts_);
+  
   branch_insts_.push_back(std::make_unique<Instruction>(orig_branch_));
   write();
 
   /* single-step thru indirect branch */
+  printf("ss addr %p\n", tracee_.get_pc());
+  std::clog << "ss inst: " << *branch_insts_.front() << std::endl;
   iface.ss();
+  printf("ss addr %p\n", tracee_.get_pc());
+  Instruction next_inst(tracee_.get_pc(), tracee_);
+  std::clog << "ss inst: " << next_inst << std::endl;
 
   /* lookup destination block */
   uint8_t *branch_pool_dst = iface.lb(tracee_.get_pc());
   tracee_.set_pc(branch_pool_dst);
+
+  std::swap(saved_branch_insts, branch_insts_);
+  write();
+
+  printf("IND %p -> %p\n", pc, branch_pool_dst);
 }
 
 void Block::handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface) {
@@ -272,5 +292,16 @@ const char *Block::kind_to_str(Kind kind) {
   case Kind::DIR: return "DIR";
   case Kind::IND: return "IND";
   default: return nullptr;
+  }
+}
+
+bool Block::may_have_conditional_branch(void) const {
+  const auto iclass = orig_branch_.xed_iclass();
+  if (iclass == XED_ICLASS_CALL_NEAR ||
+      iclass == XED_ICLASS_JMP ||
+      iclass == XED_ICLASS_RET_NEAR) {
+    return false;
+  } else {
+    return true;
   }
 }

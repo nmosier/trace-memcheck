@@ -24,7 +24,7 @@ void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
   assert(pool2block_it.second);
 
   /* add todo blocks */
-  if (block->kind() == Block::Kind::DIR) {
+  if (block->kind() == Block::Kind::DIR && !block->may_have_conditional_branch()) {
     assert(block->orig_branch());
     *output_it++ = block->orig_branch().branch_dst();
   }
@@ -50,7 +50,13 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   };
 
   Block::SingleStep ss = [&] (void) {
+    Instruction inst1(tracee.get_pc(), tracee);
+    std::cout << inst1 << std::endl;
+    
     tracee.singlestep();
+
+    Instruction inst2(tracee.get_pc(), tracee);
+    std::cout << inst2 << std::endl;
   };
   
   Block::HandleBkptIface hbi = {lb, pb, ss};
@@ -81,6 +87,8 @@ Block *Patcher::lookup_block_bkpt(uint8_t *pool_addr) const {
 }
 
 Block& Patcher::lookup_block_patch(uint8_t *addr) {
+  assert(!is_pool_addr(addr));
+  
   BlockMap::iterator it;
   while (true) {
     it = block_map.find(addr);
@@ -89,6 +97,7 @@ Block& Patcher::lookup_block_patch(uint8_t *addr) {
     }
     patch(addr);
   }
+
   return *it->second;
 }
 
@@ -100,4 +109,8 @@ void Patcher::start(uint8_t *root) {
 
 void Patcher::start(void) {
   start(tracee.get_pc());
+}
+
+bool Patcher::is_pool_addr(uint8_t *addr) const {
+  return addr >= block_pool.begin() && addr < block_pool.end();
 }

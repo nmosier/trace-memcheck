@@ -46,6 +46,12 @@ public:
 
   void handle_bkpt(uint8_t *pc, const HandleBkptIface& iface);
 
+  /**
+   * Check whether branch instruction *might* be conditional.
+   * @return whether branch instruction is conditional with potential false positives
+   */
+  bool may_have_conditional_branch(void) const;
+  
 private:
   const Tracee& tracee_;
   BlockPool& block_pool_;
@@ -79,6 +85,9 @@ private:
   void handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface);
   void handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface);
 
+  // TODO
+  // bool transform_call_to_jmp(
+  
 #if 0
   uint8_t *branch_addr(void) const { return branch_insts_.front().addr(); }
   uint8_T *fallthrough_addr(void) const { return fallthrough_intss_.front().addr(); }

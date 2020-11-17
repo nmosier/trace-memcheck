@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 # if DEBUG
       fprintf(stderr, "ss pc = %p\n", tracee.get_pc());
       Instruction cur_inst(tracee.get_pc(), tracee);
-      std::clog << cur_inst << std::endl;
+      std::clog << "ss inst: " << cur_inst << std::endl;
 # endif
 
 #else

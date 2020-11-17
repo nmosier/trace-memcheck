@@ -1,0 +1,4109 @@
+ss pc = 0x7fc6e75d1003
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d1009
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d1043
+ss inst: push rbp
+ss pc = 0x7fc6e75d1044
+ss inst: mov rbp, rsp
+ss pc = 0x7fc6e75d1047
+ss inst: push r15
+ss pc = 0x7fc6e75d1049
+ss inst: push r14
+ss pc = 0x7fc6e75d104b
+ss inst: push r13
+ss pc = 0x7fc6e75d104d
+ss inst: push r12
+ss pc = 0x7fc6e75d104f
+ss inst: mov r12, rdi
+ss pc = 0x7fc6e75d1052
+ss inst: push rbx
+ss pc = 0x7fc6e75d1053
+ss inst: sub rsp, 0x38
+ss pc = 0x7fc6e75d1057
+ss inst: rdtsc 
+ss pc = 0x7fc6e75d1059
+ss inst: shl rdx, 0x20
+ss pc = 0x7fc6e75d105d
+ss inst: mov eax, eax
+ss pc = 0x7fc6e75d105f
+ss inst: or rax, rdx
+ss pc = 0x7fc6e75d1062
+ss inst: lea rdx, ptr [rip+0x100e07]
+ss pc = 0x7fc6e75d1069
+ss inst: mov qword ptr [rip+0x100bf0], rax
+ss pc = 0x7fc6e75d1070
+ss inst: mov rax, qword ptr [rip+0x100df9]
+ss pc = 0x7fc6e75d1077
+ss inst: mov r14, rdx
+ss pc = 0x7fc6e75d107a
+ss inst: sub r14, qword ptr [rip+0x100f7f]
+ss pc = 0x7fc6e75d1081
+ss inst: mov qword ptr [rip+0x101960], rdx
+ss pc = 0x7fc6e75d1088
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d108b
+ss inst: mov qword ptr [rip+0x101946], r14
+ss pc = 0x7fc6e75d1092
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1098
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d154e
+ss inst: lea rcx, ptr [rip+0x100aeb]
+ss pc = 0x7fc6e75d1555
+ss inst: mov r9, 0x3800003d8
+ss pc = 0x7fc6e75d155f
+ss inst: mov r8, 0x37ffffb78
+ss pc = 0x7fc6e75d1569
+ss inst: mov esi, 0x6fffffff
+ss pc = 0x7fc6e75d156e
+ss inst: mov r11d, 0x6ffffdff
+ss pc = 0x7fc6e75d1574
+ss inst: mov ebx, 0x6ffffeff
+ss pc = 0x7fc6e75d1579
+ss inst: add r9, rcx
+ss pc = 0x7fc6e75d157c
+ss inst: add r8, rcx
+ss pc = 0x7fc6e75d157f
+ss inst: mov r10d, 0x31
+ss pc = 0x7fc6e75d1585
+ss inst: mov edi, 0x70000021
+ss pc = 0x7fc6e75d158a
+ss inst: jmp 0x7fc6e75d15ca
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d15d4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1663
+ss inst: mov rcx, rsi
+ss pc = 0x7fc6e75d1666
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1669
+ss inst: cmp rcx, 0xf
+ss pc = 0x7fc6e75d166d
+ss inst: jnbe 0x7fc6e75d16ad
+ss pc = 0x7fc6e75d16ad
+ss inst: lea ecx, ptr [rax+rax*1]
+ss pc = 0x7fc6e75d16b0
+ss inst: sar ecx, 0x1
+ss pc = 0x7fc6e75d16b2
+ss inst: cmp ecx, 0xfffffffc
+ss pc = 0x7fc6e75d16b5
+ss inst: jbe 0x7fc6e75d16f5
+ss pc = 0x7fc6e75d16f5
+ss inst: mov rcx, r11
+ss pc = 0x7fc6e75d16f8
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d16fb
+ss inst: cmp rcx, 0xb
+ss pc = 0x7fc6e75d16ff
+ss inst: jnbe 0x7fc6e75d173f
+ss pc = 0x7fc6e75d173f
+ss inst: mov rcx, rbx
+ss pc = 0x7fc6e75d1742
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1745
+ss inst: cmp rcx, 0xa
+ss pc = 0x7fc6e75d1749
+ss inst: jnbe 0x7fc6e75d1789
+ss pc = 0x7fc6e75d174f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d17d3
+ss inst: neg rax
+ss pc = 0x7fc6e75d17d6
+ss inst: mov qword ptr [r9+rax*8], rdx
+ss pc = 0x7fc6e75d17da
+ss inst: jmp 0x7fc6e75d1789
+ss pc = 0x7fc6e75d1789
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d178d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1790
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1793
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1799
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d160e
+ss inst: lea rcx, ptr [rip+0x101403]
+ss pc = 0x7fc6e75d1615
+ss inst: mov qword ptr [rcx+rax*8], rdx
+ss pc = 0x7fc6e75d1619
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d161d
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1620
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1623
+ss inst: jz 0x7fc6e75d10d2
+ss pc = 0x7fc6e75d1629
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d15d4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1663
+ss inst: mov rcx, rsi
+ss pc = 0x7fc6e75d1666
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1669
+ss inst: cmp rcx, 0xf
+ss pc = 0x7fc6e75d166d
+ss inst: jnbe 0x7fc6e75d16ad
+ss pc = 0x7fc6e75d1673
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d181a
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d181d
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1820
+ss inst: lea rax, ptr [rip+0x1011f1]
+ss pc = 0x7fc6e75d1827
+ss inst: mov qword ptr [rax+rcx*8], rdx
+ss pc = 0x7fc6e75d182b
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d182f
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1832
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1835
+ss inst: jnz 0x7fc6e75d15ca
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d15d4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1663
+ss inst: mov rcx, rsi
+ss pc = 0x7fc6e75d1666
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1669
+ss inst: cmp rcx, 0xf
+ss pc = 0x7fc6e75d166d
+ss inst: jnbe 0x7fc6e75d16ad
+ss pc = 0x7fc6e75d1673
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d181a
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d181d
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1820
+ss inst: lea rax, ptr [rip+0x1011f1]
+ss pc = 0x7fc6e75d1827
+ss inst: mov qword ptr [rax+rcx*8], rdx
+ss pc = 0x7fc6e75d182b
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d182f
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1832
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1835
+ss inst: jnz 0x7fc6e75d15ca
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d15d4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1663
+ss inst: mov rcx, rsi
+ss pc = 0x7fc6e75d1666
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1669
+ss inst: cmp rcx, 0xf
+ss pc = 0x7fc6e75d166d
+ss inst: jnbe 0x7fc6e75d16ad
+ss pc = 0x7fc6e75d1673
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d181a
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d181d
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1820
+ss inst: lea rax, ptr [rip+0x1011f1]
+ss pc = 0x7fc6e75d1827
+ss inst: mov qword ptr [rax+rcx*8], rdx
+ss pc = 0x7fc6e75d182b
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d182f
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1832
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1835
+ss inst: jnz 0x7fc6e75d15ca
+ss pc = 0x7fc6e75d15ca
+ss inst: cmp rax, 0x21
+ss pc = 0x7fc6e75d15ce
+ss inst: jbe 0x7fc6e75d160e
+ss pc = 0x7fc6e75d15d4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1663
+ss inst: mov rcx, rsi
+ss pc = 0x7fc6e75d1666
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1669
+ss inst: cmp rcx, 0xf
+ss pc = 0x7fc6e75d166d
+ss inst: jnbe 0x7fc6e75d16ad
+ss pc = 0x7fc6e75d1673
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d181a
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d181d
+ss inst: sub rcx, rax
+ss pc = 0x7fc6e75d1820
+ss inst: lea rax, ptr [rip+0x1011f1]
+ss pc = 0x7fc6e75d1827
+ss inst: mov qword ptr [rax+rcx*8], rdx
+ss pc = 0x7fc6e75d182b
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d182f
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d1832
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1835
+ss inst: jnz 0x7fc6e75d15ca
+ss pc = 0x7fc6e75d183b
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d10d2
+ss inst: test r14, r14
+ss pc = 0x7fc6e75d10d5
+ss inst: jz 0x7fc6e75d1115
+ss pc = 0x7fc6e75d10db
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1875
+ss inst: mov rax, qword ptr [rip+0x1011bc]
+ss pc = 0x7fc6e75d187c
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d187f
+ss inst: jz 0x7fc6e75d18bf
+ss pc = 0x7fc6e75d1885
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1ac5
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1ac9
+ss inst: mov rax, qword ptr [rip+0x100f60]
+ss pc = 0x7fc6e75d1ad0
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1ad3
+ss inst: jz 0x7fc6e75d1909
+ss pc = 0x7fc6e75d1ad9
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1b13
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1b17
+ss inst: mov rax, qword ptr [rip+0x100f22]
+ss pc = 0x7fc6e75d1b1e
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1b21
+ss inst: jz 0x7fc6e75d1953
+ss pc = 0x7fc6e75d1b27
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1b61
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1b65
+ss inst: mov rax, qword ptr [rip+0x100edc]
+ss pc = 0x7fc6e75d1b6c
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1b6f
+ss inst: jz 0x7fc6e75d199d
+ss pc = 0x7fc6e75d1b75
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1baf
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1bb3
+ss inst: mov rax, qword ptr [rip+0x100e96]
+ss pc = 0x7fc6e75d1bba
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1bbd
+ss inst: jz 0x7fc6e75d19e7
+ss pc = 0x7fc6e75d1bc3
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1bfd
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1c01
+ss inst: mov rax, qword ptr [rip+0x100ec8]
+ss pc = 0x7fc6e75d1c08
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1c0b
+ss inst: jz 0x7fc6e75d1a31
+ss pc = 0x7fc6e75d1c11
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1c4b
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1c4f
+ss inst: mov rax, qword ptr [rip+0x100f4a]
+ss pc = 0x7fc6e75d1c56
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1c59
+ss inst: jz 0x7fc6e75d1a7b
+ss pc = 0x7fc6e75d1c5f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1c99
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1c9d
+ss inst: mov rax, qword ptr [rip+0x100fcc]
+ss pc = 0x7fc6e75d1ca4
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1ca7
+ss inst: jz 0x7fc6e75d1115
+ss pc = 0x7fc6e75d1cad
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1ce7
+ss inst: add qword ptr [rax+0x8], r14
+ss pc = 0x7fc6e75d1ceb
+ss inst: mov rdx, qword ptr [rip+0x100dc6]
+ss pc = 0x7fc6e75d1cf2
+ss inst: test rdx, rdx
+ss pc = 0x7fc6e75d1cf5
+ss inst: jz 0x7fc6e75d115f
+ss pc = 0x7fc6e75d1cfb
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1d35
+ss inst: cmp qword ptr [rdx+0x8], 0x7
+ss pc = 0x7fc6e75d1d3a
+ss inst: jnz 0x7fc6e75d1d7a
+ss pc = 0x7fc6e75d1d40
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d115f
+ss inst: mov rax, qword ptr [rip+0x1018ea]
+ss pc = 0x7fc6e75d1166
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1169
+ss inst: jz 0x7fc6e75d11a9
+ss pc = 0x7fc6e75d116f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1dd4
+ss inst: mov rcx, qword ptr [rip+0x100c85]
+ss pc = 0x7fc6e75d1ddb
+ss inst: cmp qword ptr [rcx+0x8], 0x18
+ss pc = 0x7fc6e75d1de0
+ss inst: jnz 0x7fc6e75d1e20
+ss pc = 0x7fc6e75d1de6
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d11a9
+ss inst: mov rcx, qword ptr [rip+0x101998]
+ss pc = 0x7fc6e75d11b0
+ss inst: test rcx, rcx
+ss pc = 0x7fc6e75d11b3
+ss inst: jz 0x7fc6e75d11f3
+ss pc = 0x7fc6e75d11f3
+ss inst: mov rcx, qword ptr [rip+0x10190e]
+ss pc = 0x7fc6e75d11fa
+ss inst: test rcx, rcx
+ss pc = 0x7fc6e75d11fd
+ss inst: jz 0x7fc6e75d123d
+ss pc = 0x7fc6e75d123d
+ss inst: cmp qword ptr [rip+0x1018bb], 0x0
+ss pc = 0x7fc6e75d1245
+ss inst: jnz 0x7fc6e75d1285
+ss pc = 0x7fc6e75d124b
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1e7a
+ss inst: cmp qword ptr [rip+0x100c0e], 0x0
+ss pc = 0x7fc6e75d1e82
+ss inst: jnz 0x7fc6e75d1ec2
+ss pc = 0x7fc6e75d1e88
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d1f1c
+ss inst: test r14, r14
+ss pc = 0x7fc6e75d1f1f
+ss inst: jnz 0x7fc6e75d1f5f
+ss pc = 0x7fc6e75d1f5f
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d1f62
+ss inst: jz 0x7fc6e75d1fa2
+ss pc = 0x7fc6e75d1f68
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2120
+ss inst: mov rcx, qword ptr [rax+0x8]
+ss pc = 0x7fc6e75d2124
+ss inst: mov rax, qword ptr [rip+0x10092d]
+ss pc = 0x7fc6e75d212b
+ss inst: mov rdi, qword ptr [rax+0x8]
+ss pc = 0x7fc6e75d212f
+ss inst: mov rax, qword ptr [rip+0x100a22]
+ss pc = 0x7fc6e75d2136
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2139
+ss inst: lea rsi, ptr [rcx+rdi*1]
+ss pc = 0x7fc6e75d213d
+ss inst: jz 0x7fc6e75d217d
+ss pc = 0x7fc6e75d2143
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d21c3
+ss inst: mov rax, qword ptr [rax+0x8]
+ss pc = 0x7fc6e75d21c7
+ss inst: lea rax, ptr [rax+rax*2]
+ss pc = 0x7fc6e75d21cb
+ss inst: lea r13, ptr [rcx+rax*8]
+ss pc = 0x7fc6e75d21cf
+ss inst: mov rax, rcx
+ss pc = 0x7fc6e75d21d2
+ss inst: test rdx, rdx
+ss pc = 0x7fc6e75d21d5
+ss inst: jz 0x7fc6e75d2030
+ss pc = 0x7fc6e75d21db
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2215
+ss inst: mov rdx, qword ptr [rip+0x10080c]
+ss pc = 0x7fc6e75d221c
+ss inst: mov r8, qword ptr [rip+0x1008ad]
+ss pc = 0x7fc6e75d2223
+ss inst: mov rdx, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2227
+ss inst: mov r9, rdx
+ss pc = 0x7fc6e75d222a
+ss inst: add r9, qword ptr [r8+0x8]
+ss pc = 0x7fc6e75d222e
+ss inst: mov r8, rdi
+ss pc = 0x7fc6e75d2231
+ss inst: sub r8, rdx
+ss pc = 0x7fc6e75d2234
+ss inst: cmp r9, rsi
+ss pc = 0x7fc6e75d2237
+ss inst: lea rsi, ptr [rdx+rcx*1]
+ss pc = 0x7fc6e75d223b
+ss inst: cmovz rdi, r8
+ss pc = 0x7fc6e75d223f
+ss inst: add rsi, rdi
+ss pc = 0x7fc6e75d2242
+ss inst: mov rdx, qword ptr [rip+0x1007ff]
+ss pc = 0x7fc6e75d2249
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d224c
+ss inst: mov rdi, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2250
+ss inst: jnb 0x7fc6e75d207e
+ss pc = 0x7fc6e75d2256
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2290
+ss inst: nop dword ptr [rax], eax
+ss pc = 0x7fc6e75d2293
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d2296
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d2299
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d229d
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d22a3
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d2388
+ss inst: mov rdx, r14
+ss pc = 0x7fc6e75d238b
+ss inst: add rdx, qword ptr [rax]
+ss pc = 0x7fc6e75d238e
+ss inst: cmp dword ptr [rax+0x8], 0x8
+ss pc = 0x7fc6e75d2392
+ss inst: jnz 0x7fc6e75d22dd
+ss pc = 0x7fc6e75d2398
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2337
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d233a
+ss inst: add rcx, qword ptr [rax+0x10]
+ss pc = 0x7fc6e75d233e
+ss inst: add rax, 0x18
+ss pc = 0x7fc6e75d2342
+ss inst: cmp rax, r13
+ss pc = 0x7fc6e75d2345
+ss inst: mov qword ptr [rdx], rcx
+ss pc = 0x7fc6e75d2348
+ss inst: jb 0x7fc6e75d2388
+ss pc = 0x7fc6e75d234e
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d207e
+ss inst: cmp qword ptr [rip+0x100b1a], 0x0
+ss pc = 0x7fc6e75d2086
+ss inst: jz 0x7fc6e75d20c6
+ss pc = 0x7fc6e75d208c
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d23d2
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d23d5
+ss inst: lea r8, ptr [rip-0x107b7c]
+ss pc = 0x7fc6e75d23dc
+ss inst: jbe 0x7fc6e75d241c
+ss pc = 0x7fc6e75d23e2
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d253b
+ss inst: nop dword ptr [rax], eax
+ss pc = 0x7fc6e75d2542
+ss inst: mov rax, qword ptr [r13+0x8]
+ss pc = 0x7fc6e75d2546
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d2549
+ss inst: add rcx, qword ptr [r13]
+ss pc = 0x7fc6e75d254d
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d2550
+ss inst: mov ebx, eax
+ss pc = 0x7fc6e75d2552
+ss inst: shr rdx, 0x20
+ss pc = 0x7fc6e75d2556
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d2559
+ss inst: lea rdx, ptr [rdx+rdx*2]
+ss pc = 0x7fc6e75d255d
+ss inst: lea r15, ptr [rdi+rdx*8]
+ss pc = 0x7fc6e75d2561
+ss inst: jz 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d2567
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2647
+ss inst: test r15, r15
+ss pc = 0x7fc6e75d264a
+ss inst: jz 0x7fc6e75d268a
+ss pc = 0x7fc6e75d2650
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2714
+ss inst: movzx edx, byte ptr [r15+0x4]
+ss pc = 0x7fc6e75d2719
+ss inst: mov rax, qword ptr [r15+0x8]
+ss pc = 0x7fc6e75d271d
+ss inst: add rax, qword ptr [rip+0x1002b4]
+ss pc = 0x7fc6e75d2724
+ss inst: and edx, 0xf
+ss pc = 0x7fc6e75d2727
+ss inst: cmp dl, 0xa
+ss pc = 0x7fc6e75d272a
+ss inst: jz 0x7fc6e75d276a
+ss pc = 0x7fc6e75d2730
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d26cc
+ss inst: sub rbx, 0x6
+ss pc = 0x7fc6e75d26d0
+ss inst: cmp rbx, 0x1e
+ss pc = 0x7fc6e75d26d4
+ss inst: jnbe 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d26da
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d27b0
+ss inst: movsxd rdx, dword ptr [r8+rbx*4]
+ss pc = 0x7fc6e75d27b4
+ss inst: add rdx, r8
+ss inst: jmp rdx
+child pid = 18298
+DIR 0x7fc6e75d1003 -> 0x7fc6e75d1043
+CALL: pushing 0x7fc6e74acc38
+DIR 0x7fc6e75d1092 -> 0x7fc6e75d10d2
+DIR 0x7fc6e75d158a -> 0x7fc6e75d15ca
+DIR 0x7fc6e75d15ce -> 0x7fc6e75d160e
+DIR 0x7fc6e75d1623 -> 0x7fc6e75d10d2
+DIR 0x7fc6e75d166d -> 0x7fc6e75d16ad
+DIR 0x7fc6e75d16b5 -> 0x7fc6e75d16f5
+DIR 0x7fc6e75d16ff -> 0x7fc6e75d173f
+DIR 0x7fc6e75d1749 -> 0x7fc6e75d1789
+DIR 0x7fc6e75d17da -> 0x7fc6e75d1789
+DIR 0x7fc6e75d1793 -> 0x7fc6e75d10d2
+DIR 0x7fc6e75d1835 -> 0x7fc6e75d15ca
+DIR 0x7fc6e75d10d5 -> 0x7fc6e75d1115
+DIR 0x7fc6e75d187f -> 0x7fc6e75d18bf
+DIR 0x7fc6e75d1ad3 -> 0x7fc6e75d1909
+DIR 0x7fc6e75d1b21 -> 0x7fc6e75d1953
+DIR 0x7fc6e75d1b6f -> 0x7fc6e75d199d
+DIR 0x7fc6e75d1bbd -> 0x7fc6e75d19e7
+DIR 0x7fc6e75d1c0b -> 0x7fc6e75d1a31
+DIR 0x7fc6e75d1c59 -> 0x7fc6e75d1a7b
+DIR 0x7fc6e75d1ca7 -> 0x7fc6e75d1115
+DIR 0x7fc6e75d1cf5 -> 0x7fc6e75d115f
+DIR 0x7fc6e75d1d3a -> 0x7fc6e75d1d7a
+DIR 0x7fc6e75d1169 -> 0x7fc6e75d11a9
+DIR 0x7fc6e75d1de0 -> 0x7fc6e75d1e20
+DIR 0x7fc6e75d11b3 -> 0x7fc6e75d11f3
+DIR 0x7fc6e75d11fd -> 0x7fc6e75d123d
+DIR 0x7fc6e75d1245 -> 0x7fc6e75d1285
+DIR 0x7fc6e75d1e82 -> 0x7fc6e75d1ec2
+DIR 0x7fc6e75d1f1f -> 0x7fc6e75d1f5f
+DIR 0x7fc6e75d1f62 -> 0x7fc6e75d1fa2
+DIR 0x7fc6e75d213d -> 0x7fc6e75d217d
+DIR 0x7fc6e75d21d5 -> 0x7fc6e75d2030
+DIR 0x7fc6e75d2250 -> 0x7fc6e75d207e
+DIR 0x7fc6e75d229d -> 0x7fc6e75d22dd
+DIR 0x7fc6e75d2348 -> 0x7fc6e75d2388
+DIR 0x7fc6e75d2392 -> 0x7fc6e75d22dd
+DIR 0x7fc6e75d2086 -> 0x7fc6e75d20c6
+DIR 0x7fc6e75d23dc -> 0x7fc6e75d241c
+DIR 0x7fc6e75d2561 -> 0x7fc6e75d25a1
+DIR 0x7fc6e75d264a -> 0x7fc6e75d268a
+DIR 0x7fc6e75d272a -> 0x7fc6e75d276a
+DIR 0x7fc6e75d26d4 -> 0x7fc6e75d25a1
+ss addr 0x7fc6e75d27b7
+jmp rdx
+add rax, qword ptr [r13+0x10]
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27f7
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27fb
+ss inst: mov qword ptr [rcx], rax
+ss pc = 0x7fc6e75d27fe
+ss inst: add r13, 0x18
+ss pc = 0x7fc6e75d2802
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d2805
+ss inst: jnbe 0x7fc6e75d25e8
+ss pc = 0x7fc6e75d25e8
+ss inst: mov rax, qword ptr [r13+0x8]
+ss pc = 0x7fc6e75d25ec
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d25ef
+ss inst: add rcx, qword ptr [r13]
+ss pc = 0x7fc6e75d25f3
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d25f6
+ss inst: mov ebx, eax
+ss pc = 0x7fc6e75d25f8
+ss inst: shr rdx, 0x20
+ss pc = 0x7fc6e75d25fc
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d25ff
+ss inst: lea rdx, ptr [rdx+rdx*2]
+ss pc = 0x7fc6e75d2603
+ss inst: lea r15, ptr [rdi+rdx*8]
+ss pc = 0x7fc6e75d2607
+ss inst: jz 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d260d
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2647
+ss inst: test r15, r15
+ss pc = 0x7fc6e75d264a
+ss inst: jz 0x7fc6e75d268a
+ss pc = 0x7fc6e75d2650
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2714
+ss inst: movzx edx, byte ptr [r15+0x4]
+ss pc = 0x7fc6e75d2719
+ss inst: mov rax, qword ptr [r15+0x8]
+ss pc = 0x7fc6e75d271d
+ss inst: add rax, qword ptr [rip+0x1002b4]
+ss pc = 0x7fc6e75d2724
+ss inst: and edx, 0xf
+ss pc = 0x7fc6e75d2727
+ss inst: cmp dl, 0xa
+ss pc = 0x7fc6e75d272a
+ss inst: jz 0x7fc6e75d276a
+ss pc = 0x7fc6e75d2730
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d26cc
+ss inst: sub rbx, 0x6
+ss pc = 0x7fc6e75d26d0
+ss inst: cmp rbx, 0x1e
+ss pc = 0x7fc6e75d26d4
+ss inst: jnbe 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d26da
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d27b0
+ss inst: movsxd rdx, dword ptr [r8+rbx*4]
+ss pc = 0x7fc6e75d27b4
+ss inst: add rdx, r8
+ss inst: jmp rdx
+ss addr 0x7fc6e74ade03
+IND 0x7fc6e75d27b7 -> 0x7fc6e75d27f7
+DIR 0x7fc6e75d2805 -> 0x7fc6e75d25e8
+DIR 0x7fc6e75d2607 -> 0x7fc6e75d25a1
+ss addr 0x7fc6e75d27b7
+jmp rdx
+add rax, qword ptr [r13+0x10]
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27f7
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27fb
+ss inst: mov qword ptr [rcx], rax
+ss pc = 0x7fc6e75d27fe
+ss inst: add r13, 0x18
+ss pc = 0x7fc6e75d2802
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d2805
+ss inst: jnbe 0x7fc6e75d25e8
+ss pc = 0x7fc6e75d25e8
+ss inst: mov rax, qword ptr [r13+0x8]
+ss pc = 0x7fc6e75d25ec
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d25ef
+ss inst: add rcx, qword ptr [r13]
+ss pc = 0x7fc6e75d25f3
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d25f6
+ss inst: mov ebx, eax
+ss pc = 0x7fc6e75d25f8
+ss inst: shr rdx, 0x20
+ss pc = 0x7fc6e75d25fc
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d25ff
+ss inst: lea rdx, ptr [rdx+rdx*2]
+ss pc = 0x7fc6e75d2603
+ss inst: lea r15, ptr [rdi+rdx*8]
+ss pc = 0x7fc6e75d2607
+ss inst: jz 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d260d
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2647
+ss inst: test r15, r15
+ss pc = 0x7fc6e75d264a
+ss inst: jz 0x7fc6e75d268a
+ss pc = 0x7fc6e75d2650
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2714
+ss inst: movzx edx, byte ptr [r15+0x4]
+ss pc = 0x7fc6e75d2719
+ss inst: mov rax, qword ptr [r15+0x8]
+ss pc = 0x7fc6e75d271d
+ss inst: add rax, qword ptr [rip+0x1002b4]
+ss pc = 0x7fc6e75d2724
+ss inst: and edx, 0xf
+ss pc = 0x7fc6e75d2727
+ss inst: cmp dl, 0xa
+ss pc = 0x7fc6e75d272a
+ss inst: jz 0x7fc6e75d276a
+ss pc = 0x7fc6e75d2730
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d26cc
+ss inst: sub rbx, 0x6
+ss pc = 0x7fc6e75d26d0
+ss inst: cmp rbx, 0x1e
+ss pc = 0x7fc6e75d26d4
+ss inst: jnbe 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d26da
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d27b0
+ss inst: movsxd rdx, dword ptr [r8+rbx*4]
+ss pc = 0x7fc6e75d27b4
+ss inst: add rdx, r8
+ss inst: jmp rdx
+ss addr 0x7fc6e74ade03
+IND 0x7fc6e75d27b7 -> 0x7fc6e75d27f7
+ss addr 0x7fc6e75d27b7
+jmp rdx
+add rax, qword ptr [r13+0x10]
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27f7
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27fb
+ss inst: mov qword ptr [rcx], rax
+ss pc = 0x7fc6e75d27fe
+ss inst: add r13, 0x18
+ss pc = 0x7fc6e75d2802
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d2805
+ss inst: jnbe 0x7fc6e75d25e8
+ss pc = 0x7fc6e75d25e8
+ss inst: mov rax, qword ptr [r13+0x8]
+ss pc = 0x7fc6e75d25ec
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d25ef
+ss inst: add rcx, qword ptr [r13]
+ss pc = 0x7fc6e75d25f3
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d25f6
+ss inst: mov ebx, eax
+ss pc = 0x7fc6e75d25f8
+ss inst: shr rdx, 0x20
+ss pc = 0x7fc6e75d25fc
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d25ff
+ss inst: lea rdx, ptr [rdx+rdx*2]
+ss pc = 0x7fc6e75d2603
+ss inst: lea r15, ptr [rdi+rdx*8]
+ss pc = 0x7fc6e75d2607
+ss inst: jz 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d260d
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2647
+ss inst: test r15, r15
+ss pc = 0x7fc6e75d264a
+ss inst: jz 0x7fc6e75d268a
+ss pc = 0x7fc6e75d2650
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2714
+ss inst: movzx edx, byte ptr [r15+0x4]
+ss pc = 0x7fc6e75d2719
+ss inst: mov rax, qword ptr [r15+0x8]
+ss pc = 0x7fc6e75d271d
+ss inst: add rax, qword ptr [rip+0x1002b4]
+ss pc = 0x7fc6e75d2724
+ss inst: and edx, 0xf
+ss pc = 0x7fc6e75d2727
+ss inst: cmp dl, 0xa
+ss pc = 0x7fc6e75d272a
+ss inst: jz 0x7fc6e75d276a
+ss pc = 0x7fc6e75d2730
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d26cc
+ss inst: sub rbx, 0x6
+ss pc = 0x7fc6e75d26d0
+ss inst: cmp rbx, 0x1e
+ss pc = 0x7fc6e75d26d4
+ss inst: jnbe 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d26da
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d27b0
+ss inst: movsxd rdx, dword ptr [r8+rbx*4]
+ss pc = 0x7fc6e75d27b4
+ss inst: add rdx, r8
+ss inst: jmp rdx
+ss addr 0x7fc6e74ade03
+IND 0x7fc6e75d27b7 -> 0x7fc6e75d27f7
+ss addr 0x7fc6e75d27b7
+jmp rdx
+add rax, qword ptr [r13+0x10]
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27f7
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27fb
+ss inst: mov qword ptr [rcx], rax
+ss pc = 0x7fc6e75d27fe
+ss inst: add r13, 0x18
+ss pc = 0x7fc6e75d2802
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d2805
+ss inst: jnbe 0x7fc6e75d25e8
+ss pc = 0x7fc6e75d25e8
+ss inst: mov rax, qword ptr [r13+0x8]
+ss pc = 0x7fc6e75d25ec
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d25ef
+ss inst: add rcx, qword ptr [r13]
+ss pc = 0x7fc6e75d25f3
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d25f6
+ss inst: mov ebx, eax
+ss pc = 0x7fc6e75d25f8
+ss inst: shr rdx, 0x20
+ss pc = 0x7fc6e75d25fc
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d25ff
+ss inst: lea rdx, ptr [rdx+rdx*2]
+ss pc = 0x7fc6e75d2603
+ss inst: lea r15, ptr [rdi+rdx*8]
+ss pc = 0x7fc6e75d2607
+ss inst: jz 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d260d
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2647
+ss inst: test r15, r15
+ss pc = 0x7fc6e75d264a
+ss inst: jz 0x7fc6e75d268a
+ss pc = 0x7fc6e75d2650
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2714
+ss inst: movzx edx, byte ptr [r15+0x4]
+ss pc = 0x7fc6e75d2719
+ss inst: mov rax, qword ptr [r15+0x8]
+ss pc = 0x7fc6e75d271d
+ss inst: add rax, qword ptr [rip+0x1002b4]
+ss pc = 0x7fc6e75d2724
+ss inst: and edx, 0xf
+ss pc = 0x7fc6e75d2727
+ss inst: cmp dl, 0xa
+ss pc = 0x7fc6e75d272a
+ss inst: jz 0x7fc6e75d276a
+ss pc = 0x7fc6e75d2730
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d26cc
+ss inst: sub rbx, 0x6
+ss pc = 0x7fc6e75d26d0
+ss inst: cmp rbx, 0x1e
+ss pc = 0x7fc6e75d26d4
+ss inst: jnbe 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d26da
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d27b0
+ss inst: movsxd rdx, dword ptr [r8+rbx*4]
+ss pc = 0x7fc6e75d27b4
+ss inst: add rdx, r8
+ss inst: jmp rdx
+ss addr 0x7fc6e74ade03
+IND 0x7fc6e75d27b7 -> 0x7fc6e75d27f7
+ss addr 0x7fc6e75d27b7
+jmp rdx
+add rax, qword ptr [r13+0x10]
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27f7
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27fb
+ss inst: mov qword ptr [rcx], rax
+ss pc = 0x7fc6e75d27fe
+ss inst: add r13, 0x18
+ss pc = 0x7fc6e75d2802
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d2805
+ss inst: jnbe 0x7fc6e75d25e8
+ss pc = 0x7fc6e75d25e8
+ss inst: mov rax, qword ptr [r13+0x8]
+ss pc = 0x7fc6e75d25ec
+ss inst: mov rcx, r14
+ss pc = 0x7fc6e75d25ef
+ss inst: add rcx, qword ptr [r13]
+ss pc = 0x7fc6e75d25f3
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d25f6
+ss inst: mov ebx, eax
+ss pc = 0x7fc6e75d25f8
+ss inst: shr rdx, 0x20
+ss pc = 0x7fc6e75d25fc
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d25ff
+ss inst: lea rdx, ptr [rdx+rdx*2]
+ss pc = 0x7fc6e75d2603
+ss inst: lea r15, ptr [rdi+rdx*8]
+ss pc = 0x7fc6e75d2607
+ss inst: jz 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d260d
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2647
+ss inst: test r15, r15
+ss pc = 0x7fc6e75d264a
+ss inst: jz 0x7fc6e75d268a
+ss pc = 0x7fc6e75d2650
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2714
+ss inst: movzx edx, byte ptr [r15+0x4]
+ss pc = 0x7fc6e75d2719
+ss inst: mov rax, qword ptr [r15+0x8]
+ss pc = 0x7fc6e75d271d
+ss inst: add rax, qword ptr [rip+0x1002b4]
+ss pc = 0x7fc6e75d2724
+ss inst: and edx, 0xf
+ss pc = 0x7fc6e75d2727
+ss inst: cmp dl, 0xa
+ss pc = 0x7fc6e75d272a
+ss inst: jz 0x7fc6e75d276a
+ss pc = 0x7fc6e75d2730
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d26cc
+ss inst: sub rbx, 0x6
+ss pc = 0x7fc6e75d26d0
+ss inst: cmp rbx, 0x1e
+ss pc = 0x7fc6e75d26d4
+ss inst: jnbe 0x7fc6e75d25a1
+ss pc = 0x7fc6e75d26da
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d27b0
+ss inst: movsxd rdx, dword ptr [r8+rbx*4]
+ss pc = 0x7fc6e75d27b4
+ss inst: add rdx, r8
+ss inst: jmp rdx
+ss addr 0x7fc6e74ade03
+IND 0x7fc6e75d27b7 -> 0x7fc6e75d27f7
+ss addr 0x7fc6e75d27b7
+jmp rdx
+add rax, qword ptr [r13+0x10]
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27f7
+ss inst: add rax, qword ptr [r13+0x10]
+ss pc = 0x7fc6e75d27fb
+ss inst: mov qword ptr [rcx], rax
+ss pc = 0x7fc6e75d27fe
+ss inst: add r13, 0x18
+ss pc = 0x7fc6e75d2802
+ss inst: cmp rsi, r13
+ss pc = 0x7fc6e75d2805
+ss inst: jnbe 0x7fc6e75d25e8
+ss pc = 0x7fc6e75d280b
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2845
+ss inst: jmp 0x7fc6e75d241c
+ss pc = 0x7fc6e75d241c
+ss inst: lea rdi, ptr [rip+0x1005b5]
+ss pc = 0x7fc6e75d2423
+ss inst: or byte ptr [rip+0x1008c2], 0x4
+ss pc = 0x7fc6e75d242a
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d2430
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d246a
+ss inst: mov rax, qword ptr [rdi+0x298]
+ss pc = 0x7fc6e75d2471
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2474
+ss inst: jz 0x7fc6e75d24b4
+ss pc = 0x7fc6e75d247a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2885
+ss inst: mov rcx, qword ptr [rax+0x8]
+ss pc = 0x7fc6e75d2889
+ss inst: mov edx, dword ptr [rcx]
+ss pc = 0x7fc6e75d288b
+ss inst: mov dword ptr [rdi+0x2ec], edx
+ss pc = 0x7fc6e75d2891
+ss inst: mov eax, dword ptr [rcx+0x8]
+ss pc = 0x7fc6e75d2894
+ss inst: mov esi, dword ptr [rcx+0x4]
+ss pc = 0x7fc6e75d2897
+ss inst: lea r8d, ptr [rax-0x1]
+ss pc = 0x7fc6e75d289b
+ss inst: test eax, r8d
+ss pc = 0x7fc6e75d289e
+ss inst: jnz 0x7fc6e75d28de
+ss pc = 0x7fc6e75d28a4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2939
+ss inst: mov dword ptr [rdi+0x2f0], r8d
+ss pc = 0x7fc6e75d2940
+ss inst: lea r8, ptr [rcx+0x10]
+ss pc = 0x7fc6e75d2944
+ss inst: add eax, eax
+ss pc = 0x7fc6e75d2946
+ss inst: mov ecx, dword ptr [rcx+0xc]
+ss pc = 0x7fc6e75d2949
+ss inst: sub rdx, rsi
+ss pc = 0x7fc6e75d294c
+ss inst: lea rax, ptr [r8+rax*4]
+ss pc = 0x7fc6e75d2950
+ss inst: mov qword ptr [rdi+0x2f8], r8
+ss pc = 0x7fc6e75d2957
+ss inst: mov qword ptr [rdi+0x300], rax
+ss pc = 0x7fc6e75d295e
+ss inst: lea rax, ptr [rax+rdx*4]
+ss pc = 0x7fc6e75d2962
+ss inst: mov dword ptr [rdi+0x2f4], ecx
+ss pc = 0x7fc6e75d2968
+ss inst: mov qword ptr [rdi+0x308], rax
+ss inst: ret 
+ss addr 0x7fc6e74ade03
+IND 0x7fc6e75d27b7 -> 0x7fc6e75d27f7
+DIR 0x7fc6e75d2845 -> 0x7fc6e75d241c
+DIR 0x7fc6e75d242a -> 0x7fc6e75d246a
+CALL: pushing 0x7fc6e74adbca
+DIR 0x7fc6e75d2474 -> 0x7fc6e75d24b4
+DIR 0x7fc6e75d289e -> 0x7fc6e75d28de
+RET
+ss addr 0x7fc6e75d296f
+ret 
+lea rax, ptr [rip+0x224e07]
+ss inst: lea rax, ptr [rip+0x224e07]
+ss pc = 0x7fc6e75d29af
+ss inst: lea rax, ptr [rip+0x100022]
+ss pc = 0x7fc6e75d29b6
+ss inst: mov qword ptr [rip+0x100043], rax
+ss pc = 0x7fc6e75d29bd
+ss inst: lea rax, ptr [rip-0x1269c4]
+ss pc = 0x7fc6e75d29c4
+ss inst: mov qword ptr [rip+0x10034d], rax
+ss pc = 0x7fc6e75d29cb
+ss inst: lea rax, ptr [rip+0x100796]
+ss pc = 0x7fc6e75d29d2
+ss inst: mov qword ptr [rip+0x100347], rax
+ss pc = 0x7fc6e75d29d9
+ss inst: lea rax, ptr [rip-0x108190]
+ss pc = 0x7fc6e75d29e0
+ss inst: mov qword ptr [rip+0x100341], rax
+ss pc = 0x7fc6e75d29e7
+ss inst: rdtsc 
+ss pc = 0x7fc6e75d29e9
+ss inst: lea rsi, ptr [rip-0x124810]
+ss pc = 0x7fc6e75d29f0
+ss inst: shl rdx, 0x20
+ss pc = 0x7fc6e75d29f4
+ss inst: mov eax, eax
+ss pc = 0x7fc6e75d29f6
+ss inst: or rax, rdx
+ss pc = 0x7fc6e75d29f9
+ss inst: mov rdi, r12
+ss pc = 0x7fc6e75d29fc
+ss inst: mov qword ptr [rip+0xff45d], rbp
+ss pc = 0x7fc6e75d2a03
+ss inst: mov qword ptr [rip+0xfff9e], rax
+ss pc = 0x7fc6e75d2a0a
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d2a10
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d2a4a
+ss inst: push r15
+ss pc = 0x7fc6e75d2a4c
+ss inst: push r14
+ss pc = 0x7fc6e75d2a4e
+ss inst: push r13
+ss pc = 0x7fc6e75d2a50
+ss inst: push r12
+ss pc = 0x7fc6e75d2a52
+ss inst: mov r13, rsi
+ss pc = 0x7fc6e75d2a55
+ss inst: push rbp
+ss pc = 0x7fc6e75d2a56
+ss inst: push rbx
+ss pc = 0x7fc6e75d2a57
+ss inst: sub rsp, 0x48
+ss pc = 0x7fc6e75d2a5b
+ss inst: mov rax, qword ptr [rdi]
+ss pc = 0x7fc6e75d2a5e
+ss inst: mov qword ptr [rip+0xff3fb], rdi
+ss pc = 0x7fc6e75d2a65
+ss inst: add rdi, 0x8
+ss pc = 0x7fc6e75d2a69
+ss inst: mov qword ptr [rip+0xff210], rdi
+ss pc = 0x7fc6e75d2a70
+ss inst: mov dword ptr [rip+0xff212], eax
+ss pc = 0x7fc6e75d2a76
+ss inst: cdqe 
+ss pc = 0x7fc6e75d2a78
+ss inst: lea rax, ptr [rdi+rax*8+0x8]
+ss pc = 0x7fc6e75d2a7d
+ss inst: mov qword ptr [rip+0x10067c], rax
+ss pc = 0x7fc6e75d2a84
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2a88
+ss inst: jz 0x7fc6e75d2ac8
+ss pc = 0x7fc6e75d2a8e
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c1f
+ss inst: add rax, 0x8
+ss pc = 0x7fc6e75d2c23
+ss inst: cmp qword ptr [rax], 0x0
+ss pc = 0x7fc6e75d2c27
+ss inst: jnz 0x7fc6e75d2c1f
+ss pc = 0x7fc6e75d2c2d
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2ac8
+ss inst: lea rdx, ptr [rax+0x8]
+ss pc = 0x7fc6e75d2acc
+ss inst: mov rax, qword ptr [rax+0x8]
+ss pc = 0x7fc6e75d2ad0
+ss inst: lea rsi, ptr [rip-0x125ea7]
+ss pc = 0x7fc6e75d2ad7
+ss inst: mov qword ptr [rip+0xff1c6], 0x0
+ss pc = 0x7fc6e75d2ae2
+ss inst: mov qword ptr [rip+0xff21f], rdx
+ss pc = 0x7fc6e75d2ae9
+ss inst: mov qword ptr [rsp+0x38], rsi
+ss pc = 0x7fc6e75d2aee
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2af1
+ss inst: jz 0x7fc6e75d2b31
+ss pc = 0x7fc6e75d2af7
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2c67
+ss inst: mov rbx, qword ptr [rip+0xff08a]
+ss pc = 0x7fc6e75d2c6e
+ss inst: mov r15, qword ptr [rip+0xff043]
+ss pc = 0x7fc6e75d2c75
+ss inst: lea rcx, ptr [rip-0x107bbc]
+ss pc = 0x7fc6e75d2c7c
+ss inst: mov r11d, dword ptr [rip+0xff1e5]
+ss pc = 0x7fc6e75d2c83
+ss inst: mov byte ptr [rsp+0x15], 0x0
+ss pc = 0x7fc6e75d2c88
+ss inst: xor r8d, r8d
+ss pc = 0x7fc6e75d2c8b
+ss inst: mov byte ptr [rsp+0x16], 0x0
+ss pc = 0x7fc6e75d2c90
+ss inst: mov byte ptr [rsp+0x17], 0x0
+ss pc = 0x7fc6e75d2c95
+ss inst: xor r10d, r10d
+ss pc = 0x7fc6e75d2c98
+ss inst: mov qword ptr [rsp+0x28], rbx
+ss pc = 0x7fc6e75d2c9d
+ss inst: mov rbx, qword ptr [rip+0xff104]
+ss pc = 0x7fc6e75d2ca4
+ss inst: xor r9d, r9d
+ss pc = 0x7fc6e75d2ca7
+ss inst: mov byte ptr [rsp+0x1e], 0x0
+ss pc = 0x7fc6e75d2cac
+ss inst: mov byte ptr [rsp+0x1f], 0x0
+ss pc = 0x7fc6e75d2cb1
+ss inst: xor r14d, r14d
+ss pc = 0x7fc6e75d2cb4
+ss inst: xor edi, edi
+ss pc = 0x7fc6e75d2cb6
+ss inst: xor r12d, r12d
+ss pc = 0x7fc6e75d2cb9
+ss inst: xor ebp, ebp
+ss pc = 0x7fc6e75d2cbb
+ss inst: mov qword ptr [rsp+0x20], rbx
+ss pc = 0x7fc6e75d2cc0
+ss inst: mov ebx, dword ptr [rip+0xff012]
+ss pc = 0x7fc6e75d2cc6
+ss inst: mov dword ptr [rsp+0x18], ebx
+ss pc = 0x7fc6e75d2cca
+ss inst: movzx ebx, word ptr [rip+0xff01f]
+ss pc = 0x7fc6e75d2cd1
+ss inst: mov word ptr [rsp+0x1c], bx
+ss pc = 0x7fc6e75d2cd6
+ss inst: mov rbx, qword ptr [rip+0xff0bb]
+ss pc = 0x7fc6e75d2cdd
+ss inst: mov qword ptr [rsp+0x8], rbx
+ss pc = 0x7fc6e75d2ce2
+ss inst: mov rbx, qword ptr [rip+0xff16f]
+ss pc = 0x7fc6e75d2ce9
+ss inst: mov qword ptr [rsp], rbx
+ss pc = 0x7fc6e75d2ced
+ss inst: xor ebx, ebx
+ss pc = 0x7fc6e75d2cef
+ss inst: nop dword ptr [rax], eax
+ss pc = 0x7fc6e75d2cf6
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2cfa
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2cfe
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d04
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74adbca
+IND 0x7fc6e75d296f -> 0x7fc6e75d29af
+DIR 0x7fc6e75d2a0a -> 0x7fc6e75d2a4a
+CALL: pushing 0x7fc6e74adc2a
+DIR 0x7fc6e75d2a88 -> 0x7fc6e75d2ac8
+DIR 0x7fc6e75d2c27 -> 0x7fc6e75d2c1f
+DIR 0x7fc6e75d2af1 -> 0x7fc6e75d2b31
+DIR 0x7fc6e75d2cfe -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov rax, qword ptr [rdx+0x8]
+ss inst: mov rax, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2e17
+ss inst: mov rax, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2e1b
+ss inst: mov byte ptr [rsp+0x16], 0x1
+ss pc = 0x7fc6e75d2e20
+ss inst: mov qword ptr [rsp+0x8], rax
+ss pc = 0x7fc6e75d2e25
+ss inst: data16 nop
+ss pc = 0x7fc6e75d2e27
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2e2b
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2e2e
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2e31
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5330
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2e17
+DIR 0x7fc6e75d2e31 -> 0x7fc6e75d2d88
+DIR 0x7fc6e75d2d90 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov rax, qword ptr [rdx+0x8]
+ss inst: mov rax, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2e71
+ss inst: mov rax, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2e75
+ss inst: mov r8d, 0x1
+ss pc = 0x7fc6e75d2e7b
+ss inst: mov qword ptr [rsp+0x28], rax
+ss pc = 0x7fc6e75d2e80
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5460
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2e71
+DIR 0x7fc6e75d2e80 -> 0x7fc6e75d2d3e
+DIR 0x7fc6e75d2d48 -> 0x7fc6e75d2d88
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov r15, qword ptr [rdx+0x8]
+ss inst: mov r15, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2ec0
+ss inst: mov r15, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2ec4
+ss inst: mov edi, 0x1
+ss pc = 0x7fc6e75d2ec9
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c54a0
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2ec0
+DIR 0x7fc6e75d2ec9 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov eax, dword ptr [rdx+0x8]
+ss inst: mov eax, dword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2f09
+ss inst: mov eax, dword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2f0c
+ss inst: mov byte ptr [rsp+0x1e], 0x1
+ss pc = 0x7fc6e75d2f11
+ss inst: mov dword ptr [rsp+0x18], eax
+ss pc = 0x7fc6e75d2f15
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5448
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2f09
+DIR 0x7fc6e75d2f15 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov rbp, qword ptr [rdx+0x8]
+ss inst: mov rbp, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2f55
+ss inst: mov rbp, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2f59
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c54b0
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2f55
+DIR 0x7fc6e75d2f59 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov r12d, dword ptr [rdx+0x8]
+ss inst: mov r12d, dword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2f99
+ss inst: mov r12d, dword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2f9d
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c54c0
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2f99
+DIR 0x7fc6e75d2f9d -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov rsi, qword ptr [rdx+0x8]
+ss inst: mov rsi, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2fdd
+ss inst: mov rsi, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d2fe1
+ss inst: mov r14d, 0x1
+ss pc = 0x7fc6e75d2fe7
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5490
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2fdd
+DIR 0x7fc6e75d2fe7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov r11d, dword ptr [rdx+0x8]
+ss inst: mov r11d, dword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d3027
+ss inst: mov r11d, dword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d302b
+ss inst: mov ebx, 0x1
+ss pc = 0x7fc6e75d3030
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5420
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d3027
+DIR 0x7fc6e75d3030 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov rax, qword ptr [rdx+0x8]
+ss inst: mov rax, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d3070
+ss inst: mov rax, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d3074
+ss inst: mov byte ptr [rsp+0x15], 0x1
+ss pc = 0x7fc6e75d3079
+ss inst: mov qword ptr [rsp], rax
+ss pc = 0x7fc6e75d307d
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5408
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d3070
+DIR 0x7fc6e75d307d -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+add rdx, 0x10
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d88
+ss inst: sub rax, 0x3
+ss pc = 0x7fc6e75d2d8c
+ss inst: cmp rax, 0x1e
+ss pc = 0x7fc6e75d2d90
+ss inst: jnbe 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d96
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d2dd0
+ss inst: movsxd rax, dword ptr [rcx+rax*4]
+ss pc = 0x7fc6e75d2dd4
+ss inst: add rax, rcx
+ss inst: jmp rax
+ss addr 0x7fc6e74c5340
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d2d3e
+ss addr 0x7fc6e75d2dd7
+jmp rax
+mov r9, qword ptr [rdx+0x8]
+ss inst: mov r9, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d30bd
+ss inst: mov r9, qword ptr [rdx+0x8]
+ss pc = 0x7fc6e75d30c1
+ss inst: mov r10d, 0x1
+ss pc = 0x7fc6e75d30c7
+ss inst: jmp 0x7fc6e75d2d3e
+ss pc = 0x7fc6e75d2d3e
+ss inst: add rdx, 0x10
+ss pc = 0x7fc6e75d2d42
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d2d45
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d2d48
+ss inst: jnz 0x7fc6e75d2d88
+ss pc = 0x7fc6e75d2d4e
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3107
+ss inst: test dil, dil
+ss pc = 0x7fc6e75d310a
+ss inst: jnz 0x7fc6e75d314a
+ss pc = 0x7fc6e75d314a
+ss inst: mov qword ptr [rip+0xfeb67], r15
+ss pc = 0x7fc6e75d3151
+ss inst: jmp 0x7fc6e75d3191
+ss pc = 0x7fc6e75d3191
+ss inst: test r14b, r14b
+ss pc = 0x7fc6e75d3194
+ss inst: jz 0x7fc6e75d31d4
+ss pc = 0x7fc6e75d319a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3437
+ss inst: mov qword ptr [rsp+0x38], rsi
+ss pc = 0x7fc6e75d343c
+ss inst: test bl, bl
+ss pc = 0x7fc6e75d343e
+ss inst: jz 0x7fc6e75d3216
+ss pc = 0x7fc6e75d3444
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d347e
+ss inst: mov dword ptr [rip+0xfe9e3], r11d
+ss pc = 0x7fc6e75d3485
+ss inst: test r10b, r10b
+ss pc = 0x7fc6e75d3488
+ss inst: jz 0x7fc6e75d3259
+ss pc = 0x7fc6e75d348e
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d34c8
+ss inst: mov qword ptr [rip+0xfe7d9], r9
+ss pc = 0x7fc6e75d34cf
+ss inst: test r8b, r8b
+ss pc = 0x7fc6e75d34d2
+ss inst: jz 0x7fc6e75d329c
+ss pc = 0x7fc6e75d34d8
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3512
+ss inst: mov rax, qword ptr [rsp+0x28]
+ss pc = 0x7fc6e75d3517
+ss inst: mov qword ptr [rip+0xfe7da], rax
+ss pc = 0x7fc6e75d351e
+ss inst: cmp byte ptr [rsp+0x1f], 0x0
+ss pc = 0x7fc6e75d3523
+ss inst: jz 0x7fc6e75d32e1
+ss pc = 0x7fc6e75d32e1
+ss inst: cmp byte ptr [rsp+0x1e], 0x0
+ss pc = 0x7fc6e75d32e6
+ss inst: jz 0x7fc6e75d3326
+ss pc = 0x7fc6e75d32ec
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3563
+ss inst: mov eax, dword ptr [rsp+0x18]
+ss pc = 0x7fc6e75d3567
+ss inst: mov dword ptr [rip+0xfe76b], eax
+ss pc = 0x7fc6e75d356d
+ss inst: cmp byte ptr [rsp+0x17], 0x0
+ss pc = 0x7fc6e75d3572
+ss inst: jz 0x7fc6e75d336b
+ss pc = 0x7fc6e75d336b
+ss inst: cmp byte ptr [rsp+0x16], 0x0
+ss pc = 0x7fc6e75d3370
+ss inst: jz 0x7fc6e75d33b0
+ss pc = 0x7fc6e75d3376
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d35b2
+ss inst: mov rax, qword ptr [rsp+0x8]
+ss pc = 0x7fc6e75d35b7
+ss inst: mov qword ptr [rip+0xfe7da], rax
+ss pc = 0x7fc6e75d35be
+ss inst: cmp byte ptr [rsp+0x15], 0x0
+ss pc = 0x7fc6e75d35c3
+ss inst: jz 0x7fc6e75d33f5
+ss pc = 0x7fc6e75d35c9
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3603
+ss inst: mov rax, qword ptr [rsp]
+ss pc = 0x7fc6e75d3607
+ss inst: mov qword ptr [rip+0xfe84a], rax
+ss pc = 0x7fc6e75d360e
+ss inst: jmp 0x7fc6e75d33f5
+ss pc = 0x7fc6e75d33f5
+ss inst: xor edi, edi
+ss pc = 0x7fc6e75d33f7
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d33fd
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d2b78
+ss inst: mov ecx, 0xc
+ss pc = 0x7fc6e75d2b7d
+ss inst: mov eax, ecx
+ss pc = 0x7fc6e75d2b7f
+ss inst: syscall 
+ss pc = 0x7fc6e75d2b81
+ss inst: cmp rax, 0xfffffffffffff000
+ss pc = 0x7fc6e75d2b87
+ss inst: mov rdx, rax
+ss pc = 0x7fc6e75d2b8a
+ss inst: jnbe 0x7fc6e75d2bca
+ss pc = 0x7fc6e75d2b90
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d364e
+ss inst: mov qword ptr [rip+0xffa83], rax
+ss pc = 0x7fc6e75d3655
+ss inst: xor eax, eax
+ss pc = 0x7fc6e75d3657
+ss inst: cmp rdi, rdx
+ss pc = 0x7fc6e75d365a
+ss inst: jnbe 0x7fc6e75d369a
+ss pc = 0x7fc6e75d3660
+ss inst: jmp qword ptr [rip]
+ss inst: ret 
+ss addr 0x7fc6e74c5478
+IND 0x7fc6e75d2dd7 -> 0x7fc6e75d30bd
+DIR 0x7fc6e75d30c7 -> 0x7fc6e75d2d3e
+DIR 0x7fc6e75d310a -> 0x7fc6e75d314a
+DIR 0x7fc6e75d3151 -> 0x7fc6e75d3191
+DIR 0x7fc6e75d3194 -> 0x7fc6e75d31d4
+DIR 0x7fc6e75d343e -> 0x7fc6e75d3216
+DIR 0x7fc6e75d3488 -> 0x7fc6e75d3259
+DIR 0x7fc6e75d34d2 -> 0x7fc6e75d329c
+DIR 0x7fc6e75d3523 -> 0x7fc6e75d32e1
+DIR 0x7fc6e75d32e6 -> 0x7fc6e75d3326
+DIR 0x7fc6e75d3572 -> 0x7fc6e75d336b
+DIR 0x7fc6e75d3370 -> 0x7fc6e75d33b0
+DIR 0x7fc6e75d35c3 -> 0x7fc6e75d33f5
+DIR 0x7fc6e75d360e -> 0x7fc6e75d33f5
+DIR 0x7fc6e75d33f7 -> 0x7fc6e75d2b78
+CALL: pushing 0x7fc6e74c54d5
+DIR 0x7fc6e75d2b8a -> 0x7fc6e75d2bca
+DIR 0x7fc6e75d365a -> 0x7fc6e75d369a
+RET
+ss addr 0x7fc6e75d36e9
+ret 
+mov rdi, qword ptr [rip+0x20c7cc]
+ss inst: mov rdi, qword ptr [rip+0x20c7cc]
+ss pc = 0x7fc6e75d3729
+ss inst: mov rdi, qword ptr [rip+0xfe578]
+ss pc = 0x7fc6e75d3730
+ss inst: test rdi, rdi
+ss pc = 0x7fc6e75d3733
+ss inst: jz 0x7fc6e75d3773
+ss pc = 0x7fc6e75d3739
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3c29
+ss inst: cmp byte ptr [rdi], 0x0
+ss pc = 0x7fc6e75d3c2c
+ss inst: jnz 0x7fc6e75d3773
+ss pc = 0x7fc6e75d3773
+ss inst: xor eax, eax
+ss pc = 0x7fc6e75d3775
+ss inst: cpuid 
+ss pc = 0x7fc6e75d3777
+ss inst: cmp ebx, 0x756e6547
+ss pc = 0x7fc6e75d377d
+ss inst: mov dword ptr [rip+0xfe591], eax
+ss pc = 0x7fc6e75d3783
+ss inst: setz sil
+ss pc = 0x7fc6e75d3787
+ss inst: cmp ecx, 0x6c65746e
+ss pc = 0x7fc6e75d378d
+ss inst: setz al
+ss pc = 0x7fc6e75d3790
+ss inst: and eax, esi
+ss pc = 0x7fc6e75d3792
+ss inst: cmp edx, 0x49656e69
+ss pc = 0x7fc6e75d3798
+ss inst: setz sil
+ss pc = 0x7fc6e75d379c
+ss inst: and al, sil
+ss pc = 0x7fc6e75d379f
+ss inst: mov r14d, eax
+ss pc = 0x7fc6e75d37a2
+ss inst: jnz 0x7fc6e75d37e2
+ss pc = 0x7fc6e75d37e2
+ss inst: mov eax, 0x1
+ss pc = 0x7fc6e75d37e7
+ss inst: cpuid 
+ss pc = 0x7fc6e75d37e9
+ss inst: mov r9d, eax
+ss pc = 0x7fc6e75d37ec
+ss inst: mov dword ptr [rip+0xfe532], edx
+ss pc = 0x7fc6e75d37f2
+ss inst: mov r8d, eax
+ss pc = 0x7fc6e75d37f5
+ss inst: shr r9d, 0x8
+ss pc = 0x7fc6e75d37f9
+ss inst: mov edx, eax
+ss pc = 0x7fc6e75d37fb
+ss inst: shr r8d, 0x4
+ss pc = 0x7fc6e75d37ff
+ss inst: shr edx, 0xc
+ss pc = 0x7fc6e75d3802
+ss inst: and r9d, 0xf
+ss pc = 0x7fc6e75d3806
+ss inst: and r8d, 0xf
+ss pc = 0x7fc6e75d380a
+ss inst: and edx, 0xf0
+ss pc = 0x7fc6e75d3810
+ss inst: cmp r9d, 0xf
+ss pc = 0x7fc6e75d3814
+ss inst: mov dword ptr [rip+0xfe502], ebx
+ss pc = 0x7fc6e75d381a
+ss inst: mov dword ptr [rip+0xfe500], ecx
+ss pc = 0x7fc6e75d3820
+ss inst: mov dword ptr [rip+0xfe4f2], eax
+ss pc = 0x7fc6e75d3826
+ss inst: jz 0x7fc6e75d3866
+ss pc = 0x7fc6e75d382c
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3c6c
+ss inst: and eax, 0xf
+ss pc = 0x7fc6e75d3c6f
+ss inst: xor esi, esi
+ss pc = 0x7fc6e75d3c71
+ss inst: cmp r9d, 0x6
+ss pc = 0x7fc6e75d3c75
+ss inst: mov r10d, eax
+ss pc = 0x7fc6e75d3c78
+ss inst: mov r11d, 0x1
+ss pc = 0x7fc6e75d3c7e
+ss inst: jnz 0x7fc6e75d38c6
+ss pc = 0x7fc6e75d3c84
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3cbe
+ss inst: add r8d, edx
+ss pc = 0x7fc6e75d3cc1
+ss inst: lea eax, ptr [r8-0x1a]
+ss pc = 0x7fc6e75d3cc5
+ss inst: cmp eax, 0x43
+ss pc = 0x7fc6e75d3cc8
+ss inst: jnbe 0x7fc6e75d3d08
+ss pc = 0x7fc6e75d3d08
+ss inst: test byte ptr [rip+0xfe014], 0x10
+ss pc = 0x7fc6e75d3d0f
+ss inst: jnz 0x7fc6e75d3d4f
+ss pc = 0x7fc6e75d3d4f
+ss inst: or dword ptr [rip+0xfdffa], 0x33
+ss pc = 0x7fc6e75d3d56
+ss inst: mov esi, r14d
+ss pc = 0x7fc6e75d3d59
+ss inst: mov r11d, 0x1
+ss pc = 0x7fc6e75d3d5f
+ss inst: jmp 0x7fc6e75d38c6
+ss pc = 0x7fc6e75d38c6
+ss inst: mov eax, dword ptr [rip+0xfe458]
+ss pc = 0x7fc6e75d38cc
+ss inst: test ah, 0x1
+ss pc = 0x7fc6e75d38cf
+ss inst: jz 0x7fc6e75d390f
+ss pc = 0x7fc6e75d38d5
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3d9f
+ss inst: or dword ptr [rip+0xfdfa7], 0x4000
+ss pc = 0x7fc6e75d3da9
+ss inst: test ah, 0x80
+ss pc = 0x7fc6e75d3dac
+ss inst: jz 0x7fc6e75d3952
+ss pc = 0x7fc6e75d3db2
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3dec
+ss inst: or dword ptr [rip+0xfdf5a], 0x8000
+ss pc = 0x7fc6e75d3df6
+ss inst: cmp dword ptr [rip+0xfdf17], 0x6
+ss pc = 0x7fc6e75d3dfd
+ss inst: jle 0x7fc6e75d3999
+ss pc = 0x7fc6e75d3e03
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3e3d
+ss inst: mov eax, 0x7
+ss pc = 0x7fc6e75d3e42
+ss inst: xor ecx, ecx
+ss pc = 0x7fc6e75d3e44
+ss inst: cpuid 
+ss pc = 0x7fc6e75d3e46
+ss inst: mov dword ptr [rip+0xfdedc], eax
+ss pc = 0x7fc6e75d3e4c
+ss inst: mov dword ptr [rip+0xfdeda], ebx
+ss pc = 0x7fc6e75d3e52
+ss inst: mov dword ptr [rip+0xfded8], ecx
+ss pc = 0x7fc6e75d3e58
+ss inst: mov dword ptr [rip+0xfded6], edx
+ss pc = 0x7fc6e75d3e5e
+ss inst: mov ebx, dword ptr [rip+0xfdebc]
+ss pc = 0x7fc6e75d3e64
+ss inst: test ebx, 0x8000000
+ss pc = 0x7fc6e75d3e6a
+ss inst: jz 0x7fc6e75d39e5
+ss pc = 0x7fc6e75d3e70
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d3eaa
+ss inst: xor ecx, ecx
+ss pc = 0x7fc6e75d3eac
+ss inst: xgetbv 
+ss pc = 0x7fc6e75d3eaf
+ss inst: mov edx, eax
+ss pc = 0x7fc6e75d3eb1
+ss inst: and edx, 0x6
+ss pc = 0x7fc6e75d3eb4
+ss inst: cmp edx, 0x6
+ss pc = 0x7fc6e75d3eb7
+ss inst: jz 0x7fc6e75d3ef7
+ss pc = 0x7fc6e75d3ef7
+ss inst: test ebx, 0x10000000
+ss pc = 0x7fc6e75d3efd
+ss inst: jz 0x7fc6e75d3f3d
+ss pc = 0x7fc6e75d3f03
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d40a0
+ss inst: or dword ptr [rip+0xfdca9], 0x40
+ss pc = 0x7fc6e75d40a7
+ss inst: mov edx, dword ptr [rip+0xfdc7f]
+ss pc = 0x7fc6e75d40ad
+ss inst: test dl, 0x20
+ss pc = 0x7fc6e75d40b0
+ss inst: jz 0x7fc6e75d3f86
+ss pc = 0x7fc6e75d40b6
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d40f0
+ss inst: or dword ptr [rip+0xfdc56], 0xc00
+ss pc = 0x7fc6e75d40fa
+ss inst: and eax, 0xe0
+ss pc = 0x7fc6e75d40ff
+ss inst: cmp eax, 0xe0
+ss pc = 0x7fc6e75d4104
+ss inst: jz 0x7fc6e75d3fd0
+ss pc = 0x7fc6e75d410a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4016
+ss inst: and bh, 0x10
+ss pc = 0x7fc6e75d4019
+ss inst: jz 0x7fc6e75d4059
+ss pc = 0x7fc6e75d401f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4144
+ss inst: or dword ptr [rip+0xfdc02], 0x80
+ss pc = 0x7fc6e75d414e
+ss inst: test byte ptr [rip+0xfdbed], 0x1
+ss pc = 0x7fc6e75d4155
+ss inst: jz 0x7fc6e75d39e5
+ss pc = 0x7fc6e75d39e5
+ss inst: test sil, sil
+ss pc = 0x7fc6e75d39e8
+ss inst: jnz 0x7fc6e75d3a28
+ss pc = 0x7fc6e75d3a28
+ss inst: cmp r8d, 0x3f
+ss pc = 0x7fc6e75d3a2c
+ss inst: jz 0x7fc6e75d3a6c
+ss pc = 0x7fc6e75d3a32
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4195
+ss inst: cmp r8d, 0x3c
+ss pc = 0x7fc6e75d4199
+ss inst: jz 0x7fc6e75d41d9
+ss pc = 0x7fc6e75d419f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d421d
+ss inst: cmp r8d, 0x45
+ss pc = 0x7fc6e75d4221
+ss inst: jz 0x7fc6e75d4261
+ss pc = 0x7fc6e75d4227
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d42a5
+ss inst: cmp r8d, 0x46
+ss pc = 0x7fc6e75d42a9
+ss inst: jz 0x7fc6e75d4261
+ss pc = 0x7fc6e75d42af
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d42e9
+ss inst: cmp r8d, 0x3d
+ss pc = 0x7fc6e75d42ed
+ss inst: jnz 0x7fc6e75d432d
+ss pc = 0x7fc6e75d432d
+ss inst: cmp r8d, 0x47
+ss pc = 0x7fc6e75d4331
+ss inst: jz 0x7fc6e75d4261
+ss pc = 0x7fc6e75d4337
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4371
+ss inst: cmp r10d, 0x2
+ss pc = 0x7fc6e75d4375
+ss inst: jnbe 0x7fc6e75d3afa
+ss pc = 0x7fc6e75d3afa
+ss inst: test rdi, rdi
+ss pc = 0x7fc6e75d3afd
+ss inst: mov dword ptr [rip+0xfe244], r9d
+ss pc = 0x7fc6e75d3b04
+ss inst: mov dword ptr [rip+0xfe241], r8d
+ss pc = 0x7fc6e75d3b0b
+ss inst: mov dword ptr [rip+0xfe1fe], r11d
+ss pc = 0x7fc6e75d3b12
+ss inst: jz 0x7fc6e75d3b52
+ss pc = 0x7fc6e75d3b18
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d43b5
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d43bb
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d43f5
+ss inst: pxor xmm0, xmm0
+ss pc = 0x7fc6e75d43f9
+ss inst: pxor xmm1, xmm1
+ss pc = 0x7fc6e75d43fd
+ss inst: pxor xmm2, xmm2
+ss pc = 0x7fc6e75d4401
+ss inst: pxor xmm3, xmm3
+ss pc = 0x7fc6e75d4405
+ss inst: mov rax, rdi
+ss pc = 0x7fc6e75d4408
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d440b
+ss inst: and rcx, 0xfff
+ss pc = 0x7fc6e75d4412
+ss inst: cmp rcx, 0xfcf
+ss pc = 0x7fc6e75d4419
+ss inst: jnbe 0x7fc6e75d4459
+ss pc = 0x7fc6e75d441f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d45df
+ss inst: movdqu xmm4, xmmword ptr [rax]
+ss pc = 0x7fc6e75d45e3
+ss inst: pcmpeqb xmm4, xmm0
+ss pc = 0x7fc6e75d45e7
+ss inst: pmovmskb edx, xmm4
+ss pc = 0x7fc6e75d45eb
+ss inst: test edx, edx
+ss pc = 0x7fc6e75d45ed
+ss inst: jz 0x7fc6e75d462d
+ss pc = 0x7fc6e75d45f3
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d470d
+ss inst: bsf eax, edx
+ss inst: ret 
+ss addr 0x7fc6e74c54d5
+IND 0x7fc6e75d36e9 -> 0x7fc6e75d3729
+DIR 0x7fc6e75d3733 -> 0x7fc6e75d3773
+DIR 0x7fc6e75d3c2c -> 0x7fc6e75d3773
+DIR 0x7fc6e75d37a2 -> 0x7fc6e75d37e2
+DIR 0x7fc6e75d3826 -> 0x7fc6e75d3866
+DIR 0x7fc6e75d3c7e -> 0x7fc6e75d38c6
+DIR 0x7fc6e75d3cc8 -> 0x7fc6e75d3d08
+DIR 0x7fc6e75d3d0f -> 0x7fc6e75d3d4f
+DIR 0x7fc6e75d3d5f -> 0x7fc6e75d38c6
+DIR 0x7fc6e75d38cf -> 0x7fc6e75d390f
+DIR 0x7fc6e75d3dac -> 0x7fc6e75d3952
+DIR 0x7fc6e75d3dfd -> 0x7fc6e75d3999
+DIR 0x7fc6e75d3e6a -> 0x7fc6e75d39e5
+DIR 0x7fc6e75d3eb7 -> 0x7fc6e75d3ef7
+DIR 0x7fc6e75d3efd -> 0x7fc6e75d3f3d
+DIR 0x7fc6e75d40b0 -> 0x7fc6e75d3f86
+DIR 0x7fc6e75d4104 -> 0x7fc6e75d3fd0
+DIR 0x7fc6e75d4019 -> 0x7fc6e75d4059
+DIR 0x7fc6e75d4155 -> 0x7fc6e75d39e5
+DIR 0x7fc6e75d39e8 -> 0x7fc6e75d3a28
+DIR 0x7fc6e75d3a2c -> 0x7fc6e75d3a6c
+DIR 0x7fc6e75d4199 -> 0x7fc6e75d41d9
+DIR 0x7fc6e75d4221 -> 0x7fc6e75d4261
+DIR 0x7fc6e75d42a9 -> 0x7fc6e75d4261
+DIR 0x7fc6e75d42ed -> 0x7fc6e75d432d
+DIR 0x7fc6e75d4331 -> 0x7fc6e75d4261
+DIR 0x7fc6e75d4375 -> 0x7fc6e75d3afa
+DIR 0x7fc6e75d3b12 -> 0x7fc6e75d3b52
+DIR 0x7fc6e75d43b5 -> 0x7fc6e75d43f5
+CALL: pushing 0x7fc6e74c55f1
+DIR 0x7fc6e75d4419 -> 0x7fc6e75d4459
+DIR 0x7fc6e75d45ed -> 0x7fc6e75d462d
+RET
+ss addr 0x7fc6e75d4710
+ret 
+mov qword ptr [rip+0x20c6b8], rax
+ss inst: mov qword ptr [rip+0x20c6b8], rax
+ss pc = 0x7fc6e75d4750
+ss inst: mov qword ptr [rip+0xfd559], rax
+ss pc = 0x7fc6e75d4757
+ss inst: xor edi, edi
+ss pc = 0x7fc6e75d4759
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d475f
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d3b94
+ss inst: push rbp
+ss pc = 0x7fc6e75d3b95
+ss inst: push rbx
+ss pc = 0x7fc6e75d3b96
+ss inst: mov rbp, rdi
+ss pc = 0x7fc6e75d3b99
+ss inst: sub rsp, 0x8
+ss pc = 0x7fc6e75d3b9d
+ss inst: mov rbx, qword ptr [rip+0xff534]
+ss pc = 0x7fc6e75d3ba4
+ss inst: test rbx, rbx
+ss pc = 0x7fc6e75d3ba7
+ss inst: jz 0x7fc6e75d3be7
+ss pc = 0x7fc6e75d3bad
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4799
+ss inst: mov eax, dword ptr [rip+0xfe919]
+ss pc = 0x7fc6e75d479f
+ss inst: test eax, eax
+ss pc = 0x7fc6e75d47a1
+ss inst: jnz 0x7fc6e75d3be7
+ss pc = 0x7fc6e75d47a7
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d47e1
+ss inst: cmp rbp, 0x0
+ss pc = 0x7fc6e75d47e5
+ss inst: jz 0x7fc6e75d4825
+ss pc = 0x7fc6e75d4825
+ss inst: add rsp, 0x8
+ss pc = 0x7fc6e75d4829
+ss inst: mov rax, rbx
+ss pc = 0x7fc6e75d482c
+ss inst: pop rbx
+ss pc = 0x7fc6e75d482d
+ss inst: pop rbp
+ss inst: ret 
+ss addr 0x7fc6e74c55f1
+IND 0x7fc6e75d4710 -> 0x7fc6e75d4750
+DIR 0x7fc6e75d4759 -> 0x7fc6e75d3b94
+CALL: pushing 0x7fc6e74c55ff
+DIR 0x7fc6e75d3ba7 -> 0x7fc6e75d3be7
+DIR 0x7fc6e75d47a1 -> 0x7fc6e75d3be7
+DIR 0x7fc6e75d47e5 -> 0x7fc6e75d4825
+RET
+ss addr 0x7fc6e75d482e
+ret 
+lea rdx, ptr [rip+0x20db62]
+ss inst: lea rdx, ptr [rip+0x20db62]
+ss pc = 0x7fc6e75d486e
+ss inst: lea rdx, ptr [rip+0xfe8f3]
+ss pc = 0x7fc6e75d4875
+ss inst: cmp rax, rdx
+ss pc = 0x7fc6e75d4878
+ss inst: jz 0x7fc6e75d48b8
+ss pc = 0x7fc6e75d487e
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4909
+ss inst: mov eax, dword ptr [rip+0xfd559]
+ss pc = 0x7fc6e75d490f
+ss inst: test eax, eax
+ss pc = 0x7fc6e75d4911
+ss inst: jnz 0x7fc6e75d4951
+ss pc = 0x7fc6e75d4917
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4aeb
+ss inst: lea rdx, ptr [rsp+0x38]
+ss pc = 0x7fc6e75d4af0
+ss inst: mov esi, r12d
+ss pc = 0x7fc6e75d4af3
+ss inst: mov rdi, rbp
+ss pc = 0x7fc6e75d4af6
+ss inst: mov rcx, qword ptr [rip+0xfd20b]
+ss inst: call r13
+ss addr 0x7fc6e74c55ff
+IND 0x7fc6e75d482e -> 0x7fc6e75d486e
+DIR 0x7fc6e75d4878 -> 0x7fc6e75d48b8
+DIR 0x7fc6e75d4911 -> 0x7fc6e75d4951
+ss addr 0x7fc6e75d4afd
+call r13
+push rbp
+ss inst: push rbp
+ss pc = 0x7fc6e75d4b3d
+ss inst: push rbp
+ss pc = 0x7fc6e75d4b3e
+ss inst: lea rax, ptr [rip-0x127ec5]
+ss pc = 0x7fc6e75d4b45
+ss inst: mov rbp, rsp
+ss pc = 0x7fc6e75d4b48
+ss inst: push r15
+ss pc = 0x7fc6e75d4b4a
+ss inst: push r14
+ss pc = 0x7fc6e75d4b4c
+ss inst: push r13
+ss pc = 0x7fc6e75d4b4e
+ss inst: push r12
+ss pc = 0x7fc6e75d4b50
+ss inst: mov r13, rdx
+ss pc = 0x7fc6e75d4b53
+ss inst: push rbx
+ss pc = 0x7fc6e75d4b54
+ss inst: mov edx, 0x9
+ss pc = 0x7fc6e75d4b59
+ss inst: mov r14, rdi
+ss pc = 0x7fc6e75d4b5c
+ss inst: mov r12, rcx
+ss pc = 0x7fc6e75d4b5f
+ss inst: sub rsp, 0xb8
+ss pc = 0x7fc6e75d4b66
+ss inst: mov qword ptr [rip+0xfde63], rax
+ss pc = 0x7fc6e75d4b6d
+ss inst: lea rax, ptr [rip-0x11ca74]
+ss pc = 0x7fc6e75d4b74
+ss inst: mov dword ptr [rbp-0xa8], esi
+ss pc = 0x7fc6e75d4b7a
+ss inst: mov dword ptr [rbp-0x98], 0x0
+ss pc = 0x7fc6e75d4b84
+ss inst: mov qword ptr [rip+0xfe41d], rax
+ss pc = 0x7fc6e75d4b8b
+ss inst: lea rax, ptr [rip-0x127f02]
+ss pc = 0x7fc6e75d4b92
+ss inst: mov qword ptr [rip+0xfe3af], rax
+ss pc = 0x7fc6e75d4b99
+ss inst: lea rax, ptr [rip-0x127f00]
+ss pc = 0x7fc6e75d4ba0
+ss inst: mov qword ptr [rip+0xfe3a9], rax
+ss pc = 0x7fc6e75d4ba7
+ss inst: lea rax, ptr [rip-0x114b0e]
+ss pc = 0x7fc6e75d4bae
+ss inst: mov qword ptr [rip+0xfe3a3], rax
+ss pc = 0x7fc6e75d4bb5
+ss inst: mov rax, qword ptr [rip+0xfe544]
+ss pc = 0x7fc6e75d4bbc
+ss inst: mov qword ptr [rbp-0x60], rax
+ss pc = 0x7fc6e75d4bc0
+ss inst: movsxd rax, dword ptr [rip+0xfd2a1]
+ss pc = 0x7fc6e75d4bc7
+ss inst: test eax, eax
+ss pc = 0x7fc6e75d4bc9
+ss inst: cmovnz rax, rdx
+ss pc = 0x7fc6e75d4bcd
+ss inst: lea rdx, ptr [rip-0x10a2f8]
+ss pc = 0x7fc6e75d4bd4
+ss inst: xor ebx, ebx
+ss pc = 0x7fc6e75d4bd6
+ss inst: add rax, rdx
+ss pc = 0x7fc6e75d4bd9
+ss inst: mov qword ptr [rip+0xfd198], rax
+ss pc = 0x7fc6e75d4be0
+ss inst: lea rax, ptr [rbp-0x60]
+ss pc = 0x7fc6e75d4be4
+ss inst: mov qword ptr [rbp-0xa0], rax
+ss pc = 0x7fc6e75d4beb
+ss inst: lea rax, ptr [rbp-0x50]
+ss pc = 0x7fc6e75d4bef
+ss inst: mov qword ptr [rbp-0xb0], rax
+ss pc = 0x7fc6e75d4bf6
+ss inst: lea rax, ptr [rbp-0x70]
+ss pc = 0x7fc6e75d4bfa
+ss inst: mov qword ptr [rbp-0xb8], rax
+ss pc = 0x7fc6e75d4c01
+ss inst: mov rdi, qword ptr [rbp-0xa0]
+ss pc = 0x7fc6e75d4c08
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d4c0e
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d4c48
+ss inst: mov rdx, qword ptr [rdi]
+ss pc = 0x7fc6e75d4c4b
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4c4e
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4c51
+ss inst: jnz 0x7fc6e75d4c91
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4c9a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4d5e
+ss inst: cmp byte ptr [rax+0x1], 0x44
+ss pc = 0x7fc6e75d4d62
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4d68
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4da2
+ss inst: cmp byte ptr [rax+0x2], 0x5f
+ss pc = 0x7fc6e75d4da6
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4c9a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4d5e
+ss inst: cmp byte ptr [rax+0x1], 0x44
+ss pc = 0x7fc6e75d4d62
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4c9a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4d5e
+ss inst: cmp byte ptr [rax+0x1], 0x44
+ss pc = 0x7fc6e75d4d62
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4c9a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4d5e
+ss inst: cmp byte ptr [rax+0x1], 0x44
+ss pc = 0x7fc6e75d4d62
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss pc = 0x7fc6e75d4ce4
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4c91
+ss inst: cmp byte ptr [rax], 0x4c
+ss pc = 0x7fc6e75d4c94
+ss inst: jnz 0x7fc6e75d4cd4
+ss pc = 0x7fc6e75d4cd4
+ss inst: add rdx, 0x8
+ss pc = 0x7fc6e75d4cd8
+ss inst: mov rax, qword ptr [rdx]
+ss pc = 0x7fc6e75d4cdb
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4cde
+ss inst: jz 0x7fc6e75d4d1e
+ss inst: ret 
+ss addr 0x7fc6e74ae1e0
+IND 0x7fc6e75d4afd -> 0x7fc6e75d4b3d
+DIR 0x7fc6e75d4c08 -> 0x7fc6e75d4c48
+CALL: pushing 0x7fc6e74ae2b0
+DIR 0x7fc6e75d4c51 -> 0x7fc6e75d4c91
+DIR 0x7fc6e75d4c94 -> 0x7fc6e75d4cd4
+DIR 0x7fc6e75d4d62 -> 0x7fc6e75d4cd4
+DIR 0x7fc6e75d4da6 -> 0x7fc6e75d4cd4
+DIR 0x7fc6e75d4cde -> 0x7fc6e75d4d1e
+RET
+ss addr 0x7fc6e75d4d1e
+ret 
+test rax, rax
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4de6
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d4de9
+ss inst: mov r15, rax
+ss pc = 0x7fc6e75d4dec
+ss inst: jz 0x7fc6e75d4e2c
+ss pc = 0x7fc6e75d4e2c
+ss inst: mov eax, dword ptr [rip+0xfd036]
+ss pc = 0x7fc6e75d4e32
+ss inst: test eax, eax
+ss pc = 0x7fc6e75d4e34
+ss inst: jnz 0x7fc6e75d4e74
+ss pc = 0x7fc6e75d4e3a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d4f4d
+ss inst: mov eax, dword ptr [rip+0xfcc6d]
+ss pc = 0x7fc6e75d4f53
+ss inst: test eax, eax
+ss pc = 0x7fc6e75d4f55
+ss inst: jz 0x7fc6e75d4f95
+ss pc = 0x7fc6e75d4f95
+ss inst: lea rax, ptr [rip-0x12836c]
+ss pc = 0x7fc6e75d4f9c
+ss inst: cmp qword ptr [r13], rax
+ss pc = 0x7fc6e75d4fa0
+ss inst: jnz 0x7fc6e75d4fe0
+ss pc = 0x7fc6e75d4fe0
+ss inst: lea rsi, ptr [rip-0x1096d8]
+ss pc = 0x7fc6e75d4fe7
+ss inst: xor r9d, r9d
+ss pc = 0x7fc6e75d4fea
+ss inst: xor ecx, ecx
+ss pc = 0x7fc6e75d4fec
+ss inst: xor edx, edx
+ss pc = 0x7fc6e75d4fee
+ss inst: mov r8d, 0x20000000
+ss pc = 0x7fc6e75d4ff4
+ss inst: mov rdi, rsi
+ss pc = 0x7fc6e75d4ff7
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d4ffd
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d5037
+ss inst: push r15
+ss pc = 0x7fc6e75d5039
+ss inst: push r14
+ss pc = 0x7fc6e75d503b
+ss inst: push r13
+ss pc = 0x7fc6e75d503d
+ss inst: push r12
+ss pc = 0x7fc6e75d503f
+ss inst: mov r13, rcx
+ss pc = 0x7fc6e75d5042
+ss inst: push rbp
+ss pc = 0x7fc6e75d5043
+ss inst: push rbx
+ss pc = 0x7fc6e75d5044
+ss inst: mov r12, r9
+ss pc = 0x7fc6e75d5047
+ss inst: sub rsp, 0x28
+ss pc = 0x7fc6e75d504b
+ss inst: mov qword ptr [rsp], rdi
+ss pc = 0x7fc6e75d504f
+ss inst: mov rdi, rsi
+ss pc = 0x7fc6e75d5052
+ss inst: mov dword ptr [rsp+0x14], edx
+ss pc = 0x7fc6e75d5056
+ss inst: mov qword ptr [rsp+0x8], rsi
+ss pc = 0x7fc6e75d505b
+ss inst: mov dword ptr [rsp+0x10], r8d
+ss pc = 0x7fc6e75d5060
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d5066
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d43f5
+ss inst: pxor xmm0, xmm0
+ss pc = 0x7fc6e75d43f9
+ss inst: pxor xmm1, xmm1
+ss pc = 0x7fc6e75d43fd
+ss inst: pxor xmm2, xmm2
+ss pc = 0x7fc6e75d4401
+ss inst: pxor xmm3, xmm3
+ss pc = 0x7fc6e75d4405
+ss inst: mov rax, rdi
+ss pc = 0x7fc6e75d4408
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d440b
+ss inst: and rcx, 0xfff
+ss pc = 0x7fc6e75d4412
+ss inst: cmp rcx, 0xfcf
+ss pc = 0x7fc6e75d4419
+ss inst: jnbe 0x7fc6e75d4459
+ss pc = 0x7fc6e75d441f
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d45df
+ss inst: movdqu xmm4, xmmword ptr [rax]
+ss pc = 0x7fc6e75d45e3
+ss inst: pcmpeqb xmm4, xmm0
+ss pc = 0x7fc6e75d45e7
+ss inst: pmovmskb edx, xmm4
+ss pc = 0x7fc6e75d45eb
+ss inst: test edx, edx
+ss pc = 0x7fc6e75d45ed
+ss inst: jz 0x7fc6e75d462d
+ss pc = 0x7fc6e75d45f3
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d470d
+ss inst: bsf eax, edx
+ss inst: ret 
+ss addr 0x7fc6e74ae2b0
+IND 0x7fc6e75d4d1e -> 0x7fc6e75d4de6
+DIR 0x7fc6e75d4dec -> 0x7fc6e75d4e2c
+DIR 0x7fc6e75d4e34 -> 0x7fc6e75d4e74
+DIR 0x7fc6e75d4f55 -> 0x7fc6e75d4f95
+DIR 0x7fc6e75d4fa0 -> 0x7fc6e75d4fe0
+DIR 0x7fc6e75d4ff7 -> 0x7fc6e75d5037
+CALL: pushing 0x7fc6e74ae65b
+DIR 0x7fc6e75d5060 -> 0x7fc6e75d43f5
+CALL: pushing 0x7fc6e74b7bbe
+RET
+ss addr 0x7fc6e75d4710
+ret 
+mov r15d, dword ptr [rip+0x21a243]
+ss inst: mov r15d, dword ptr [rip+0x21a243]
+ss pc = 0x7fc6e75d50a0
+ss inst: mov r15d, dword ptr [rip+0xfcd61]
+ss pc = 0x7fc6e75d50a7
+ss inst: mov rbx, rax
+ss pc = 0x7fc6e75d50aa
+ss inst: lea rdx, ptr [rax+0x1]
+ss pc = 0x7fc6e75d50ae
+ss inst: test r15d, r15d
+ss pc = 0x7fc6e75d50b1
+ss inst: jz 0x7fc6e75d50f1
+ss pc = 0x7fc6e75d50f1
+ss inst: mov eax, dword ptr [rsp+0x10]
+ss pc = 0x7fc6e75d50f5
+ss inst: and eax, 0x20000000
+ss pc = 0x7fc6e75d50fa
+ss inst: cmp eax, 0x1
+ss pc = 0x7fc6e75d50fd
+ss inst: sbb rbp, rbp
+ss pc = 0x7fc6e75d5100
+ss inst: not rbp
+ss pc = 0x7fc6e75d5103
+ss inst: and ebp, 0x100
+ss pc = 0x7fc6e75d5109
+ss inst: test eax, eax
+ss pc = 0x7fc6e75d510b
+ss inst: mov eax, 0x10
+ss pc = 0x7fc6e75d5110
+ss inst: cmovnz r15d, eax
+ss pc = 0x7fc6e75d5114
+ss inst: jmp 0x7fc6e75d5154
+ss pc = 0x7fc6e75d5154
+ss inst: lea rdi, ptr [rbp+rbx*1+0x491]
+ss pc = 0x7fc6e75d515c
+ss inst: mov esi, 0x1
+ss pc = 0x7fc6e75d5161
+ss inst: mov qword ptr [rsp+0x18], rdx
+ss pc = 0x7fc6e75d5166
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d516c
+ss inst: jmp qword ptr [rip+0x8]
+ss inst: jmp qword ptr [rip+0xfce7c]
+ss addr 0x7fc6e74b7bbe
+IND 0x7fc6e75d4710 -> 0x7fc6e75d50a0
+DIR 0x7fc6e75d50b1 -> 0x7fc6e75d50f1
+DIR 0x7fc6e75d5114 -> 0x7fc6e75d5154
+DIR 0x7fc6e75d5166 -> 0x7fc6e75d51a6
+CALL: pushing 0x7fc6e74b7bf6
+ss addr 0x7fc6e75d51a6
+jmp qword ptr [rip+0xfce7c]
+mov rcx, rdi
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d51e6
+ss inst: mov rcx, rdi
+ss pc = 0x7fc6e75d51e9
+ss inst: mov eax, 0xffffffff
+ss pc = 0x7fc6e75d51ee
+ss inst: mov rdx, rcx
+ss pc = 0x7fc6e75d51f1
+ss inst: or rdx, rsi
+ss pc = 0x7fc6e75d51f4
+ss inst: imul rdi, rsi
+ss pc = 0x7fc6e75d51f8
+ss inst: cmp rdx, rax
+ss pc = 0x7fc6e75d51fb
+ss inst: jbe 0x7fc6e75d523b
+ss pc = 0x7fc6e75d523b
+ss inst: jmp 0x7fc6e75d527b
+ss inst: jmp qword ptr [rip+0xfcd9f]
+ss addr 0x7fc6e74c5f10
+IND 0x7fc6e75d51a6 -> 0x7fc6e75d51e6
+DIR 0x7fc6e75d51fb -> 0x7fc6e75d523b
+DIR 0x7fc6e75d523b -> 0x7fc6e75d527b
+ss addr 0x7fc6e75d527b
+jmp qword ptr [rip+0xfcd9f]
+mov rsi, rdi
+ss inst: mov rsi, rdi
+ss pc = 0x7fc6e75d52bb
+ss inst: mov rsi, rdi
+ss pc = 0x7fc6e75d52be
+ss inst: mov edi, 0x8
+ss pc = 0x7fc6e75d52c3
+ss inst: jmp 0x7fc6e75d5303
+ss inst: jmp qword ptr [rip+0xfcd0f]
+ss addr 0x7fc6e74c5f00
+IND 0x7fc6e75d527b -> 0x7fc6e75d52bb
+DIR 0x7fc6e75d52c3 -> 0x7fc6e75d5303
+ss addr 0x7fc6e75d5303
+jmp qword ptr [rip+0xfcd0f]
+push rbp
+ss inst: push rbp
+ss pc = 0x7fc6e75d5343
+ss inst: push rbp
+ss pc = 0x7fc6e75d5344
+ss inst: push rbx
+ss pc = 0x7fc6e75d5345
+ss inst: sub rsp, 0x8
+ss pc = 0x7fc6e75d5349
+ss inst: mov rdx, qword ptr [rip+0xfdd78]
+ss pc = 0x7fc6e75d5350
+ss inst: test rdx, rdx
+ss pc = 0x7fc6e75d5353
+ss inst: jz 0x7fc6e75d5393
+ss pc = 0x7fc6e75d5393
+ss inst: mov rax, qword ptr [rip+0xfc91e]
+ss pc = 0x7fc6e75d539a
+ss inst: lea rcx, ptr [rip+0xfddc7]
+ss pc = 0x7fc6e75d53a1
+ss inst: lea rdx, ptr [rax+rcx*1-0x1]
+ss pc = 0x7fc6e75d53a6
+ss inst: neg rax
+ss pc = 0x7fc6e75d53a9
+ss inst: and rdx, rax
+ss pc = 0x7fc6e75d53ac
+ss inst: mov qword ptr [rip+0xfdd15], rdx
+ss pc = 0x7fc6e75d53b3
+ss inst: jmp 0x7fc6e75d53f3
+ss pc = 0x7fc6e75d53f3
+ss inst: lea rax, ptr [rcx+rdi*1-0x1]
+ss pc = 0x7fc6e75d53f8
+ss inst: neg rdi
+ss pc = 0x7fc6e75d53fb
+ss inst: and rdi, rax
+ss pc = 0x7fc6e75d53fe
+ss inst: lea rbp, ptr [rdi+rsi*1]
+ss pc = 0x7fc6e75d5402
+ss inst: mov qword ptr [rip+0xfdcc7], rdi
+ss pc = 0x7fc6e75d5409
+ss inst: cmp rbp, rdx
+ss pc = 0x7fc6e75d540c
+ss inst: jnb 0x7fc6e75d544c
+ss pc = 0x7fc6e75d5412
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d56dc
+ss inst: mov rax, rdi
+ss pc = 0x7fc6e75d56df
+ss inst: neg rax
+ss pc = 0x7fc6e75d56e2
+ss inst: cmp rsi, rax
+ss pc = 0x7fc6e75d56e5
+ss inst: jb 0x7fc6e75d5725
+ss pc = 0x7fc6e75d5725
+ss inst: mov qword ptr [rip+0xfd994], rdi
+ss pc = 0x7fc6e75d572c
+ss inst: mov qword ptr [rip+0xfd99d], rbp
+ss pc = 0x7fc6e75d5733
+ss inst: add rsp, 0x8
+ss pc = 0x7fc6e75d5737
+ss inst: mov rax, rdi
+ss pc = 0x7fc6e75d573a
+ss inst: pop rbx
+ss pc = 0x7fc6e75d573b
+ss inst: pop rbp
+ss inst: ret 
+ss addr 0x7fc6e74c5e00
+IND 0x7fc6e75d5303 -> 0x7fc6e75d5343
+DIR 0x7fc6e75d5353 -> 0x7fc6e75d5393
+DIR 0x7fc6e75d53b3 -> 0x7fc6e75d53f3
+DIR 0x7fc6e75d540c -> 0x7fc6e75d544c
+DIR 0x7fc6e75d56e5 -> 0x7fc6e75d5725
+RET
+ss addr 0x7fc6e75d573c
+ret 
+test rax, rax
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d577c
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d577f
+ss inst: mov r14, rax
+ss pc = 0x7fc6e75d5782
+ss inst: jz 0x7fc6e75d57c2
+ss pc = 0x7fc6e75d5788
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d5852
+ss inst: lea rbp, ptr [rax+rbp*1+0x470]
+ss pc = 0x7fc6e75d585a
+ss inst: mov rdx, qword ptr [rsp+0x18]
+ss pc = 0x7fc6e75d585f
+ss inst: mov rsi, qword ptr [rsp+0x8]
+ss pc = 0x7fc6e75d5864
+ss inst: mov qword ptr [r14+0x28], rax
+ss pc = 0x7fc6e75d5868
+ss inst: lea rdi, ptr [rbp+0x20]
+ss pc = 0x7fc6e75d586c
+ss inst: mov qword ptr [rax+0x2c8], rbp
+ss pc = 0x7fc6e75d5873
+ss inst: lea rax, ptr [rbp+0x8]
+ss pc = 0x7fc6e75d5877
+ss inst: mov qword ptr [r14+0x38], rax
+ss pc = 0x7fc6e75d587b
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d5881
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d58bb
+ss inst: cmp rdx, 0x20
+ss pc = 0x7fc6e75d58bf
+ss inst: mov rax, rdi
+ss pc = 0x7fc6e75d58c2
+ss inst: jnb 0x7fc6e75d5902
+ss pc = 0x7fc6e75d58c8
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d5a22
+ss inst: test dl, 0x1
+ss pc = 0x7fc6e75d5a25
+ss inst: jz 0x7fc6e75d5a65
+ss pc = 0x7fc6e75d5a2b
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d5bb4
+ss inst: movzx ecx, byte ptr [rsi]
+ss pc = 0x7fc6e75d5bb7
+ss inst: mov byte ptr [rdi], cl
+ss pc = 0x7fc6e75d5bb9
+ss inst: inc rsi
+ss pc = 0x7fc6e75d5bbc
+ss inst: inc rdi
+ss pc = 0x7fc6e75d5bbf
+ss inst: test dl, 0x2
+ss pc = 0x7fc6e75d5bc2
+ss inst: jz 0x7fc6e75d5aa8
+ss pc = 0x7fc6e75d5aa8
+ss inst: test dl, 0x4
+ss pc = 0x7fc6e75d5aab
+ss inst: jz 0x7fc6e75d5aeb
+ss pc = 0x7fc6e75d5aeb
+ss inst: test dl, 0x8
+ss pc = 0x7fc6e75d5aee
+ss inst: jz 0x7fc6e75d5b2e
+ss pc = 0x7fc6e75d5b2e
+ss inst: and edx, 0xf0
+ss pc = 0x7fc6e75d5b34
+ss inst: jz 0x7fc6e75d5b74
+ss inst: ret 
+ss addr 0x7fc6e74b7bf6
+IND 0x7fc6e75d573c -> 0x7fc6e75d577c
+DIR 0x7fc6e75d5782 -> 0x7fc6e75d57c2
+DIR 0x7fc6e75d587b -> 0x7fc6e75d58bb
+CALL: pushing 0x7fc6e74b7c30
+DIR 0x7fc6e75d58c2 -> 0x7fc6e75d5902
+DIR 0x7fc6e75d5a25 -> 0x7fc6e75d5a65
+DIR 0x7fc6e75d5bc2 -> 0x7fc6e75d5aa8
+DIR 0x7fc6e75d5aab -> 0x7fc6e75d5aeb
+DIR 0x7fc6e75d5aee -> 0x7fc6e75d5b2e
+DIR 0x7fc6e75d5b34 -> 0x7fc6e75d5b74
+RET
+ss addr 0x7fc6e75d5b74
+ret 
+mov rcx, qword ptr [rsp]
+ss inst: mov rcx, qword ptr [rsp]
+ss pc = 0x7fc6e75d5c02
+ss inst: mov rcx, qword ptr [rsp]
+ss pc = 0x7fc6e75d5c06
+ss inst: mov qword ptr [rbp+0x8], rax
+ss pc = 0x7fc6e75d5c0a
+ss inst: add rbx, rax
+ss pc = 0x7fc6e75d5c0d
+ss inst: mov dword ptr [rbp+0x18], 0x1
+ss pc = 0x7fc6e75d5c14
+ss inst: movzx ebp, byte ptr [rsp+0x14]
+ss pc = 0x7fc6e75d5c19
+ss inst: movzx eax, byte ptr [r14+0x314]
+ss pc = 0x7fc6e75d5c21
+ss inst: movzx edx, byte ptr [rcx]
+ss pc = 0x7fc6e75d5c24
+ss inst: test dl, dl
+ss pc = 0x7fc6e75d5c26
+ss inst: cmovnz rbx, rcx
+ss pc = 0x7fc6e75d5c2a
+ss inst: and ebp, 0x3
+ss pc = 0x7fc6e75d5c2d
+ss inst: and eax, 0xfffffffc
+ss pc = 0x7fc6e75d5c30
+ss inst: or ebp, eax
+ss pc = 0x7fc6e75d5c32
+ss inst: test byte ptr [rip+0xfc068], 0x1
+ss pc = 0x7fc6e75d5c39
+ss inst: mov qword ptr [r14+0x8], rbx
+ss pc = 0x7fc6e75d5c3d
+ss inst: mov byte ptr [r14+0x314], bpl
+ss pc = 0x7fc6e75d5c44
+ss inst: jz 0x7fc6e75d5c84
+ss pc = 0x7fc6e75d5c84
+ss inst: mov dword ptr [r14+0x3cc], 0x1
+ss pc = 0x7fc6e75d5c8f
+ss inst: jmp 0x7fc6e75d5ccf
+ss pc = 0x7fc6e75d5ccf
+ss inst: test r15d, r15d
+ss pc = 0x7fc6e75d5cd2
+ss inst: mov qword ptr [r14+0x2d8], r13
+ss pc = 0x7fc6e75d5cd9
+ss inst: mov qword ptr [r14+0x30], r12
+ss pc = 0x7fc6e75d5cdd
+ss inst: jz 0x7fc6e75d5d1d
+ss pc = 0x7fc6e75d5ce3
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d5eb8
+ss inst: lea esi, ptr [r15-0x1]
+ss pc = 0x7fc6e75d5ebc
+ss inst: lea rax, ptr [r14+0x470]
+ss pc = 0x7fc6e75d5ec3
+ss inst: add rsi, 0x48
+ss pc = 0x7fc6e75d5ec7
+ss inst: shl rsi, 0x4
+ss pc = 0x7fc6e75d5ecb
+ss inst: add rsi, r14
+ss pc = 0x7fc6e75d5ece
+ss inst: data16 nop
+ss pc = 0x7fc6e75d5ed0
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5ed3
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5ed7
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5eda
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f1a
+ss inst: mov qword ptr [rax], r14
+ss pc = 0x7fc6e75d5f1d
+ss inst: add rax, 0x10
+ss pc = 0x7fc6e75d5f21
+ss inst: cmp rax, rsi
+ss pc = 0x7fc6e75d5f24
+ss inst: jnz 0x7fc6e75d5f1a
+ss pc = 0x7fc6e75d5f2a
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d5d1d
+ss inst: lea rax, ptr [r14+0x358]
+ss pc = 0x7fc6e75d5d24
+ss inst: lea rsi, ptr [rip+0xfc315]
+ss pc = 0x7fc6e75d5d2b
+ss inst: mov qword ptr [r14+0x378], 0x4
+ss pc = 0x7fc6e75d5d36
+ss inst: mov qword ptr [r14+0x380], rax
+ss pc = 0x7fc6e75d5d3d
+ss inst: lea rax, ptr [r12+r12*8]
+ss pc = 0x7fc6e75d5d41
+ss inst: shl rax, 0x4
+ss pc = 0x7fc6e75d5d45
+ss inst: mov rax, qword ptr [rsi+rax*1]
+ss pc = 0x7fc6e75d5d49
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d5d4c
+ss inst: jz 0x7fc6e75d5d8c
+ss pc = 0x7fc6e75d5d8c
+ss inst: test r13, r13
+ss pc = 0x7fc6e75d5d8f
+ss inst: jz 0x7fc6e75d5dcf
+ss pc = 0x7fc6e75d5dcf
+ss inst: lea rsi, ptr [r14+0x2b8]
+ss pc = 0x7fc6e75d5dd6
+ss inst: mov rcx, rsi
+ss pc = 0x7fc6e75d5dd9
+ss inst: jmp 0x7fc6e75d5e19
+ss pc = 0x7fc6e75d5e19
+ss inst: xor eax, eax
+ss pc = 0x7fc6e75d5e1b
+ss inst: test byte ptr [rsp+0x10], 0x8
+ss pc = 0x7fc6e75d5e20
+ss inst: jnz 0x7fc6e75d5e60
+ss pc = 0x7fc6e75d5e26
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d5f64
+ss inst: cdqe 
+ss pc = 0x7fc6e75d5f66
+ss inst: shl rax, 0x3
+ss pc = 0x7fc6e75d5f6a
+ss inst: mov qword ptr [r14+rax*1+0x358], rcx
+ss pc = 0x7fc6e75d5f72
+ss inst: test dl, dl
+ss pc = 0x7fc6e75d5f74
+ss inst: mov qword ptr [r14+0x388], rsi
+ss pc = 0x7fc6e75d5f7b
+ss inst: mov rax, r14
+ss pc = 0x7fc6e75d5f7e
+ss inst: mov byte ptr [rsp+0x10], dl
+ss pc = 0x7fc6e75d5f82
+ss inst: jz 0x7fc6e75d5804
+ss pc = 0x7fc6e75d5804
+ss inst: add rsp, 0x28
+ss pc = 0x7fc6e75d5808
+ss inst: pop rbx
+ss pc = 0x7fc6e75d5809
+ss inst: pop rbp
+ss pc = 0x7fc6e75d580a
+ss inst: pop r12
+ss pc = 0x7fc6e75d580c
+ss inst: pop r13
+ss pc = 0x7fc6e75d580e
+ss inst: pop r14
+ss pc = 0x7fc6e75d5810
+ss inst: pop r15
+ss inst: ret 
+ss addr 0x7fc6e74b7c30
+IND 0x7fc6e75d5b74 -> 0x7fc6e75d5c02
+DIR 0x7fc6e75d5c44 -> 0x7fc6e75d5c84
+DIR 0x7fc6e75d5c8f -> 0x7fc6e75d5ccf
+DIR 0x7fc6e75d5cdd -> 0x7fc6e75d5d1d
+DIR 0x7fc6e75d5eda -> 0x7fc6e75d5f1a
+DIR 0x7fc6e75d5f24 -> 0x7fc6e75d5f1a
+DIR 0x7fc6e75d5d4c -> 0x7fc6e75d5d8c
+DIR 0x7fc6e75d5d8f -> 0x7fc6e75d5dcf
+DIR 0x7fc6e75d5dd9 -> 0x7fc6e75d5e19
+DIR 0x7fc6e75d5e20 -> 0x7fc6e75d5e60
+DIR 0x7fc6e75d5f82 -> 0x7fc6e75d5804
+RET
+ss addr 0x7fc6e75d5812
+ret 
+test rax, rax
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d5fc2
+ss inst: test rax, rax
+ss pc = 0x7fc6e75d5fc5
+ss inst: mov r12, rax
+ss pc = 0x7fc6e75d5fc8
+ss inst: jz 0x7fc6e75d6008
+ss pc = 0x7fc6e75d5fce
+ss inst: jmp qword ptr [rip]
+ss pc = 0x7fc6e75d6062
+ss inst: mov qword ptr [rax+0x2a0], r14
+ss pc = 0x7fc6e75d6069
+ss inst: movzx eax, word ptr [rbp-0xa8]
+ss pc = 0x7fc6e75d6070
+ss inst: xor esi, esi
+ss pc = 0x7fc6e75d6072
+ss inst: mov rdi, r12
+ss pc = 0x7fc6e75d6075
+ss inst: mov word ptr [r12+0x2b0], ax
+ss pc = 0x7fc6e75d607e
+ss inst: mov rax, qword ptr [r13]
+ss pc = 0x7fc6e75d6082
+ss inst: mov qword ptr [r12+0x2a8], rax
+ss pc = 0x7fc6e75d608a
+ss inst: push qword ptr [rip+0x6]
+ss pc = 0x7fc6e75d6090
+ss inst: jmp qword ptr [rip+0x8]
+ss pc = 0x7fc6e75d60ca
+ss inst: push r12
+ss pc = 0x7fc6e75d60cc
+ss inst: push rbp
+ss pc = 0x7fc6e75d60cd
+ss inst: mov r12, rdi
+ss pc = 0x7fc6e75d60d0
+ss inst: push rbx
+ss pc = 0x7fc6e75d60d1
+ss inst: mov rbx, rsi
+ss pc = 0x7fc6e75d60d4
+ss inst: lea rdi, ptr [rip+0xfc895]
+ss inst: call qword ptr [rip+0xfce67]
+ss addr 0x7fc6e74ae65b
+IND 0x7fc6e75d5812 -> 0x7fc6e75d5fc2
+DIR 0x7fc6e75d5fc8 -> 0x7fc6e75d6008
+DIR 0x7fc6e75d608a -> 0x7fc6e75d60ca
+CALL: pushing 0x7fc6e74ae694
+ss addr 0x7fc6e75d60db
+call qword ptr [rip+0xfce67]
+add dword ptr [rdi+0x4], 0x1
+ss inst: add dword ptr [rdi+0x4], 0x1
+ss pc = 0x7fc6e75d611b
+ss inst: add dword ptr [rdi+0x4], 0x1
+ss inst: ret 
+ss addr 0x7fc6e74acc90
+IND 0x7fc6e75d60db -> 0x7fc6e75d611b
+RET
+ss addr 0x7fc6e75d611f
+ret 
+int3 
+ss inst: int3 
+memcheck: /afs/.ir/users/n/m/nmosier/memcheck/src/patch.cc:90: Block& Patcher::lookup_block_patch(uint8_t*): Assertion `!is_pool_addr(addr)' failed.
+ss addr 0x7fc6e75d60e1

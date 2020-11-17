@@ -259,3 +259,33 @@ std::ostream& Instruction::print(std::ostream& os) const {
 std::ostream& operator<<(std::ostream& os, const Blob& blob) {
   return blob.print(os);
 }
+
+bool Instruction::call_to_jmp(void) {
+  if (xed_iclass() != XED_ICLASS_CALL_NEAR) {
+    return false;
+  }
+
+  switch (xed_iform()) {
+  case XED_IFORM_CALL_NEAR_GPRv:
+    // ff dx -> ff ex
+    assert(data()[0] == 0xff);
+    data_[1] ^= 0x30;
+    break;
+
+  case XED_IFORM_CALL_NEAR_MEMv:
+    assert(data()[0] == 0xff);
+    data_[1] ^= 0x30;
+    break;
+
+  case XED_IFORM_CALL_NEAR_RELBRd:
+    assert(data()[0] == 0xe8);
+    data_[0] |= 0x01;
+    break;
+
+  default: abort();
+  }
+
+  decode();
+  
+  return true;
+}

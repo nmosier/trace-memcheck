@@ -112,6 +112,12 @@ public:
 
   virtual std::ostream& print(std::ostream& os) const override;
 
+  /**
+   * Convert call instruction to corresponding jump instruction.
+   * @return Whether instruction was converted, i.e. whether instruction was a call.
+   */
+  bool call_to_jmp(void);
+
 private:
   bool good_;
   Data data_;

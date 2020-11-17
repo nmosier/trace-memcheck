@@ -1,3 +1,1 @@
-[ ]
-
-block.cc:35 -- resume writing
+[ ] Don't patch branches eagerly. Single-step both direct & indirect branches to determine outcome.

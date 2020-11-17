@@ -33,3 +33,12 @@ HMM..
 Don't overuse classes. Makes problem even harder.
 
 [ ] Map from orig addresses to blocks.
+
+---------------
+
+Simplify block instructions by putting it into one instruction stream.
+Observation: Only one breakpoint will be active at once. For direct branches, the direct branch breakpoint will be hit exactly once.
+
+Improvement:
+Don't patch positive conditional jumps unless branch is actually taken, direct or indirect.
+Currently, the tool patches direct jumps eagerly, but this isn't always correct.

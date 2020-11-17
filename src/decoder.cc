@@ -34,3 +34,5 @@ bool Decoder::decode(const uint8_t *data, size_t size, xed_decoded_inst_t& xedd)
     return true;
   }
 }
+
+

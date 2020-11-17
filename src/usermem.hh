@@ -20,7 +20,7 @@ public:
   user_ptr_t<T> begin() const { return base<T>(); }
 
   template <typename T>
-  user_ptr_t<T> end() { return reinterpret_cast<user_ptr_t<T>>(begin<char>() + size()); }
+  user_ptr_t<T> end() const { return reinterpret_cast<user_ptr_t<T>>(begin<char>() + size()); }
 
 private:
   const Tracee& tracee;

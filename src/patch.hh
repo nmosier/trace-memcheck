@@ -29,11 +29,10 @@ private:
   BlockMap block_map;
   BlockMap pool2block_map;
   BlockPool block_pool;
-  
+
   template <typename OutputIt>
   void patch_one(uint8_t *pc, OutputIt output_it);
-  
   Block& lookup_block_patch(uint8_t *addr);
-
   void jump_to_block(uint8_t *orig_addr);
+  bool is_pool_addr(uint8_t *addr) const;
 };

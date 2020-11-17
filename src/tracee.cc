@@ -38,12 +38,27 @@ Tracee::~Tracee(void) {
 }
 
 void Tracee::read(void *to, size_t count, const void *from) const {
+#if 0
   const ssize_t bytes_read = pread(fd(), to, count, (off_t) from);
   if (bytes_read < 0) {
     std::perror("pread");
     abort();
   }
   assert((size_t) bytes_read == count);
+#else
+  while (count > 0) {
+    const ssize_t bytes_read = pread(fd(), to, count, reinterpret_cast<off_t>(from));
+    if (bytes_read < 0) {
+      std::perror("pread");
+      abort();
+    } else if (bytes_read == 0) {
+      std::fprintf(stderr, "pread: unexpected end of file\n");
+      abort();
+    }
+    count -= bytes_read;
+  }
+  
+#endif
 }
 
 void Tracee::write(const void *from, size_t count, void *to) const {
