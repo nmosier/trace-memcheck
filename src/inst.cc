@@ -82,7 +82,6 @@ void Instruction::patch_relbr(Op get_dst_ptr) {
     disp.u.brdisp = new_disp;
     disp.width_bits = 32;
 
-    fprintf(stderr, "inst: %s\n", Decoder::disas(*this).c_str());
     if (!xed_patch_relbr(&xedd_, data_.data(), disp)) {
       fprintf(stderr, "failed to patch branch\n");
       abort();
@@ -142,8 +141,6 @@ bool Instruction::relocate_mem(ptrdiff_t diff) {
     return false;
   }
 
-  printf("mem %p, diff %zd\n", pc(), diff);
-  
   assert(xed_decoded_inst_get_memory_displacement_width_bits(&xedd(), memidx) == 32);
   const ptrdiff_t olddisp = xed_decoded_inst_get_memory_displacement(&xedd(), memidx);
   xed_enc_displacement_t disp;

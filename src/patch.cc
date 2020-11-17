@@ -16,8 +16,6 @@ void Patcher::patch(uint8_t *root) {
 
 template <typename OutputIt>
 void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
-  fprintf(stderr, "patching %p\n", start_pc);
-  
   /* create block */
   Block *block = Block::Create(start_pc, tracee, block_pool);
   const auto block_it = block_map.emplace(start_pc, block);
@@ -28,15 +26,11 @@ void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
   /* add todo blocks */
   if (block->kind() == Block::Kind::DIR) {
     assert(block->orig_branch());
-    fprintf(stderr, "branch dst of %p:  %p\n", block->orig_branch().pc(),
-	    block->orig_branch().branch_dst());
     *output_it++ = block->orig_branch().branch_dst();
   }
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
-  fprintf(stderr, "handling breakpoint @ %p\n", bkpt_addr);
-
   Block *block = lookup_block_bkpt(bkpt_addr);
   if (block == nullptr) {
     printf("bkpt_addr: %p\n", bkpt_addr);

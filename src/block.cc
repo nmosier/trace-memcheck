@@ -59,9 +59,7 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
 void Block::write(void) {
   uint8_t *addr = pool_addr_;
   addr = block_pool_.write_insts(addr, insts_);
-  fprintf(stderr, "post-insts addr: %p\n", addr);
   addr = block_pool_.write_insts(addr, branch_insts_);
-  fprintf(stderr, "post-write-insts addr: %p\n", addr);
   addr = block_pool_.write_insts(addr, fallthrough_insts_);
 }
 
@@ -156,8 +154,6 @@ void Block::handle_bkpt(uint8_t *pc, const HandleBkptIface& iface) {
 
   assert(bkpt_chk == 0xcc);
 
-  fprintf(stderr, "handle_bkpt %s\n", bkpt_kind_to_str(bkpt_kind));
-  
   switch (bkpt_kind) {
   case BkptKind::BRANCH:
     handle_bkpt_branch(pc, iface);
@@ -170,7 +166,6 @@ void Block::handle_bkpt(uint8_t *pc, const HandleBkptIface& iface) {
 }
 
 void Block::handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface) {
-  fprintf(stderr, "bkpt branch %s\n", kind_to_str(kind()));
   switch (kind()) {
   case Kind::DIR:
     handle_bkpt_branch_dir(pc, iface);
@@ -220,9 +215,11 @@ void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
 
   write();
 
+#if 0
   fprintf(stderr, "orig inst:    %s\n", Decoder::disas(orig_branch_).c_str());
   fprintf(stderr, "decoded inst: %s\n",
 	  Decoder::disas(dynamic_cast<Instruction&>(*branch_insts_.front())).c_str());
+#endif
 }
 
 void Block::handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface) {
