@@ -4,56 +4,70 @@ class Terminator;
 
 #include <memory>
 #include <list>
+#include <type_traits>
 #include "inst.hh"
+#include "block.hh"
 
 class Terminator {
 public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
+  using HandleBkptIface = typename Block::HandleBkptIface;
   
-  const InstVec& insts() const { return insts_; }
   uint8_t *addr() const { return addr_; }
   size_t size() const { return size_; }
+
+  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) = 0;
   
 protected:
   Terminator(uint8_t *addr, const Instruction& branch, size_t basesize);
 
-  template <typename... Args>
-  void add_inst(Args&&... args);
+  size_t basesize() const { return buf_end() - buf_begin(); }
+  uint8_t *baseaddr() const { return baseaddr_; }
 
-  InstIt insts_begin() const { return insts_begin_; }
-  InstIt insts_end() const { return insts_end_; }
 
-  uint8_t *addr_before(InstIt it) { return (*std::next(it, -1))->after_pc(); }
+  uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
 
-  template <class Functor>
-  InstIt insert(InstIt it, Functor fn) {
-    return insert(std::make_unique(fn(addr_before(it))));
+  template <typename I>
+  uint8_t *write(uint8_t *addr, I i) {
+    static_assert(std::is_integral<I>(), "require integral type");
+    return write(addr, reinterpret_cast<const uint8_t *>(&i), sizeof(i));
   }
+  uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
   
-  InstIt insert(InstIt it, std::unique_ptr<Blob> blob); // erases range [it, insts_end) and inserts
-  InstIt erase(InstIt it); // erases range [it, insts_end)
-
+  const Instruction& orig_branch() const { return orig_branch_; }
+  
 private:
+  using Buf = std::vector<uint8_t>;
   uint8_t *addr_;
+  uint8_t *baseaddr_;
   size_t size_;
-  InstVec insts_;
-  InstIt insts_begin_; // begin point for subclass
-  InstIt insts_end_;   // end point for subclass
   Instruction orig_branch_; // original branch
+  Buf buf_;
+  uint8_t *buf_begin_;
+  uint8_t *buf_end_;
+
+  uint8_t *buf_begin() const { return buf_begin_; }
+  uint8_t *buf_end() const { return buf_end_; }  
 };
 
 class IndirectTerminator: public Terminator {
 public:
   IndirectTerminator(uint8_t *addr, const Instruction& branch);
 private:
-  static constexpr size_t basesize = ...;
 };
 
 class DirectTerminator: public Terminator {
 public:
   DirectTerminator(uint8_t *addr, const Instruction& branch);
+
+  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
+  
 private:
+  Instruction branch_;
+  Instruction fallthru_;
+  uint8_t *branch_bkpt;
+  
   /* initial instructions:
    * BRANCH [BKPT]
    * BKPT // fallthrough
@@ -81,4 +95,6 @@ private:
    * 
    */
   static size_t basesize();
+
+  void init();
 };

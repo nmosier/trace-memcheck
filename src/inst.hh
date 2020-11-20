@@ -29,6 +29,8 @@ public:
   uint8_t *after_pc() const { return pc() + size(); }
 
   virtual std::ostream& print(std::ostream& os) const = 0;
+
+  uint8_t *write(uint8_t *buf) const { return std::copy_n(data(), size(), buf); }
   
 protected:
   void pc(uint8_t *pc) { pc_ = pc; }
