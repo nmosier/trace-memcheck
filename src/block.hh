@@ -82,11 +82,14 @@ private:
 
   void handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface);
   void handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface);
+  void handle_bkpt_branch_dir_conditional(uint8_t *pc, const HandleBkptIface& iface);
+  
   void handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface);
   void handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface);
 
-  // TODO
-  // bool transform_call_to_jmp(
+  bool transform_call_to_jmp(uint8_t *pc, InstVec::iterator branch_it);
+
+  void single_step(void);
   
 #if 0
   uint8_t *branch_addr(void) const { return branch_insts_.front().addr(); }

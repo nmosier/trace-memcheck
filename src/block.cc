@@ -177,6 +177,11 @@ void Block::handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface) {
   }
 }
 
+void Block::handle_bkpt_branch_dir_conditional(uint8_t *pc, const HandleBkptIface& iface) {
+  // TODO
+  abort();
+}
+
 void Block::handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface) {
   uint8_t *expected_pc = branch_insts_.front()->pc();
   assert(pc == expected_pc);
@@ -305,3 +310,32 @@ bool Block::may_have_conditional_branch(void) const {
     return true;
   }
 }
+
+#if 0
+bool Block::transfom_call_to_jmp(uint8_t *pc, InstVec::iterator branch_it) {
+  if (!(*branch_it)->call_to_jmp()) {
+    return false; // original branch wasn't a call
+  }
+
+  uint8_t *orig_fallthru = orig_branch_.after_pc();
+
+  auto push_mem_it =
+    branch_insts_.insert(std::next(branch_it, 1), std::make_unique<Pointer>(orig_fallthru));
+
+  // branch_insts_.insert
+  
+  
+
+
+  Instruction push = Instruction::push_mem(pc, nullptr);
+  
+  // *it++ = std::make_unique<Instruction>(Instruction::push_mem(pc, 
+  
+  *it++ = std::make_unique<Pointer>(orig_fallthru);
+  
+  Instruction::call_to_jump;
+  
+  // TODO
+  abort();
+}
+#endif

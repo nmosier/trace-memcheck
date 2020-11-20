@@ -289,3 +289,31 @@ bool Instruction::call_to_jmp(void) {
   
   return true;
 }
+
+bool Instruction::is_conditional_branch(void) const {
+  switch (xed_iform()) {
+  case XED_ICLASS_JB:
+  case XED_ICLASS_JBE:
+  case XED_ICLASS_JCXZ:
+  case XED_ICLASS_JECXZ:
+  case XED_ICLASS_JL:
+  case XED_ICLASS_JLE:
+  case XED_ICLASS_JNB:
+  case XED_ICLASS_JNBE:
+  case XED_ICLASS_JNL:
+  case XED_ICLASS_JNLE:
+  case XED_ICLASS_JNO:
+  case XED_ICLASS_JNP:
+  case XED_ICLASS_JNS:
+  case XED_ICLASS_JNZ:
+  case XED_ICLASS_JO:
+  case XED_ICLASS_JP:
+  case XED_ICLASS_JRCXZ:
+  case XED_ICLASS_JS:
+  case XED_ICLASS_JZ:
+    return true;
+
+  default:
+    return false;
+  }
+}

@@ -118,6 +118,8 @@ public:
    */
   bool call_to_jmp(void);
 
+  bool is_conditional_branch(void) const;
+  
 private:
   bool good_;
   Data data_;
