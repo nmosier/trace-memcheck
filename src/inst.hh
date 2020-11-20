@@ -121,6 +121,7 @@ public:
   static constexpr size_t jmp_mem_len = 6;
   static Instruction push_mem(uint8_t *pc, uint8_t *mem);
   static constexpr size_t push_mem_len = 6;
+  static constexpr size_t int3_len = 1;
   
   /**
    * Convert call instruction to corresponding jump instruction.

@@ -47,11 +47,38 @@ class IndirectTerminator: public Terminator {
 public:
   IndirectTerminator(uint8_t *addr, const Instruction& branch);
 private:
+  static constexpr size_t basesize = ...;
 };
 
 class DirectTerminator: public Terminator {
 public:
   DirectTerminator(uint8_t *addr, const Instruction& branch);
-protected:
 private:
+  /* initial instructions:
+   * BRANCH [BKPT]
+   * BKPT // fallthrough
+   * BKPT // branch
+   */
+
+  /* if branch taken:
+   * ORIG BRANCH
+   * BKPT
+   */
+
+  /* if branch not taken:
+   * BRANCH [BKPT]
+   * JMP [NEXTBLOCK]
+   * BKPT
+   */
+
+  /* if branch taken & not taken:
+   * ORIG BRANCH
+   * JMP NEXTBLOCK
+   */
+
+  /* Max instructions:
+   * BRANCH
+   * 
+   */
+  static size_t basesize();
 };

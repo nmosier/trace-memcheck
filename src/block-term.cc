@@ -36,3 +36,9 @@ Terminator::InstIt Terminator::insert(InstIt it, std::unique_ptr<Blob> blob) {
   return insts_.insert(insert_it, std::move(blob));
 }
 
+DirectTerminator::DirectTerminator(uint8_t *addr, const Instruction& branch):
+  Terminator(addr, branch, basesize),
+
+{
+  
+}
