@@ -29,7 +29,7 @@ public:
   }
 
   uint8_t *alloc(size_t size);
-  uint8_t *alloc_next(void) const { return alloc_ptr; }
+  uint8_t *peek(void) const { return alloc_ptr; }
 
   uint8_t *begin() const { return mem.begin<uint8_t>(); }
   uint8_t *end() const { return mem.end<uint8_t>(); }
@@ -40,3 +40,4 @@ private:
   uint8_t *alloc_ptr;
 
 };
+

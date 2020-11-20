@@ -40,7 +40,7 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
   block->orig_branch_ = *inst;
 
   /* create terminator instructions */
-  
+  block->term_insts_.push_back(std::
   
   // TODO
   abort();

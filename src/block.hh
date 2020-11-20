@@ -58,12 +58,15 @@ private:
   Kind kind_;
   uint8_t *orig_addr_;
   uint8_t *pool_addr_;
-  InstVec insts_;
+  InstVec insts_; // linear basic block instructions
+#if 0
   InstVec branch_insts_;
   InstVec fallthrough_insts_;
+#else
+  InstVec term_insts_; // terminator instructions
+#endif
   Instruction orig_branch_;
   size_t maxsize_;
-  enum class BkptKind {BRANCH, FALLTHROUGH};
 
   static const char *bkpt_kind_to_str(BkptKind bkpt_kind);
   static const char *kind_to_str(Kind kind);

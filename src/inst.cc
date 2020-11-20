@@ -317,3 +317,8 @@ bool Instruction::is_conditional_branch(void) const {
     return false;
   }
 }
+
+Instruction::Instruction(const Instruction& other, uint8_t *newpc) {
+  *this = other;
+  relocate(newpc);
+}

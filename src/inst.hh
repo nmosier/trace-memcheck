@@ -29,7 +29,7 @@ public:
   uint8_t *after_pc() const { return pc() + size(); }
 
   virtual std::ostream& print(std::ostream& os) const = 0;
-
+  
 protected:
   void pc(uint8_t *pc) { pc_ = pc; }
   
@@ -37,15 +37,27 @@ private:
   uint8_t *pc_;
 };
 
+class NullBlob: public Blob {
+public:
+  template <typename... Args>
+  NullBlob(Args&&... args): Blob(args...) {}
+
+  virtual void retarget(uint8_t *newdst) override {}
+  virtual uint8_t *data() override { return nullptr; }
+  virtual const uint8_t *data() const override { return nullptr; }
+  virtual size_t size() const override { return 0; }
+  virtual std::ostream& print(std::ostream& os) const override { return os; }
+};
+
 class Data: public Blob {
 public:
   using Content = std::vector<uint8_t>;
 
   template <typename T>
-  Data(const T& data): Blob(nullptr), data_(data) {}
+  Data(uint8_t *pc, const T& data): Blob(pc), data_(data) {}
 
   template <typename InputIt>
-  Data(InputIt begin, InputIt end): Blob(nullptr), data_(begin, end) {}
+  Data(uint8_t *pc, InputIt begin, InputIt end): Blob(pc), data_(begin, end) {}
 
   // virtual void relocate(uint8_t *newpc) override { }
   virtual void retarget(uint8_t *newdst) override {}
@@ -62,8 +74,8 @@ private:
 
 class Pointer: public Data {
 public:
-  Pointer(uint8_t *ptr): Data(reinterpret_cast<uint8_t *>(&ptr),
-			      reinterpret_cast<uint8_t *>(&ptr + 1)) {}
+  Pointer(uint8_t *pc, uint8_t *ptr): Data(pc, reinterpret_cast<uint8_t *>(&ptr),
+					   reinterpret_cast<uint8_t *>(&ptr + 1)) {}
 };
 
 class Instruction: public Blob {
@@ -74,17 +86,14 @@ public:
   Instruction(): good_(false) {}
   Instruction(uint8_t *pc, const Data& opcode);
   Instruction(uint8_t *pc, const Tracee& tracee);
+  Instruction(const Instruction& other, uint8_t *newpc);
 
   uint8_t *data() override { return data_.data(); }
   const uint8_t *data() const override { return data_.data(); }
   void data(const uint8_t *newdata, size_t len);
   template <size_t N>
-  void data(const uint8_t (&newdata)[N]) {
-    data(newdata, N);
-  }
-  void data(const Data& newdata) {
-    data(newdata.data(), newdata.size());
-  }
+  void data(const uint8_t (&newdata)[N]) { data(newdata, N); }
+  void data(const Data& newdata) { data(newdata.data(), newdata.size()); }
   
   const xed_decoded_inst_t& xedd() const { return xedd_; }
   virtual size_t size() const override { return xed_decoded_inst_get_length(&xedd()); }
@@ -94,24 +103,25 @@ public:
   const char *xed_iclass_str() const { return xed_iclass_enum_t2str(xed_iclass()); }
 
   uint8_t *branch_dst(void) const;
-  
+
+  /*** VIRTUAL METHODS ***/
   virtual void relocate(uint8_t *newpc) override;
   virtual void retarget(uint8_t *newdst) override; // only for branches
+  virtual std::ostream& print(std::ostream& os) const override;
 
   bool good() const { return good_; }
   operator bool() const { return good(); }
 
-  std::ostream& operator<<(std::ostream& os) const { return print(os); }
-
+  /*** INSTRUCTION GENERATORS ***/
   /* generates instruction of XED_JMP_RELBRd iform */
   static Instruction jmp_relbrd(uint8_t *pc, uint8_t *dst);
-
+  
   /* generates instruction of XED_JMP_MEMv iform with rip-relative addressing */
   static Instruction jmp_mem(uint8_t *pc, uint8_t *mem);
+  static constexpr size_t jmp_mem_len = 6;
   static Instruction push_mem(uint8_t *pc, uint8_t *mem);
-
-  virtual std::ostream& print(std::ostream& os) const override;
-
+  static constexpr size_t push_mem_len = 6;
+  
   /**
    * Convert call instruction to corresponding jump instruction.
    * @return Whether instruction was converted, i.e. whether instruction was a call.
