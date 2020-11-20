@@ -3,9 +3,10 @@
 #include <cassert>
 #include "block-term.hh"
 
-Terminator::Terminator(uint8_t *addr, const Instruction& branch, size_t basesize,
-		       const Tracee& tracee): addr_(addr), orig_branch_(branch), tracee_(tracee) {
-
+Terminator::Terminator(BlockPool& block_pool, const Instruction& branch, size_t basesize,
+		       const Tracee& tracee): orig_branch_(branch), tracee_(tracee) {
+  addr_ = block_pool.peek();
+  
   if (orig_branch_.call_to_jmp()) {
     size_ = basesize + Instruction::push_mem_len + sizeof(void *);
     buf_ = Buf(size_);
@@ -25,6 +26,8 @@ Terminator::Terminator(uint8_t *addr, const Instruction& branch, size_t basesize
     buf_begin_ = static_cast<uint8_t *>(buf_.data());
     buf_end_ = static_cast<uint8_t *>(buf_.data() + size_);
   }
+
+  block_pool.alloc(size_);
 }
 
 uint8_t *Terminator::write(uint8_t *addr, const uint8_t *data_in, size_t count) {
@@ -42,11 +45,9 @@ size_t DirectTerminator::basesize() {
   return 64; // TODO: Make this not arbitrary
 }
 
-DirectTerminator::DirectTerminator(uint8_t *addr, const Instruction& branch, const Tracee& tracee):
-  Terminator(addr, branch, basesize(), tracee)
-{
-  init();
-}
+DirectTerminator::DirectTerminator(BlockPool& block_pool, const Instruction& branch,
+				   const Tracee& tracee):
+  Terminator(block_pool, branch, basesize(), tracee) { init(); }
 
 void DirectTerminator::init() {
   /* j{cc} L1
@@ -73,7 +74,7 @@ void DirectTerminator::init() {
   flush();
 }
 
-void DirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const Block::HandleBkptIface& iface) {
+void DirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const HandleBkptIface& iface) {
   if (bkpt_addr == branch_bkpt) {
     /* update branch instruction */
     uint8_t *branch_dst = iface.lb(orig_branch().branch_dst());
@@ -102,12 +103,9 @@ size_t IndirectTerminator::basesize() {
   return 64; // TODO: Better way of doing this?
 }
 
-IndirectTerminator::IndirectTerminator(uint8_t *addr, const Instruction& branch,
+IndirectTerminator::IndirectTerminator(BlockPool& block_pool, const Instruction& branch,
 				       const Tracee& tracee):
-  Terminator(addr, branch, basesize(), tracee)
-{
-  init();
-}
+  Terminator(block_pool, branch, basesize(), tracee) { init(); }
 
 void IndirectTerminator::init() {
   Instruction branch = orig_branch();

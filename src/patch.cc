@@ -41,15 +41,15 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   }
   assert(block != nullptr);
 
-  Block::LookupBlock lb = [&] (uint8_t *addr) -> uint8_t * {
+  const auto lb = [&] (uint8_t *addr) -> uint8_t * {
     return lookup_block_patch(addr).pool_addr();
   };
 
-  Block::PatchBlock pb = [&] (uint8_t *addr) {
+  const auto pb = [&] (uint8_t *addr) {
     patch(addr);
   };
 
-  Block::SingleStep ss = [&] (void) {
+  const auto ss = [&] (void) {
     Instruction inst1(tracee.get_pc(), tracee);
     std::cout << inst1 << std::endl;
     

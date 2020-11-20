@@ -6,13 +6,19 @@ class Terminator;
 #include <list>
 #include <type_traits>
 #include "inst.hh"
-#include "block.hh"
+#include "block-pool.hh"
 
 class Terminator {
 public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
-  using HandleBkptIface = typename Block::HandleBkptIface;
+
+  struct HandleBkptIface {
+    std::function<uint8_t *(uint8_t *)> lb;
+    std::function<void (uint8_t *)> pb;
+    std::function<void (void)> ss;
+    const Tracee& tracee;
+  };
   
   uint8_t *addr() const { return addr_; }
   size_t size() const { return size_; }
@@ -20,7 +26,8 @@ public:
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) = 0;
   
 protected:
-  Terminator(uint8_t *addr, const Instruction& branch, size_t basesize, const Tracee& tracee);
+  Terminator(BlockPool& block_pool, const Instruction& branch, size_t basesize,
+	     const Tracee& tracee);
 
   size_t basesize() const { return buf_end() - buf_begin(); }
   uint8_t *baseaddr() const { return baseaddr_; }
@@ -57,7 +64,7 @@ private:
 
 class IndirectTerminator: public Terminator {
 public:
-  IndirectTerminator(uint8_t *addr, const Instruction& branch, const Tracee& tracee);
+  IndirectTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee);
 
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
   
@@ -85,7 +92,7 @@ private:
 
 class DirectTerminator: public Terminator {
 public:
-  DirectTerminator(uint8_t *addr, const Instruction& branch, const Tracee& tracee);
+  DirectTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee);
 
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
   

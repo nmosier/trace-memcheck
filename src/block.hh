@@ -1,5 +1,7 @@
 #pragma once
 
+class Block;
+
 #include <vector>
 #include <list>
 #include <cstddef>
@@ -19,22 +21,15 @@ extern "C" {
 #include "patch-fwd.hh"
 #include "block-fwd.hh"
 #include "block-pool-fwd.hh"
+#include "block-term.hh"
 
 class Block {
 public:
   enum class Kind {DIR, IND, OTH}; // treat all branches as conditional
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
-  using LookupBlock = std::function<uint8_t *(uint8_t *)>;
-  using PatchBlock = std::function<void (uint8_t *)>;
-  using SingleStep = std::function<void (void)>;
-  struct HandleBkptIface {
-    LookupBlock lb;
-    PatchBlock pb;
-    SingleStep ss;
-    const Tracee& tracee;
-  };
-
+  using HandleBkptIface = Terminator::HandleBkptIface;
+  
   static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool);
   
   Kind kind() const { return kind_; }
@@ -45,7 +40,8 @@ public:
 
   void jump_to(void) const;
 
-  void handle_bkpt(uint8_t *pc, const HandleBkptIface& iface);
+  template <typename... Args>
+  void handle_bkpt(Args&&... args) { terminator_->handle_bkpt(args...); }
 
   /**
    * Check whether branch instruction *might* be conditional.
@@ -61,14 +57,14 @@ private:
   uint8_t *pool_addr_;
   InstVec insts_; // linear basic block instructions
   Instruction orig_branch_;
-  size_t maxsize_;
+  std::unique_ptr<Terminator> terminator_;
 
   static const char *kind_to_str(Kind kind);
 
   Block(const Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
     tracee_(tracee), block_pool_(block_pool), orig_addr_(orig_addr) {}
 
-  void write(void);
+  void write_insts();
 
   static Kind classify_inst(const Instruction& inst) {
     return classify_inst(inst.xed_iclass(), inst.xed_iform());

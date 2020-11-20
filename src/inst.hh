@@ -7,6 +7,7 @@ class Data;
 #include <cstddef>
 #include <array>
 #include <vector>
+#include <algorithm>
 
 extern "C" {
 #include <xed/xed-interface.h>
