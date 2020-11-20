@@ -59,7 +59,7 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
     std::cout << inst2 << std::endl;
   };
   
-  Block::HandleBkptIface hbi = {lb, pb, ss};
+  Block::HandleBkptIface hbi = {lb, pb, ss, tracee};
   
   block->handle_bkpt(bkpt_addr, hbi);
 

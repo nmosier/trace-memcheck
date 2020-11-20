@@ -20,7 +20,7 @@ public:
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) = 0;
   
 protected:
-  Terminator(uint8_t *addr, const Instruction& branch, size_t basesize);
+  Terminator(uint8_t *addr, const Instruction& branch, size_t basesize, const Tracee& tracee);
 
   size_t basesize() const { return buf_end() - buf_begin(); }
   uint8_t *baseaddr() const { return baseaddr_; }
@@ -34,8 +34,11 @@ protected:
     return write(addr, reinterpret_cast<const uint8_t *>(&i), sizeof(i));
   }
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
+  void flush() const;
   
   const Instruction& orig_branch() const { return orig_branch_; }
+
+  const Tracee& tracee() const { return tracee_; }
   
 private:
   using Buf = std::vector<uint8_t>;
@@ -46,6 +49,7 @@ private:
   Buf buf_;
   uint8_t *buf_begin_;
   uint8_t *buf_end_;
+  const Tracee& tracee_;
 
   uint8_t *buf_begin() const { return buf_begin_; }
   uint8_t *buf_end() const { return buf_end_; }  
@@ -53,13 +57,35 @@ private:
 
 class IndirectTerminator: public Terminator {
 public:
-  IndirectTerminator(uint8_t *addr, const Instruction& branch);
+  IndirectTerminator(uint8_t *addr, const Instruction& branch, const Tracee& tracee);
+
+  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
+  
 private:
+  uint8_t saved_byte_;
+  uint8_t *branch_bkpt_;
+  uint8_t *fallthru_bkpt_;
+  
+  static size_t basesize();
+
+  /* initial:
+   * BRANCH (bkpt)
+   * BKPT (fallthru)
+   */
+
+  /* fallthru hit:
+   * BRANCH (bkpt)
+   * JMP <fallthru>
+   */
+
+  void init();
+
+  void singlestep() const;
 };
 
 class DirectTerminator: public Terminator {
 public:
-  DirectTerminator(uint8_t *addr, const Instruction& branch);
+  DirectTerminator(uint8_t *addr, const Instruction& branch, const Tracee& tracee);
 
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
   

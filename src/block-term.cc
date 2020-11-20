@@ -3,8 +3,8 @@
 #include <cassert>
 #include "block-term.hh"
 
-Terminator::Terminator(uint8_t *addr, const Instruction& branch, size_t basesize):
-  addr_(addr), orig_branch_(branch) {
+Terminator::Terminator(uint8_t *addr, const Instruction& branch, size_t basesize,
+		       const Tracee& tracee): addr_(addr), orig_branch_(branch), tracee_(tracee) {
 
   if (orig_branch_.call_to_jmp()) {
     size_ = basesize + Instruction::push_mem_len + sizeof(void *);
@@ -34,12 +34,16 @@ uint8_t *Terminator::write(uint8_t *addr, const uint8_t *data_in, size_t count) 
   return std::copy_n(data_in, count, data_out);
 }
 
+void Terminator::flush() const {
+  tracee_.write(buf_.data(), buf_.size(), addr());
+}
+
 size_t DirectTerminator::basesize() {
   return 64; // TODO: Make this not arbitrary
 }
 
-DirectTerminator::DirectTerminator(uint8_t *addr, const Instruction& branch):
-  Terminator(addr, branch, basesize())
+DirectTerminator::DirectTerminator(uint8_t *addr, const Instruction& branch, const Tracee& tracee):
+  Terminator(addr, branch, basesize(), tracee)
 {
   init();
 }
@@ -65,6 +69,8 @@ void DirectTerminator::init() {
 
   /* branch bkpt */
   write(branch_bkpt, 0xcc);
+
+  flush();
 }
 
 void DirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const Block::HandleBkptIface& iface) {
@@ -83,9 +89,61 @@ void DirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const Block::HandleBkptIf
   } else {
     assert(bkpt_addr == fallthru_.pc());
 
-    uint8_t *fallthru_dst = orig_branch().after_pc();
+    uint8_t *fallthru_dst_orig = orig_branch().after_pc();
+    uint8_t *fallthru_dst = iface.lb(fallthru_dst_orig);
     fallthru_ = Instruction::jmp_relbrd(fallthru_.pc(), fallthru_dst);
     write(fallthru_);
   }
+
+  flush();
 }
 
+size_t IndirectTerminator::basesize() {
+  return 64; // TODO: Better way of doing this?
+}
+
+IndirectTerminator::IndirectTerminator(uint8_t *addr, const Instruction& branch,
+				       const Tracee& tracee):
+  Terminator(addr, branch, basesize(), tracee)
+{
+  init();
+}
+
+void IndirectTerminator::init() {
+  Instruction branch = orig_branch();
+  branch.relocate(baseaddr());
+  saved_byte_ = branch.data()[0];
+  fallthru_bkpt_ = write(branch);
+  branch_bkpt_ = branch.pc();
+  write(branch_bkpt_, 0xcc);
+
+  assert(fallthru_bkpt_ == branch.after_pc());
+  write(fallthru_bkpt_, 0xcc);
+
+  flush();
+}
+
+void IndirectTerminator::singlestep() const {
+  tracee().write(&saved_byte_, 1, addr());
+  tracee().singlestep();
+  const uint8_t bkpt = 0xcc;
+  tracee().write(&bkpt, 1, addr());
+}
+
+void IndirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const HandleBkptIface& iface) {
+  if (bkpt_addr == branch_bkpt_) {
+    singlestep();
+    uint8_t *branch_dst = iface.lb(tracee().get_pc());
+    tracee().set_pc(branch_dst);
+  } else {
+    assert(bkpt_addr == fallthru_bkpt_);
+
+    uint8_t *fallthru_dst_orig = orig_branch().after_pc();
+    uint8_t *fallthru_dst = iface.lb(fallthru_dst_orig);
+    write(Instruction::jmp_relbrd(fallthru_bkpt_, fallthru_dst));
+    
+    fallthru_bkpt_ = nullptr;
+
+    flush();
+  }
+}

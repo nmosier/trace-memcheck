@@ -32,6 +32,7 @@ public:
     LookupBlock lb;
     PatchBlock pb;
     SingleStep ss;
+    const Tracee& tracee;
   };
 
   static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool);
