@@ -1,37 +1,20 @@
 #include <unordered_set>
 #include "patch.hh"
 
-Patcher::Patcher(Tracee& tracee): tracee(tracee), block_pool(tracee, block_pool_size) {}
+Patcher::Patcher(Tracee& tracee):
+  tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size) {}
 
-void Patcher::patch(uint8_t *root) {
-  std::vector<uint8_t *> todo = {root};
-  while (!todo.empty()) {
-    uint8_t *pc = todo.back();
-    todo.pop_back();
-    if (block_map.find(pc) == block_map.end()) {
-      patch_one(pc, std::back_inserter(todo));
-    }
-  }
-}
-
-template <typename OutputIt>
-void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
+void Patcher::patch(uint8_t *start_pc) {
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
     return lookup_block_patch(addr).pool_addr();
   }; // TODO: unify this with other def of lb
 
   /* create block */
-  Block *block = Block::Create(start_pc, tracee, block_pool, lb);
+  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb);
   const auto block_it = block_map.emplace(start_pc, block);
   const auto pool2block_it = pool2block_map.emplace(block->pool_addr(), block);
   assert(block_it.second);
   assert(pool2block_it.second);
-
-  /* add todo blocks */
-  if (block->kind() == Block::Kind::DIR && !block->may_have_conditional_branch()) {
-    assert(block->orig_branch());
-    *output_it++ = block->orig_branch().branch_dst();
-  }
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {

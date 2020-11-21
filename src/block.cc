@@ -12,7 +12,7 @@ size_t Block::size(const InstVec& insts) {
 }
 
 Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_pool,
-		     LookupBlock lb) {
+		     PointerPool& ptr_pool, LookupBlock lb) {
   Block *block = new Block(tracee, orig_addr, block_pool);
 
   uint8_t *it = orig_addr;
@@ -26,9 +26,7 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
 
     it += inst->size(); // update original PC
     
-    block->kind_ = classify_inst(*inst);
-    
-    if (block->kind_ != Kind::OTH) {
+    if (classify_inst(*inst)) {
       break;
     }
 
@@ -46,14 +44,13 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
   block->terminator_ =
     std::unique_ptr<Terminator>(Terminator::Create(block_pool, *inst, tracee, lb));
 
+  
+  
   return block;
 }
 
-void Block::write_insts(void) {
-  block_pool_.write_insts(pool_addr(), insts_);
-}
-
-Block::Kind Block::classify_inst(xed_iclass_enum_t iclass, xed_iform_enum_t iform) {
+// returns true iff branch instruction
+bool Block::classify_inst(xed_iclass_enum_t iclass) {
   switch (iclass) {
   case XED_ICLASS_JB:
   case XED_ICLASS_JBE:
@@ -74,34 +71,13 @@ Block::Kind Block::classify_inst(xed_iclass_enum_t iclass, xed_iform_enum_t ifor
   case XED_ICLASS_JRCXZ:
   case XED_ICLASS_JS:
   case XED_ICLASS_JZ:
-    return Kind::DIR;
-
   case XED_ICLASS_JMP:
-    switch (iform) {
-    case XED_IFORM_JMP_GPRv:
-    case XED_IFORM_JMP_MEMv:
-      return Kind::IND;
-    case XED_IFORM_JMP_RELBRb:
-    case XED_IFORM_JMP_RELBRd:
-      return Kind::DIR;
-    default: abort();
-    }
-    
   case XED_ICLASS_CALL_NEAR:
-    switch (iform) {
-    case XED_IFORM_CALL_NEAR_GPRv:
-    case XED_IFORM_CALL_NEAR_MEMv:
-      return Kind::IND;
-    case XED_IFORM_CALL_NEAR_RELBRd:
-      return Kind::DIR;
-    default: abort();
-    }
-
   case XED_ICLASS_RET_NEAR:
-    return Kind::IND;
+    return true;
 
   default:
-    return Kind::OTH;
+    return false;
   }
 }
 
@@ -133,14 +109,6 @@ uint8_t *BlockPool::write_inst(uint8_t *addr, Blob& inst) {
 
 void Block::jump_to(void) const {
   tracee_.set_pc(pool_addr());
-}
-
-const char *Block::kind_to_str(Kind kind) {
-  switch (kind) {
-  case Kind::DIR: return "DIR";
-  case Kind::IND: return "IND";
-  default: return nullptr;
-  }
 }
 
 bool Block::may_have_conditional_branch(void) const {

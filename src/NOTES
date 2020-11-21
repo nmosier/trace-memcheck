@@ -68,3 +68,9 @@ Solution: just jump to original address then single-step instruction.
 Hmm, instead of transforming ANY indirect branch instructions, can just jump directly to the indirect branch branch instruction for simplicity.
 
 Wait, can just jump to calls, since they (1) never fallthru and (2) it will push the right value onto the stack.
+
+---------
+
+Bug: RIP-relative data accesses don't work.
+Possible fix: Create shadow copies. But this is bad -- what about RIP-relative arrays?
+Possible fix: push rax \ mov rax, [rip+...] \ xchg [rsp], rax

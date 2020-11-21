@@ -1,2 +1,6 @@
 [~] Don't patch branches eagerly. Single-step both direct & indirect branches to determine outcome.
 [ ] Separate data from code
+[X] classify_inst() should return bool, not enum
+[X] elimintate Block::Kind enum class
+[ ] unify ptr pool and block pool to avoid 2 system calls
+[X] unify patch/patch_one, since no todo list needed

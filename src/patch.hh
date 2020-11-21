@@ -25,13 +25,14 @@ private:
   using BlockMap = std::map<uint8_t *, Block *>;
 
   static constexpr size_t block_pool_size = 0x100000;
+  static constexpr size_t ptr_pool_size = 0x10000;
+  
   Tracee& tracee;
   BlockMap block_map;
   BlockMap pool2block_map;
   BlockPool block_pool;
+  PointerPool ptr_pool;
 
-  template <typename OutputIt>
-  void patch_one(uint8_t *pc, OutputIt output_it);
   Block& lookup_block_patch(uint8_t *addr);
   void jump_to_block(uint8_t *orig_addr);
   bool is_pool_addr(uint8_t *addr) const;
