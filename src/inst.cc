@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstring>
+#include <unordered_map>
 #include "inst.hh"
 #include "debug.h"
 
@@ -265,16 +266,23 @@ bool Instruction::call_to_jmp(void) {
     return false;
   }
 
+  const auto get_ind_byte = [] (uint8_t *data) -> uint8_t * {
+    if (data[0] == 0xff) {
+      return &data[1];
+    } else {
+      assert(data[1] == 0xff);
+      return &data[2];
+    }
+  };
+  
   switch (xed_iform()) {
   case XED_IFORM_CALL_NEAR_GPRv:
-    // ff dx -> ff ex
-    assert(data()[0] == 0xff);
-    data_[1] ^= 0x30;
-    break;
-
   case XED_IFORM_CALL_NEAR_MEMv:
-    assert(data()[0] == 0xff);
-    data_[1] ^= 0x30;
+    // [41] ff dx -> [41] ff ex
+    {
+      uint8_t *it = get_ind_byte(data());
+      *it ^= 0x30;
+    }
     break;
 
   case XED_IFORM_CALL_NEAR_RELBRd:
@@ -285,7 +293,18 @@ bool Instruction::call_to_jmp(void) {
   default: abort();
   }
 
+  std::unordered_map<int, int> map {
+    {XED_IFORM_CALL_NEAR_GPRv, XED_IFORM_JMP_GPRv},
+    {XED_IFORM_CALL_NEAR_MEMv, XED_IFORM_JMP_MEMv},
+    {XED_IFORM_CALL_NEAR_RELBRd, XED_IFORM_JMP_RELBRd},
+  };
+  const xed_iform_enum_t call_iform = xed_iform();
+  
   decode();
+
+  const xed_iform_enum_t jmp_iform = xed_iform();
+  assert(map.find(call_iform) != map.end());
+  assert(map[call_iform] == jmp_iform);
   
   return true;
 }

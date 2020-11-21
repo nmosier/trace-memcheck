@@ -39,6 +39,7 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
 
   block->orig_branch_ = *inst;
   block->pool_addr_ = block_pool.alloc(size(block->insts_));
+  block_pool.write_insts(block->pool_addr_, block->insts_);
   
   /* create terminator instructions */
   switch (block->kind_) {

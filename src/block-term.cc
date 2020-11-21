@@ -1,7 +1,9 @@
 #include <memory>
 #include <algorithm>
 #include <cassert>
+#include <sys/wait.h>
 #include "block-term.hh"
+#include "debug.h"
 
 Terminator::Terminator(BlockPool& block_pool, const Instruction& branch, size_t basesize,
 		       const Tracee& tracee): orig_branch_(branch), tracee_(tracee) {
@@ -34,7 +36,8 @@ uint8_t *Terminator::write(uint8_t *addr, const uint8_t *data_in, size_t count) 
   const size_t offset = addr - addr_;
   uint8_t *data_out = &buf_[0] + offset;
   assert(buf_begin() <= data_out && data_out + count <= buf_end());
-  return std::copy_n(data_in, count, data_out);
+  std::copy_n(data_in, count, data_out);
+  return addr + count;
 }
 
 void Terminator::flush() const {
@@ -86,6 +89,9 @@ void DirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const HandleBkptIface& if
     addr_it = write(fallthru_);
     
     branch_bkpt = nullptr;
+
+    /* fix up PC */
+    tracee().set_pc(branch_dst);
     
   } else {
     assert(bkpt_addr == fallthru_.pc());
@@ -115,6 +121,8 @@ void IndirectTerminator::init() {
   branch_bkpt_ = branch.pc();
   write(branch_bkpt_, 0xcc);
 
+  std::clog << (void *) baseaddr() << ": " << branch << std::endl; // DEBUG
+
   assert(fallthru_bkpt_ == branch.after_pc());
   write(fallthru_bkpt_, 0xcc);
 
@@ -122,10 +130,28 @@ void IndirectTerminator::init() {
 }
 
 void IndirectTerminator::singlestep() const {
-  tracee().write(&saved_byte_, 1, addr());
-  tracee().singlestep();
+  tracee().write(&saved_byte_, 1, baseaddr()); // baseaddr, not addr
+
+  Instruction cur_inst;
+  
+#if DEBUG
+  std::clog << "ss pc = " << static_cast<void *>(tracee().get_pc()) << ": ";
+  cur_inst = Instruction(tracee().get_pc(), tracee());
+  std::clog << cur_inst << std::endl;
+#endif
+  
+  const int status = tracee().singlestep();
+  assert(WIFSTOPPED(status));
+  assert(WSTOPSIG(status) == SIGTRAP);
+  
   const uint8_t bkpt = 0xcc;
-  tracee().write(&bkpt, 1, addr());
+  tracee().write(&bkpt, 1, baseaddr()); // baseaddr, not addr
+
+#if DEBUG
+  std::clog << "ss pc = " << static_cast<void *>(tracee().get_pc()) << ": ";
+  cur_inst = Instruction(tracee().get_pc(), tracee());
+  std::clog << cur_inst << std::endl;
+#endif  
 }
 
 void IndirectTerminator::handle_bkpt(uint8_t *bkpt_addr, const HandleBkptIface& iface) {

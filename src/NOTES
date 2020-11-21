@@ -57,3 +57,9 @@ Hmm... Could have terminator be other class with virtual methods... try this.
 Hmmm
 How the hell to create relocatable instructions?
 Just save data, xedd,
+
+----
+
+Problem: RIP-relative memory jumps are difficult.
+Solution: just jump to original address then single-step instruction.
+	  If call, pop off stack push.

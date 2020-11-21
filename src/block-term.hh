@@ -34,13 +34,9 @@ protected:
 
 
   uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
-
-  template <typename I>
-  uint8_t *write(uint8_t *addr, I i) {
-    static_assert(std::is_integral<I>(), "require integral type");
-    return write(addr, reinterpret_cast<const uint8_t *>(&i), sizeof(i));
-  }
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
+  uint8_t *write(uint8_t *addr, uint8_t byte) { return write_i<uint8_t>(addr, byte); }
+  
   void flush() const;
   
   const Instruction& orig_branch() const { return orig_branch_; }
@@ -60,6 +56,12 @@ private:
 
   uint8_t *buf_begin() const { return buf_begin_; }
   uint8_t *buf_end() const { return buf_end_; }  
+
+  template <typename I>  
+  uint8_t *write_i(uint8_t *addr, I i) {
+    static_assert(std::is_integral<I>(), "require integral type");
+    return write(addr, reinterpret_cast<const uint8_t *>(&i), sizeof(i));
+  }
 };
 
 class IndirectTerminator: public Terminator {

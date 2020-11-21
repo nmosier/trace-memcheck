@@ -96,6 +96,12 @@ int main(int argc, char *argv[]) {
 #endif
     wait(&status);
 
+# if DEBUG
+    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+    Instruction cur_inst(tracee.get_pc(), tracee);
+    std::clog << cur_inst << std::endl;
+# endif
+
     if (WIFSTOPPED(status)) {
       const int stopsig = WSTOPSIG(status);
       if (stopsig != SIGTRAP) {
@@ -104,7 +110,7 @@ int main(int argc, char *argv[]) {
 	uint8_t *stop_pc = tracee.get_pc();
 	Instruction inst(stop_pc, tracee);
 	fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
-
+	
 	fprintf(stderr, "orig block @ %p\n", patcher.lookup_block_bkpt(stop_pc)->orig_addr());
 	
 	if (gdb) {
@@ -123,13 +129,15 @@ int main(int argc, char *argv[]) {
 	insts.push_back(bkpt_pc);
 	tracee.set_pc(bkpt_pc);
 	patcher.handle_bkpt(bkpt_pc);
+
+# if DEBUG
+    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+    Instruction cur_inst(tracee.get_pc(), tracee);
+    std::clog << cur_inst << std::endl;
+# endif	
+	
 	tracee.read(&pc_byte, 1, tracee.get_pc());
       }
-# if DEBUG
-      fprintf(stderr, "ss pc = %p\n", tracee.get_pc());
-      Instruction cur_inst(tracee.get_pc(), tracee);
-      std::clog << "ss inst: " << cur_inst << std::endl;
-# endif
 
 #else
       bkpt_pc = tracee.get_pc() - 1;

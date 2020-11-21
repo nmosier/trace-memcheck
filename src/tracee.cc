@@ -78,6 +78,7 @@ void Tracee::dump(std::ostream& os, const void *ptr, size_t count) const {
     sprintf(s, "%02hhx ", b);
     os << s;
   }
+  os << std::endl;
 }
 
 void Tracee::get_regs(user_regs_struct& regs) const {
