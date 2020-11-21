@@ -12,9 +12,10 @@ class Terminator {
 public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
-
+  using LookupBlock = std::function<uint8_t *(uint8_t *)>;
+  
   struct HandleBkptIface {
-    std::function<uint8_t *(uint8_t *)> lb;
+    LookupBlock lb;
     std::function<void (uint8_t *)> pb;
     std::function<void (void)> ss;
     const Tracee& tracee;
@@ -23,39 +24,29 @@ public:
   uint8_t *addr() const { return addr_; }
   size_t size() const { return size_; }
 
-  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) = 0;
+  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) { abort(); }
+
+  static Terminator *Create(BlockPool& block_pool, const Instruction& branch, const Tracee& trace,
+			    LookupBlock lb);
   
 protected:
-  Terminator(BlockPool& block_pool, const Instruction& branch, size_t basesize,
-	     const Tracee& tracee);
-
-  size_t basesize() const { return buf_end() - buf_begin(); }
-  uint8_t *baseaddr() const { return baseaddr_; }
-
+  Terminator(BlockPool& block_pool, size_t size, const Tracee& tracee);
 
   uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
   uint8_t *write(uint8_t *addr, uint8_t byte) { return write_i<uint8_t>(addr, byte); }
+  uint8_t *write_bkpt(uint8_t *addr) { return write(addr, 0xcc); }
   
   void flush() const;
   
-  const Instruction& orig_branch() const { return orig_branch_; }
-
   const Tracee& tracee() const { return tracee_; }
   
 private:
   using Buf = std::vector<uint8_t>;
   uint8_t *addr_;
-  uint8_t *baseaddr_;
   size_t size_;
-  Instruction orig_branch_; // original branch
   Buf buf_;
-  uint8_t *buf_begin_;
-  uint8_t *buf_end_;
   const Tracee& tracee_;
-
-  uint8_t *buf_begin() const { return buf_begin_; }
-  uint8_t *buf_end() const { return buf_end_; }  
 
   template <typename I>  
   uint8_t *write_i(uint8_t *addr, I i) {
@@ -64,72 +55,42 @@ private:
   }
 };
 
-class IndirectTerminator: public Terminator {
+class DirCallTerminator: public Terminator {
 public:
-  IndirectTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee);
-
-  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
-  
+  DirCallTerminator(BlockPool& block_pool, const Instruction& call, const Tracee& tracee,
+		    LookupBlock lb);
 private:
-  uint8_t saved_byte_;
-  uint8_t *branch_bkpt_;
-  uint8_t *fallthru_bkpt_;
-  
-  static size_t basesize();
-
-  /* initial:
-   * BRANCH (bkpt)
-   * BKPT (fallthru)
-   */
-
-  /* fallthru hit:
-   * BRANCH (bkpt)
-   * JMP <fallthru>
-   */
-
-  void init();
-
-  void singlestep() const;
+  static constexpr size_t DIR_CALL_SIZE =
+    Instruction::push_mem_len + Instruction::jmp_relbrd_len + sizeof(void *);
 };
 
-class DirectTerminator: public Terminator {
+class DirJmpTerminator: public Terminator {
 public:
-  DirectTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee);
-
-  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
-  
+  DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, const Tracee& tracee,
+		   LookupBlock lb);
 private:
-  Instruction branch_;
-  Instruction fallthru_;
-  uint8_t *branch_bkpt;
-  
-  /* initial instructions:
-   * BRANCH [BKPT]
-   * BKPT // fallthrough
-   * BKPT // branch
-   */
+  static constexpr size_t DIR_JMP_SIZE = Instruction::jmp_relbrd_len;
+};
 
-  /* if branch taken:
-   * ORIG BRANCH
-   * BKPT
-   */
+class DirJccTerminator: public Terminator {
+public:
+  DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee);
+  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
+private:
+  static constexpr size_t DIR_JCC_SIZE =
+    Instruction::jcc_relbrd_len + Instruction::jmp_relbrd_len + Instruction::int3_len;
+  Instruction jcc_inst;
+  uint8_t *orig_dst;
+  uint8_t *orig_fallthru;
+  uint8_t *jcc_bkpt_addr;
+  uint8_t *fallthru_bkpt_addr;
+};
 
-  /* if branch not taken:
-   * BRANCH [BKPT]
-   * JMP [NEXTBLOCK]
-   * BKPT
-   */
-
-  /* if branch taken & not taken:
-   * ORIG BRANCH
-   * JMP NEXTBLOCK
-   */
-
-  /* Max instructions:
-   * BRANCH
-   * 
-   */
-  static size_t basesize();
-
-  void init();
+class IndTerminator: public Terminator {
+public:
+  IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee);
+  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
+private:
+  static constexpr size_t IND_SIZE = Instruction::int3_len;
+  uint8_t *orig_branch_addr;
 };

@@ -11,7 +11,8 @@ size_t Block::size(const InstVec& insts) {
 			 });
 }
 
-Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_pool) {
+Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_pool,
+		     LookupBlock lb) {
   Block *block = new Block(tracee, orig_addr, block_pool);
 
   uint8_t *it = orig_addr;
@@ -42,18 +43,8 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
   block_pool.write_insts(block->pool_addr_, block->insts_);
   
   /* create terminator instructions */
-  switch (block->kind_) {
-  case Kind::DIR:
-    block->terminator_ = std::make_unique<DirectTerminator>(block_pool, *inst, tracee);
-    break;
-    
-  case Kind::IND:
-    block->terminator_ = std::make_unique<IndirectTerminator>(block_pool, *inst, tracee);
-    break;
-
-  default:
-    assert(false);
-  }
+  block->terminator_ =
+    std::unique_ptr<Terminator>(Terminator::Create(block_pool, *inst, tracee, lb));
 
   return block;
 }

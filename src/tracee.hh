@@ -55,6 +55,10 @@ public:
   uint8_t *get_pc(void) const;
   void set_pc(void *pc) const;
   void *get_sp(void) const;
+  void set_sp(void *sp) const;
+
+  uint64_t pop() const;
+  uint64_t peek() const;
 
   int singlestep(void) const; // returns status from wait(2)
 

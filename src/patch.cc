@@ -16,8 +16,12 @@ void Patcher::patch(uint8_t *root) {
 
 template <typename OutputIt>
 void Patcher::patch_one(uint8_t *start_pc, OutputIt output_it) {
+  const auto lb = [&] (uint8_t *addr) -> uint8_t * {
+    return lookup_block_patch(addr).pool_addr();
+  }; // TODO: unify this with other def of lb
+
   /* create block */
-  Block *block = Block::Create(start_pc, tracee, block_pool);
+  Block *block = Block::Create(start_pc, tracee, block_pool, lb);
   const auto block_it = block_map.emplace(start_pc, block);
   const auto pool2block_it = pool2block_map.emplace(block->pool_addr(), block);
   assert(block_it.second);

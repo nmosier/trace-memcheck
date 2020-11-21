@@ -63,3 +63,8 @@ Just save data, xedd,
 Problem: RIP-relative memory jumps are difficult.
 Solution: just jump to original address then single-step instruction.
 	  If call, pop off stack push.
+---------
+
+Hmm, instead of transforming ANY indirect branch instructions, can just jump directly to the indirect branch branch instruction for simplicity.
+
+Wait, can just jump to calls, since they (1) never fallthru and (2) it will push the right value onto the stack.

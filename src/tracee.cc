@@ -99,6 +99,12 @@ void *Tracee::get_sp(void) const {
   return (void *) get_regs().rsp;
 }
 
+void Tracee::set_sp(void *sp) const {
+  auto regs = get_regs();
+  regs.rsp = reinterpret_cast<uintptr_t>(sp);
+  set_regs(regs);
+}
+
 uint8_t *Tracee::get_pc(void) const {
   return (uint8_t *) get_regs().rip;
 }
@@ -207,4 +213,16 @@ std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {
 
 void Tracee::write(const Blob& blob) const {
   write(blob.data(), blob.size(), blob.pc());
+}
+
+uint64_t Tracee::pop() const {
+  uint64_t *sp = static_cast<uint64_t *>(get_sp());
+  const uint64_t val = ptrace(PTRACE_PEEKDATA, sp, nullptr);
+  set_sp(sp + 1);
+  return val;
+}
+
+uint64_t Tracee::peek() const {
+  uint64_t *sp = static_cast<uint64_t *>(get_sp());
+  return ptrace(PTRACE_PEEKDATA, sp, nullptr);
 }

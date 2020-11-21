@@ -118,13 +118,14 @@ public:
   /*** INSTRUCTION GENERATORS ***/
   /* generates instruction of XED_JMP_RELBRd iform */
   static Instruction jmp_relbrd(uint8_t *pc, uint8_t *dst);
-  
-  /* generates instruction of XED_JMP_MEMv iform with rip-relative addressing */
+  static constexpr size_t jmp_relbrd_len = 5;
   static Instruction jmp_mem(uint8_t *pc, uint8_t *mem);
   static constexpr size_t jmp_mem_len = 6;
   static Instruction push_mem(uint8_t *pc, uint8_t *mem);
   static constexpr size_t push_mem_len = 6;
+  static Instruction int3(uint8_t *pc) { return Instruction(pc, Data {0xcc}); }
   static constexpr size_t int3_len = 1;
+  static constexpr size_t jcc_relbrd_len = 6;
   
   /**
    * Convert call instruction to corresponding jump instruction.

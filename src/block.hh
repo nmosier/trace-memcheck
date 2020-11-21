@@ -28,9 +28,10 @@ public:
   enum class Kind {DIR, IND, OTH}; // treat all branches as conditional
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
+  using LookupBlock = Terminator::LookupBlock;
   using HandleBkptIface = Terminator::HandleBkptIface;
   
-  static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool);
+  static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool, LookupBlock lb);
   
   Kind kind() const { return kind_; }
   uint8_t *orig_addr() const { return orig_addr_; }
