@@ -21,12 +21,42 @@ static bool stopped_trace(int status) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
-    return 1;
+  const auto usage = [=] (FILE *f) {
+    const char *usage =
+      "usage: %s [-hg] command [args...]\n"	\
+      "Options:\n"				\
+      " -h        show help\n"			\
+      " -g        transfer control to GDB on error\n"
+      ;
+    fprintf(f, usage, argv[0]);
+  };
+
+  bool gdb = false;
+  
+  const char *optstring = "hg";
+  int optchar;
+  while ((optchar = getopt(argc, argv, optstring)) >= 0) {
+    switch (optchar) {
+    case 'h':
+      usage(stdout);
+      return 0;
+
+    case 'g':
+      gdb = true;
+      break;
+
+    default:
+      usage(stderr);
+      return 1;
+    }
   }
 
-  char **command = &argv[1];
+  if (optind + 1 > argc) {
+    usage(stderr);
+    return 1;
+  }
+  
+  char **command = &argv[optind++];
 
   pid_t child = fork();
   if (child == 0) {
@@ -77,11 +107,11 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "orig block @ %p\n", patcher.lookup_block_bkpt(stop_pc)->orig_addr());
 	
-#if GDB
-	tracee.gdb();
-#else
-	abort();
-#endif
+	if (gdb) {
+	  tracee.gdb();
+	} else {
+	  abort();
+	}
       }
 
 #if SINGLE_STEP
