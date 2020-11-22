@@ -7,14 +7,14 @@
 #include "debug.h"
 
 Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
-			       const Tracee& tracee, LookupBlock lb) {
+			       const Tracee& tracee, LookupBlock lb, RegisterBkpt rb) {
   switch (branch.xed_iclass()) {
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
     case XED_IFORM_CALL_NEAR_RELBRd:
       return new DirCallTerminator(block_pool, branch, tracee, lb);
     default:
-      return new IndTerminator(block_pool, branch, tracee);
+      return new IndTerminator(block_pool, branch, tracee, rb);
     }
 
   case XED_ICLASS_JMP:
@@ -22,14 +22,14 @@ Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
     case XED_IFORM_JMP_RELBRd:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
     default:
-      return new IndTerminator(block_pool, branch, tracee);
+      return new IndTerminator(block_pool, branch, tracee, rb);
     }
 
   case XED_ICLASS_RET_NEAR:
-    return new IndTerminator(block_pool, branch, tracee);
+    return new IndTerminator(block_pool, branch, tracee, rb);
 
   default: // XED_ICLASS_JCC
-    return new DirJccTerminator(block_pool, branch, tracee);
+    return new DirJccTerminator(block_pool, branch, tracee, rb);
   }
 }
 
@@ -104,7 +104,7 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 }
 
 DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc,
-				   const Tracee& tracee):
+				   const Tracee& tracee, RegisterBkpt rb):
   Terminator(block_pool, DIR_JCC_SIZE, tracee), orig_dst(jcc.branch_dst()),
   orig_fallthru(jcc.after_pc())
 {
@@ -130,9 +130,13 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   write(jcc_inst);
   write(fallthru_bkpt_inst);
   write(jcc_bkpt_inst);
-  
+
   /* flush */
   flush();
+
+  /* register breakpoints */
+  rb(fallthru_bkpt_addr, this);
+  rb(jcc_bkpt_addr, this);
 }
 
 void DirJccTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) {
@@ -158,7 +162,7 @@ void DirJccTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) 
 }
 
 IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
-			     const Tracee& tracee):
+			     const Tracee& tracee, RegisterBkpt rb):
   Terminator(block_pool, IND_SIZE, tracee), orig_branch_addr(branch.pc())
 {
   /* just bkpt */
@@ -166,6 +170,9 @@ IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
   const auto bkpt_inst = Instruction::int3(bkpt_addr);
   write(bkpt_inst);
   flush();
+
+  /* register bkpt */
+  rb(bkpt_addr, this);
 }
 
 void IndTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) {

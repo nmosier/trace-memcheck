@@ -9,48 +9,25 @@ void Patcher::patch(uint8_t *start_pc) {
     return lookup_block_patch(addr).pool_addr();
   }; // TODO: unify this with other def of lb
 
+  const auto rb = [&] (uint8_t *addr, Terminator *term) {
+    const auto res = bkpt_map.emplace(addr, term);
+    assert(res.second);
+  };
+
   /* create block */
-  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb);
+  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, rb);
   const auto block_it = block_map.emplace(start_pc, block);
-  const auto pool2block_it = pool2block_map.emplace(block->pool_addr(), block);
   assert(block_it.second);
-  assert(pool2block_it.second);
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
-  Block *block = lookup_block_bkpt(bkpt_addr);
-  if (block == nullptr) {
-    printf("bkpt_addr: %p\n", bkpt_addr);
-    /* dump block map */
-    for (const auto& pair : block_map) {
-      printf("%p -> %p\n", pair.first, pair.second->pool_addr());
-    }
-  }
-  assert(block != nullptr);
-
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
     return lookup_block_patch(addr).pool_addr();
   };
 
-  const auto pb = [&] (uint8_t *addr) {
-    patch(addr);
-  };
-
-  const auto ss = [&] (void) {
-    Instruction inst1(tracee.get_pc(), tracee);
-    std::cout << inst1 << std::endl;
-    
-    tracee.singlestep();
-
-    Instruction inst2(tracee.get_pc(), tracee);
-    std::cout << inst2 << std::endl;
-  };
-  
-  Block::HandleBkptIface hbi = {lb, pb, ss, tracee};
-  
-  block->handle_bkpt(bkpt_addr, hbi);
-
-  // TODO: is there anything else that needs to be done here?
+  Block::HandleBkptIface hbi = {lb};
+  Terminator& terminator = lookup_bkpt(bkpt_addr);
+  terminator.handle_bkpt(bkpt_addr, hbi);
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {
@@ -59,18 +36,8 @@ void Patcher::jump_to_block(uint8_t *orig_addr) {
   block_it->second->jump_to();
 }
 
-Block *Patcher::lookup_block_bkpt(uint8_t *pool_addr) const {
-  auto it = pool2block_map.upper_bound(pool_addr);
-  if (it == pool2block_map.begin()) {
-    return nullptr;
-  } else {
-    --it;
-    if (it->second->pool_addr() > pool_addr) {
-      return nullptr;
-    } else {
-      return it->second;
-    }
-  }
+Terminator& Patcher::lookup_bkpt(uint8_t *addr) const {
+  return *bkpt_map.at(addr);
 }
 
 Block& Patcher::lookup_block_patch(uint8_t *addr) {

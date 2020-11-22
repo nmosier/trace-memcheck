@@ -30,9 +30,10 @@ public:
   using InstIt = InstVec::iterator;
   using LookupBlock = Terminator::LookupBlock;
   using HandleBkptIface = Terminator::HandleBkptIface;
+  using RegisterBkpt = Terminator::RegisterBkpt;
   
   static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool,
-		       PointerPool& ptr_pool, LookupBlock lb);
+		       PointerPool& ptr_pool, LookupBlock lb, RegisterBkpt rb);
   
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }

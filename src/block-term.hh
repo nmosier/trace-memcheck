@@ -13,12 +13,11 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
+  using RegisterBkpt = std::function<void(uint8_t *, Terminator *)>;
+  using UnregisterBkpt = std::function<void(uint8_t *)>;
   
   struct HandleBkptIface {
     LookupBlock lb;
-    std::function<void (uint8_t *)> pb;
-    std::function<void (void)> ss;
-    const Tracee& tracee;
   };
   
   uint8_t *addr() const { return addr_; }
@@ -27,7 +26,7 @@ public:
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) { abort(); }
 
   static Terminator *Create(BlockPool& block_pool, const Instruction& branch, const Tracee& trace,
-			    LookupBlock lb);
+			    LookupBlock lb, RegisterBkpt rb);
   
 protected:
   Terminator(BlockPool& block_pool, size_t size, const Tracee& tracee);
@@ -74,7 +73,8 @@ private:
 
 class DirJccTerminator: public Terminator {
 public:
-  DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee);
+  DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee,
+		   RegisterBkpt rb);
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
 private:
   static constexpr size_t DIR_JCC_SIZE =
@@ -88,7 +88,8 @@ private:
 
 class IndTerminator: public Terminator {
 public:
-  IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee);
+  IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee,
+		RegisterBkpt rb);
   virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;

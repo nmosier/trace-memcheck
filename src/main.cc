@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 
   ProfilerStart("memcheck.prof");
 
-  while (1) {
+  while (true) {
     auto regs = tracee.get_regs();
     if (regs.rbp == (regs.rsp & ((1ULL << 32) - 1))) {
       printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
@@ -115,8 +115,6 @@ int main(int argc, char *argv[]) {
 	uint8_t *stop_pc = tracee.get_pc();
 	Instruction inst(stop_pc, tracee);
 	fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
-	
-	fprintf(stderr, "orig block @ %p\n", patcher.lookup_block_bkpt(stop_pc)->orig_addr());
 	
 	if (gdb) {
 	  tracee.gdb();
