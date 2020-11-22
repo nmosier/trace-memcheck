@@ -49,6 +49,50 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
   return block;
 }
 
+template <typename OutputIt>
+uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
+				      PointerPool& ptr_pool) {
+  switch (inst.xed_reg()) {
+  case XED_REG_RAX:
+  case XED_REG_EAX:
+  case XED_REG_AX:
+  case XED_REG_AH:
+  case XED_REG_AL:
+    abort(); // TODO: handle this case
+  default:
+    break;
+  }
+
+  assert(inst.xed_iclass() != XED_ICLASS_PUSH); // TODO: handle this case
+
+  uint8_t *mem_dst = inst.mem_dst();
+  uint8_t *ptr_addr = ptr_pool.add(reinterpret_cast<uintptr_t>(mem_dst));
+
+  Instruction new_inst = inst;
+  assert(inst.modrm_mod() == 0b00);
+  assert(inst.modrm_rm() == 0b101);
+  new_inst.modrm_rm(0b000); // RAX
+  
+  /* push rax
+   * mov rax, [rel ptr]
+   * OP dst, [rax] | OP [rax] | OP [rax], src
+   * pop rax
+   */
+
+  auto add_inst = [&] (const auto& arg) {
+    auto inst = std::make_unique<Instruction>(arg);
+    pc += inst->size();
+    *out_it++ = std::move(inst);
+  };
+  
+  add_inst(pc, {0x50}); // push rax
+  add_inst(Instruction::mov_mem64(pc, Instruction::reg_t::RAX, ptr_addr));
+  new_inst.relocate(pc); add_inst(new_inst); // OP
+  add_inst(pc, {0x58}); // pop rax
+
+  return pc;
+}
+
 // returns true iff branch instruction
 bool Block::classify_inst(xed_iclass_enum_t iclass) {
   switch (iclass) {

@@ -76,9 +76,8 @@ private:
   void handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface);
   void handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface);
 
-#if 0
-  uint8_t *branch_addr(void) const { return branch_insts_.front().addr(); }
-  uint8_T *fallthrough_addr(void) const { return fallthrough_intss_.front().addr(); }
-#endif
+  template <typename OutputIt>
+  static uint8_t *transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
+					PointerPool& ptr_pool);
 };
 

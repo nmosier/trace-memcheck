@@ -104,8 +104,17 @@ public:
   xed_iclass_enum_t xed_iclass() const { return xed_decoded_inst_get_iclass(&xedd()); }
   const char *xed_iform_str() const { return xed_iform_enum_t2str(xed_iform()); }
   const char *xed_iclass_str() const { return xed_iclass_enum_t2str(xed_iclass()); }
+  xed_reg_enum_t xed_reg() const { return xed_decoded_inst_get_reg(&xedd(), XED_OPERAND_REG); }
 
+  uint8_t modrm() const;
+  uint8_t *modrm_ptr();
+  uint8_t modrm_mod() const { return modrm() >> 6; }
+  uint8_t modrm_reg() const { return (modrm() >> 3) & 0b111; }
+  uint8_t modrm_rm() const { return modrm() & 0b111; }
+  void modrm_rm(uint8_t rm);
+  
   uint8_t *branch_dst(void) const;
+  uint8_t *mem_dst(void) const;
 
   /*** VIRTUAL METHODS ***/
   virtual void relocate(uint8_t *newpc) override;
@@ -126,6 +135,11 @@ public:
   static Instruction int3(uint8_t *pc) { return Instruction(pc, Data {0xcc}); }
   static constexpr size_t int3_len = 1;
   static constexpr size_t jcc_relbrd_len = 6;
+  enum class reg_t {RAX = 0b000, RBX = 0b011, RCX = 0b001, RDX = 0b010, RDI = 0b111, RSI = 0b110,
+    RSP = 0b100, RBP = 0b101};
+  static Instruction mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
+  static constexpr size_t mov_mem64_len = 7;
+  
   
   /**
    * Convert call instruction to corresponding jump instruction.
