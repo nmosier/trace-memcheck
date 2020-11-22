@@ -17,9 +17,53 @@ uint8_t Instruction::modrm() const {
 }
 
 uint8_t *Instruction::modrm_ptr() {
-  
+#if 1
+  /* check for primary opcodes */
+  uint8_t *it = data();
 
+  switch (*it) {
+  case 0xC4:
+  case 0x8F:
+    it += 4;
+    break;
+  case 0xC5:
+    it += 3;
+    break;
 
+  default:
+    {
+      while (true) {
+	if ((*it & 0xf0) == 0x40) {
+	  /* REX prefix */
+	  ++it;
+	} else {
+	  switch (*it) {
+	  case 0x66:
+	  case 0xF2:
+	  case 0xF3:
+	  case 0x9B:
+	  case 0xF0:
+	    ++it;
+	    break;
+
+	  default:
+	    goto past_prefixes;
+	  }
+	}
+      }
+    past_prefixes:
+      if (*it == 0x0f) {
+	++it;
+      }
+      ++it;
+    }
+    break;
+  }
+
+  assert(*it == modrm());
+  return it;
+
+#else
   
   uint8_t *it = data();
   it += xed_decoded_inst_get_nprefixes(&xedd());
@@ -29,6 +73,7 @@ uint8_t *Instruction::modrm_ptr() {
   ++it;
   assert(*it == modrm());
   return it;
+#endif
 }
 
 void Instruction::modrm_rm(uint8_t rm) {

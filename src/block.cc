@@ -3,6 +3,7 @@
 #include <cstring>
 #include "block.hh"
 #include "block-pool.hh"
+#include "debug.h"
 
 size_t Block::size(const InstVec& insts) {
   return std::accumulate(insts.begin(), insts.end(), 0,
@@ -60,8 +61,9 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
   auto add_inst = [&] (const auto& arg) {
     auto inst = std::make_unique<Instruction>(arg);
 
-    // DEBUG
+#if PRINT_RIPREL_TRANSLATIONS
     std::clog << "new inst:  " << *inst << std::endl;
+#endif
     
     pc += inst->size();
     *out_it++ = std::move(inst);
@@ -101,8 +103,9 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
   std::copy(modrm_ptr + 5, new_inst.data() + new_inst.size(), modrm_ptr + 1);
   new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg));
 
-  // DEBUG
+#if PRINT_RIPREL_TRANSLATIONS
   std::clog << "orig inst: " << inst << std::endl;
+#endif
   
   /* push rax
    * mov rax, [rel ptr]

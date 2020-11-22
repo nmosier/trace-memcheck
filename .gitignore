@@ -6,3 +6,4 @@ CmakeCache.txt
 *.a
 cmake_install.cmake
 Makefile
+\#*\#

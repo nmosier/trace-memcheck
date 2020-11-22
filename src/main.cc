@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <vector>
 #include <cstring>
+#include <gperftools/profiler.h>
 
 #include "util.hh"
 #include "debug.h"
@@ -83,6 +84,8 @@ int main(int argc, char *argv[]) {
 
   uint8_t *bkpt_pc;
 
+  ProfilerStart("memcheck.prof");
+
   while (1) {
     auto regs = tracee.get_regs();
     if (regs.rbp == (regs.rsp & ((1ULL << 32) - 1))) {
@@ -97,9 +100,11 @@ int main(int argc, char *argv[]) {
     wait(&status);
 
 # if DEBUG
-    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
-    Instruction cur_inst(tracee.get_pc(), tracee);
-    std::clog << cur_inst << std::endl;
+    if (WIFSTOPPED(status)) {
+      std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+      Instruction cur_inst(tracee.get_pc(), tracee);
+      std::clog << cur_inst << std::endl;
+    }
 # endif
 
     if (WIFSTOPPED(status)) {
@@ -152,6 +157,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  ProfilerStop();
+
 #if DEBUG
   printf("done\n");
 #endif
@@ -160,6 +167,6 @@ int main(int argc, char *argv[]) {
   // cleanup();
 
   fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));
-  
+
   return 0;
 }

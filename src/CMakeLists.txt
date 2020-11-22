@@ -1,5 +1,11 @@
-link_libraries(${xed_LIBRARIES})
-include_directories(${xed_INCLUDE_DIRS})
+find_package(Gperftools REQUIRED)
+
+link_libraries(${xed_LIBRARIES} ${GPERFTOOLS_LIBRARIES})
+include_directories(${xed_INCLUDE_DIRS} ${GPERFTOOLS_INCLUDE_DIR})
+
+# Pass on GPROF for now
+# add_compile_options(-pg)
+# add_link_options(-pg)
 
 add_library(core_objs STATIC
   util.cc
@@ -24,4 +30,3 @@ add_executable(ss
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(ss xed)
-
