@@ -104,7 +104,9 @@ public:
   xed_iclass_enum_t xed_iclass() const { return xed_decoded_inst_get_iclass(&xedd()); }
   const char *xed_iform_str() const { return xed_iform_enum_t2str(xed_iform()); }
   const char *xed_iclass_str() const { return xed_iclass_enum_t2str(xed_iclass()); }
-  xed_reg_enum_t xed_reg() const { return xed_decoded_inst_get_reg(&xedd(), XED_OPERAND_REG); }
+  xed_reg_enum_t xed_reg() const { return xed_decoded_inst_get_reg(&xedd(), XED_OPERAND_REG0); }
+  unsigned xed_nmemops() const { return xed_decoded_inst_number_of_memory_operands(&xedd()); }
+  xed_reg_enum_t xed_base_reg() const { return xed_decoded_inst_get_base_reg(&xedd(), 0); }
 
   uint8_t modrm() const;
   uint8_t *modrm_ptr();
@@ -139,6 +141,10 @@ public:
     RSP = 0b100, RBP = 0b101};
   static Instruction mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
   static constexpr size_t mov_mem64_len = 7;
+  static Instruction push_reg(uint8_t *pc, reg_t reg);
+  static constexpr size_t push_reg_len = 1;
+  static Instruction pop_reg(uint8_t *pc, reg_t reg);
+  static constexpr size_t pop_reg_len = 1;
   
   
   /**

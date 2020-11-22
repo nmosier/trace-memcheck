@@ -30,10 +30,15 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
       break;
     }
 
-    /* relocate instruction and add to list */
-    inst->relocate(newit);
-    newit += inst->size();
-    block->insts_.push_back(std::move(inst));
+    if (inst->xed_nmemops() > 0 && inst->xed_base_reg() == XED_REG_RIP) {
+      newit = transform_riprel_inst(newit, *inst,
+				    std::inserter(block->insts_, block->insts_.end()), ptr_pool);
+    } else {
+      /* relocate instruction and add to list */
+      inst->relocate(newit);
+      newit += inst->size();
+      block->insts_.push_back(std::move(inst));
+    }
   }
 
   block->orig_branch_ = *inst;
@@ -52,26 +57,45 @@ Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_
 template <typename OutputIt>
 uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
 				      PointerPool& ptr_pool) {
+  auto add_inst = [&] (const auto& arg) {
+    auto inst = std::make_unique<Instruction>(arg);
+    pc += inst->size();
+    *out_it++ = std::move(inst);
+  };
+
+  if (inst.xed_iclass() == XED_ICLASS_PUSH) {
+    transform_riprel_push(pc, add_inst, inst, ptr_pool);
+    return pc;
+  }
+
+  Instruction::reg_t scrap_reg;
+  
   switch (inst.xed_reg()) {
   case XED_REG_RAX:
   case XED_REG_EAX:
   case XED_REG_AX:
   case XED_REG_AH:
   case XED_REG_AL:
-    abort(); // TODO: handle this case
+    scrap_reg = Instruction::reg_t::RCX;
+    // assert(false); // TODO
+    break;
   default:
+    scrap_reg = Instruction::reg_t::RAX;
     break;
   }
 
-  assert(inst.xed_iclass() != XED_ICLASS_PUSH); // TODO: handle this case
-
   uint8_t *mem_dst = inst.mem_dst();
-  uint8_t *ptr_addr = ptr_pool.add(reinterpret_cast<uintptr_t>(mem_dst));
+  uint8_t *ptr_addr =
+    reinterpret_cast<uint8_t *>(ptr_pool.add(reinterpret_cast<uintptr_t>(mem_dst)));
 
   Instruction new_inst = inst;
   assert(inst.modrm_mod() == 0b00);
   assert(inst.modrm_rm() == 0b101);
-  new_inst.modrm_rm(0b000); // RAX
+  new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg)); // RAX
+
+  // DEBUG
+  std::clog << "orig inst: " << inst << std::endl;
+  std::clog << "new inst:  " << new_inst << std::endl;
   
   /* push rax
    * mov rax, [rel ptr]
@@ -79,18 +103,30 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
    * pop rax
    */
 
-  auto add_inst = [&] (const auto& arg) {
-    auto inst = std::make_unique<Instruction>(arg);
-    pc += inst->size();
-    *out_it++ = std::move(inst);
-  };
-  
-  add_inst(pc, {0x50}); // push rax
-  add_inst(Instruction::mov_mem64(pc, Instruction::reg_t::RAX, ptr_addr));
+  add_inst(Instruction::push_reg(pc, scrap_reg));
+  add_inst(Instruction::mov_mem64(pc, scrap_reg, ptr_addr));
   new_inst.relocate(pc); add_inst(new_inst); // OP
-  add_inst(pc, {0x58}); // pop rax
+  add_inst(Instruction::pop_reg(pc, scrap_reg));
 
   return pc;
+}
+
+template <typename AddInst>
+void Block::transform_riprel_push(uint8_t*& pc, AddInst add_inst, const Instruction& push,
+				  PointerPool& ptr_pool) {
+  /* push rax
+   * mov rax, [rel ptr]
+   * mov rax, [rax]
+   * xchg [rsp], rax
+   */
+
+  uint8_t *mem_dst = push.mem_dst();
+  uint8_t *ptr_addr = (uint8_t *) ptr_pool.add((uintptr_t) mem_dst);
+  
+  add_inst(Instruction(pc, {0x50})); // push rax
+  add_inst(Instruction::mov_mem64(pc, Instruction::reg_t::RAX, ptr_addr)); // mov rax, [rel ptr]
+  add_inst(Instruction(pc, {0x48, 0x8b, 0x00})); // mov rax, [rax]
+  add_inst(Instruction(pc, {0x48, 0x87, 0x04, 0x24})); // xchg rax, [rsp]
 }
 
 // returns true iff branch instruction
