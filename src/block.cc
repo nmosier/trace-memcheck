@@ -59,6 +59,10 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
 				      PointerPool& ptr_pool) {
   auto add_inst = [&] (const auto& arg) {
     auto inst = std::make_unique<Instruction>(arg);
+
+    // DEBUG
+    std::clog << "new inst:  " << *inst << std::endl;
+    
     pc += inst->size();
     *out_it++ = std::move(inst);
   };
@@ -91,11 +95,14 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
   Instruction new_inst = inst;
   assert(inst.modrm_mod() == 0b00);
   assert(inst.modrm_rm() == 0b101);
-  new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg)); // RAX
+
+  /* convert main instruction */
+  const auto modrm_ptr = new_inst.modrm_ptr();
+  std::copy(modrm_ptr + 5, new_inst.data() + new_inst.size(), modrm_ptr + 1);
+  new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg));
 
   // DEBUG
   std::clog << "orig inst: " << inst << std::endl;
-  std::clog << "new inst:  " << new_inst << std::endl;
   
   /* push rax
    * mov rax, [rel ptr]

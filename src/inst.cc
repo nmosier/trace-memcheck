@@ -17,7 +17,16 @@ uint8_t Instruction::modrm() const {
 }
 
 uint8_t *Instruction::modrm_ptr() {
-  uint8_t *it = data() + xed_decoded_inst_get_nprefixes(&xedd()) + 1;
+  
+
+
+  
+  uint8_t *it = data();
+  it += xed_decoded_inst_get_nprefixes(&xedd());
+  if (*it == 0x0f) {
+    ++it;
+  }
+  ++it;
   assert(*it == modrm());
   return it;
 }
