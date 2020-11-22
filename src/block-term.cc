@@ -139,10 +139,10 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   rb(jcc_bkpt_addr, this);
 }
 
-void DirJccTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) {
+void DirJccTerminator::handle_bkpt(uint8_t *addr, LookupBlock lb) {
   if (addr == jcc_bkpt_addr) {
     /* replace jump instruction */
-    uint8_t *new_dst = iface.lb(orig_dst);
+    uint8_t *new_dst = lb(orig_dst);
     jcc_inst.retarget(new_dst);
     write(jcc_inst);
     jcc_bkpt_addr = nullptr; // Not necessary but good for error finding
@@ -152,7 +152,7 @@ void DirJccTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) 
     assert(addr == fallthru_bkpt_addr);
 
     /* replace fallthru bkpt with jump */
-    uint8_t *new_fallthru = iface.lb(orig_fallthru);
+    uint8_t *new_fallthru = lb(orig_fallthru);
     const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_bkpt_addr, new_fallthru);
     write(fallthru_inst);
     fallthru_bkpt_addr = nullptr;
@@ -175,13 +175,13 @@ IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
   rb(bkpt_addr, this);
 }
 
-void IndTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) {
+void IndTerminator::handle_bkpt(uint8_t *addr, LookupBlock lb) {
   /* 1. jump to original branch
    * 2. single step
    * 3. lookup block for new pc
    * 4. jump to block
    */
-
+  
   /* 1 */
   tracee().set_pc(orig_branch_addr);
 
@@ -191,7 +191,7 @@ void IndTerminator::handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) {
   assert(WSTOPSIG(status) == SIGTRAP);
 
   /* 3 */
-  uint8_t *new_addr = iface.lb(tracee().get_pc());
+  uint8_t *new_addr = lb(tracee().get_pc());
 
   /* 4 */
   tracee().set_pc(new_addr);

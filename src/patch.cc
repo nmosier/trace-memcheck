@@ -25,9 +25,8 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
     return lookup_block_patch(addr).pool_addr();
   };
 
-  Block::HandleBkptIface hbi = {lb};
   Terminator& terminator = lookup_bkpt(bkpt_addr);
-  terminator.handle_bkpt(bkpt_addr, hbi);
+  terminator.handle_bkpt(bkpt_addr, lb);
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {

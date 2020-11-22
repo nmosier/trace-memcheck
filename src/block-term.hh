@@ -16,14 +16,10 @@ public:
   using RegisterBkpt = std::function<void(uint8_t *, Terminator *)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
-  struct HandleBkptIface {
-    LookupBlock lb;
-  };
-  
   uint8_t *addr() const { return addr_; }
   size_t size() const { return size_; }
 
-  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) { abort(); }
+  virtual void handle_bkpt(uint8_t *addr, LookupBlock lb) { abort(); }
 
   static Terminator *Create(BlockPool& block_pool, const Instruction& branch, const Tracee& trace,
 			    LookupBlock lb, RegisterBkpt rb);
@@ -75,7 +71,7 @@ class DirJccTerminator: public Terminator {
 public:
   DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee,
 		   RegisterBkpt rb);
-  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
+  virtual void handle_bkpt(uint8_t *addr, LookupBlock lb) override;
 private:
   static constexpr size_t DIR_JCC_SIZE =
     Instruction::jcc_relbrd_len + Instruction::jmp_relbrd_len + Instruction::int3_len;
@@ -90,7 +86,7 @@ class IndTerminator: public Terminator {
 public:
   IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee,
 		RegisterBkpt rb);
-  virtual void handle_bkpt(uint8_t *addr, const HandleBkptIface& iface) override;
+  virtual void handle_bkpt(uint8_t *addr, LookupBlock lb) override;
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;
   uint8_t *orig_branch_addr;

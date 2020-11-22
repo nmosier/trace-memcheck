@@ -29,7 +29,6 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = Terminator::LookupBlock;
-  using HandleBkptIface = Terminator::HandleBkptIface;
   using RegisterBkpt = Terminator::RegisterBkpt;
   
   static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool,
@@ -69,13 +68,6 @@ private:
   static bool classify_inst(xed_iclass_enum_t iclass);
 
   static size_t size(const InstVec& insts);
-
-  void handle_bkpt_branch(uint8_t *pc, const HandleBkptIface& iface);
-  void handle_bkpt_branch_dir(uint8_t *pc, const HandleBkptIface& iface);
-  void handle_bkpt_branch_dir_conditional(uint8_t *pc, const HandleBkptIface& iface);
-  
-  void handle_bkpt_branch_ind(uint8_t *pc, const HandleBkptIface& iface);
-  void handle_bkpt_fallthrough(uint8_t *pc, const HandleBkptIface& iface);
 
   template <typename OutputIt>
   static uint8_t *transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,

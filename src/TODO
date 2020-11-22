@@ -5,3 +5,4 @@
 [ ] unify ptr pool and block pool to avoid 2 system calls
 [X] unify patch/patch_one, since no todo list needed
 [ ] command-line switch for single-stepping
+[ ] check if unregistering bkpts speeds up execution
