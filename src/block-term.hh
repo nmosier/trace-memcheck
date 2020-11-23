@@ -68,15 +68,6 @@ private:
   }
 };
 
-class DirCallTerminator: public Terminator {
-public:
-  DirCallTerminator(BlockPool& block_pool, const Instruction& call, Tracee& tracee,
-		    const LookupBlock& lb);
-private:
-  static constexpr size_t DIR_CALL_SIZE =
-    Instruction::push_mem_len + Instruction::jmp_relbrd_len + sizeof(void *);
-};
-
 class DirJmpTerminator: public Terminator {
 public:
   DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, Tracee& tracee,

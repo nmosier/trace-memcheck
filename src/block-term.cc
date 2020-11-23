@@ -56,40 +56,6 @@ void Terminator::flush() const {
   tracee_.write(buf_.data(), buf_.size(), addr());
 }
 
-DirCallTerminator::DirCallTerminator(BlockPool& block_pool, const Instruction& call,
-				     Tracee& tracee, const LookupBlock& lb):
-  Terminator(block_pool, DIR_CALL_SIZE, call, tracee, lb)
-{
-  assert(call.xed_iform() == XED_IFORM_CALL_NEAR_RELBRd);
-  
-  uint8_t *orig_dst_addr = call.branch_dst();
-  uint8_t *new_dst_addr = lb(orig_dst_addr);
-  uint8_t *fallthru_addr = call.after_pc();
-  
-  /* push [L0]
-   * jmp <dst>
-   * L0: .dq <ra>
-   */
-
-  /* assign addresses */
-  uint8_t *push_addr = addr();
-  uint8_t *jmp_addr = push_addr + Instruction::push_mem_len;
-  uint8_t *ptr_addr = jmp_addr + Instruction::jmp_relbrd_len;
-
-  /* create blobs */
-  const auto push_inst = Instruction::push_mem(push_addr, ptr_addr);
-  const auto jmp_inst = Instruction::jmp_relbrd(jmp_addr, new_dst_addr);
-  const auto ptr_blob = Pointer(ptr_addr, fallthru_addr);
-
-  /* write blobs */
-  write(push_inst);
-  write(jmp_inst);
-  write(ptr_blob);
-
-  /* flush */
-  flush();
-}
-
 DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp,
 				   Tracee& tracee, const LookupBlock& lb):
   Terminator(block_pool, DIR_JMP_SIZE, jmp, tracee, lb)
