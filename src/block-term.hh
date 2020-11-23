@@ -13,7 +13,7 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
-  using BkptCallback = std::function<void(const LookupBlock&)>;  
+  using BkptCallback = std::function<void(void)>;
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
@@ -21,10 +21,10 @@ public:
   size_t size() const { return size_; }
 
   static Terminator *Create(BlockPool& block_pool, const Instruction& branch, const Tracee& trace,
-			    LookupBlock lb, RegisterBkpt rb);
+			    const LookupBlock& lb, RegisterBkpt rb);
   
 protected:
-  Terminator(BlockPool& block_pool, size_t size, const Tracee& tracee);
+  Terminator(BlockPool& block_pool, size_t size, const Tracee& tracee, const LookupBlock& lb);
 
   uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
@@ -32,14 +32,17 @@ protected:
   uint8_t *write_bkpt(uint8_t *addr) { return write(addr, 0xcc); }
   
   void flush() const;
-  
+
+  template <typename... Args>
+  uint8_t *lookup_block(Args&&... args) { return lb_(args...); }
+
   const Tracee& tracee() const { return tracee_; }
 
   template <typename Derived>
   static BkptCallback make_callback(Derived *term,
-				    void (Derived::*fn)(const LookupBlock&)) {
-    return [=] (const LookupBlock& lb) {
-      (term->*fn)(lb);
+				    void (Derived::*fn)(void)) {
+    return [=] (void) {
+      (term->*fn)();
     };
   }
 
@@ -49,6 +52,7 @@ private:
   size_t size_;
   Buf buf_;
   const Tracee& tracee_;
+  const LookupBlock lb_;
 
   template <typename I>  
   uint8_t *write_i(uint8_t *addr, I i) {
@@ -60,7 +64,7 @@ private:
 class DirCallTerminator: public Terminator {
 public:
   DirCallTerminator(BlockPool& block_pool, const Instruction& call, const Tracee& tracee,
-		    LookupBlock lb);
+		    const LookupBlock& lb);
 private:
   static constexpr size_t DIR_CALL_SIZE =
     Instruction::push_mem_len + Instruction::jmp_relbrd_len + sizeof(void *);
@@ -69,7 +73,7 @@ private:
 class DirJmpTerminator: public Terminator {
 public:
   DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, const Tracee& tracee,
-		   LookupBlock lb);
+		   const LookupBlock& lb);
 private:
   static constexpr size_t DIR_JMP_SIZE = Instruction::jmp_relbrd_len;
 };
@@ -77,7 +81,7 @@ private:
 class DirJccTerminator: public Terminator {
 public:
   DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee,
-		   RegisterBkpt rb);
+		   const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t DIR_JCC_SIZE =
     Instruction::jcc_relbrd_len + Instruction::jmp_relbrd_len + Instruction::int3_len;
@@ -87,17 +91,17 @@ private:
   uint8_t *jcc_bkpt_addr;
   uint8_t *fallthru_bkpt_addr;
 
-  void handle_bkpt_fallthru(const LookupBlock& lb);
-  void handle_bkpt_jcc(const LookupBlock& lb);
+  void handle_bkpt_fallthru(void);
+  void handle_bkpt_jcc(void);
 };
 
 class IndTerminator: public Terminator {
 public:
   IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee,
-		RegisterBkpt rb);
+		const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;
   uint8_t *orig_branch_addr;
 
-  void handle_bkpt(const LookupBlock& lb);
+  void handle_bkpt(void);
 };

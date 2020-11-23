@@ -7,14 +7,14 @@
 #include "debug.h"
 
 Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
-			       const Tracee& tracee, LookupBlock lb, RegisterBkpt rb) {
+			       const Tracee& tracee, const LookupBlock& lb, RegisterBkpt rb) {
   switch (branch.xed_iclass()) {
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
     case XED_IFORM_CALL_NEAR_RELBRd:
       return new DirCallTerminator(block_pool, branch, tracee, lb);
     default:
-      return new IndTerminator(block_pool, branch, tracee, rb);
+      return new IndTerminator(block_pool, branch, tracee, lb, rb);
     }
 
   case XED_ICLASS_JMP:
@@ -22,20 +22,20 @@ Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
     case XED_IFORM_JMP_RELBRd:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
     default:
-      return new IndTerminator(block_pool, branch, tracee, rb);
+      return new IndTerminator(block_pool, branch, tracee, lb, rb);
     }
 
   case XED_ICLASS_RET_NEAR:
-    return new IndTerminator(block_pool, branch, tracee, rb);
+    return new IndTerminator(block_pool, branch, tracee, lb, rb);
 
   default: // XED_ICLASS_JCC
-    return new DirJccTerminator(block_pool, branch, tracee, rb);
+    return new DirJccTerminator(block_pool, branch, tracee, lb, rb);
   }
 }
 
 Terminator::Terminator(BlockPool& block_pool, size_t size,
-		       const Tracee& tracee):
-  addr_(block_pool.peek()), size_(size), buf_(size), tracee_(tracee)
+		       const Tracee& tracee, const LookupBlock& lb):
+  addr_(block_pool.peek()), size_(size), buf_(size), tracee_(tracee), lb_(lb)
 {
   block_pool.alloc(size_);
 }
@@ -53,8 +53,8 @@ void Terminator::flush() const {
 }
 
 DirCallTerminator::DirCallTerminator(BlockPool& block_pool, const Instruction& call,
-				     const Tracee& tracee, LookupBlock lb):
-  Terminator(block_pool, DIR_CALL_SIZE, tracee)
+				     const Tracee& tracee, const LookupBlock& lb):
+  Terminator(block_pool, DIR_CALL_SIZE, tracee, lb)
 {
   assert(call.xed_iform() == XED_IFORM_CALL_NEAR_RELBRd);
   
@@ -87,8 +87,8 @@ DirCallTerminator::DirCallTerminator(BlockPool& block_pool, const Instruction& c
 }
 
 DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp,
-				   const Tracee& tracee, LookupBlock lb):
-  Terminator(block_pool, DIR_JMP_SIZE, tracee)
+				   const Tracee& tracee, const LookupBlock& lb):
+  Terminator(block_pool, DIR_JMP_SIZE, tracee, lb)
 {
   assert(jmp.xed_iform() == XED_IFORM_JMP_RELBRd);
 
@@ -104,8 +104,9 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 }
 
 DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc,
-				   const Tracee& tracee, RegisterBkpt rb):
-  Terminator(block_pool, DIR_JCC_SIZE, tracee), orig_dst(jcc.branch_dst()),
+				   const Tracee& tracee, const LookupBlock& lb,
+				   const RegisterBkpt& rb):
+  Terminator(block_pool, DIR_JCC_SIZE, tracee, lb), orig_dst(jcc.branch_dst()),
   orig_fallthru(jcc.after_pc())
 {
   const std::unordered_set<int> jcc_iclasses = {XED_ICLASS_JB, XED_ICLASS_JBE, XED_ICLASS_JL, XED_ICLASS_JLE, XED_ICLASS_JNB, XED_ICLASS_JNBE, XED_ICLASS_JNL, XED_ICLASS_JNLE, XED_ICLASS_JNO, XED_ICLASS_JNP, XED_ICLASS_JNS, XED_ICLASS_JNZ, XED_ICLASS_JO, XED_ICLASS_JP, XED_ICLASS_JS, XED_ICLASS_JZ};
@@ -139,17 +140,17 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   rb(jcc_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_jcc));
 }
 
-void DirJccTerminator::handle_bkpt_fallthru(const LookupBlock& lb) {
+void DirJccTerminator::handle_bkpt_fallthru() {
   /* replace fallthru bkpt with jump */
-  uint8_t *new_fallthru = lb(orig_fallthru);
+  uint8_t *new_fallthru = lookup_block(orig_fallthru);
   const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_bkpt_addr, new_fallthru);
   write(fallthru_inst);
   flush();
 }
 
-void DirJccTerminator::handle_bkpt_jcc(const LookupBlock& lb) {
+void DirJccTerminator::handle_bkpt_jcc() {
   /* replace jump instruction */
-  uint8_t *new_dst = lb(orig_dst);
+  uint8_t *new_dst = lookup_block(orig_dst);
   jcc_inst.retarget(new_dst);
   write(jcc_inst);
   tracee().set_pc(new_dst);
@@ -157,8 +158,8 @@ void DirJccTerminator::handle_bkpt_jcc(const LookupBlock& lb) {
 }
 
 IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
-			     const Tracee& tracee, RegisterBkpt rb):
-  Terminator(block_pool, IND_SIZE, tracee), orig_branch_addr(branch.pc())
+			     const Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb):
+  Terminator(block_pool, IND_SIZE, tracee, lb), orig_branch_addr(branch.pc())
 {
   /* just bkpt */
   uint8_t *bkpt_addr = addr();
@@ -170,7 +171,7 @@ IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
   rb(bkpt_addr, make_callback(this, &IndTerminator::handle_bkpt));
 }
 
-void IndTerminator::handle_bkpt(const LookupBlock& lb) {
+void IndTerminator::handle_bkpt() {
   /* 1. jump to original branch
    * 2. single step
    * 3. lookup block for new pc
@@ -186,7 +187,7 @@ void IndTerminator::handle_bkpt(const LookupBlock& lb) {
   assert(WSTOPSIG(status) == SIGTRAP);
 
   /* 3 */
-  uint8_t *new_addr = lb(tracee().get_pc());
+  uint8_t *new_addr = lookup_block(tracee().get_pc());
 
   /* 4 */
   tracee().set_pc(new_addr);

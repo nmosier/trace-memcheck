@@ -21,12 +21,8 @@ void Patcher::patch(uint8_t *start_pc) {
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
-  const auto lb = [&] (uint8_t *addr) -> uint8_t * {
-    return lookup_block_patch(addr).pool_addr();
-  };
-
   const BkptCallback& callback = lookup_bkpt(bkpt_addr);
-  callback(lb);
+  callback();
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {
