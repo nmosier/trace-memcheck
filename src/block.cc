@@ -200,14 +200,3 @@ uint8_t *BlockPool::write_inst(uint8_t *addr, Blob& inst) {
 void Block::jump_to(void) const {
   tracee_.set_pc(pool_addr());
 }
-
-bool Block::may_have_conditional_branch(void) const {
-  const auto iclass = orig_branch_.xed_iclass();
-  if (iclass == XED_ICLASS_CALL_NEAR ||
-      iclass == XED_ICLASS_JMP ||
-      iclass == XED_ICLASS_RET_NEAR) {
-    return false;
-  } else {
-    return true;
-  }
-}

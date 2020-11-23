@@ -27,14 +27,17 @@ int main(int argc, char *argv[]) {
       "usage: %s [-hg] command [args...]\n"	\
       "Options:\n"				\
       " -h        show help\n"			\
-      " -g        transfer control to GDB on error\n"
+      " -g        transfer control to GDB on error\n"	\
+      " -p        enable profiling\n"			\
+      ""
       ;
     fprintf(f, usage, argv[0]);
   };
 
   bool gdb = false;
+  bool profile = false;
   
-  const char *optstring = "hg";
+  const char *optstring = "hgp";
   int optchar;
   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
     switch (optchar) {
@@ -44,6 +47,10 @@ int main(int argc, char *argv[]) {
 
     case 'g':
       gdb = true;
+      break;
+
+    case 'p':
+      profile = true;
       break;
 
     default:
@@ -84,7 +91,9 @@ int main(int argc, char *argv[]) {
 
   uint8_t *bkpt_pc;
 
-  ProfilerStart("memcheck.prof");
+  if (profile) {
+    ProfilerStart("memcheck.prof");
+  }
 
   while (true) {
     auto regs = tracee.get_regs();
@@ -155,8 +164,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  ProfilerStop();
-
+  if (profile) {
+    ProfilerStop();
+  }
+  
 #if DEBUG
   printf("done\n");
 #endif

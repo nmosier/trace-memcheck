@@ -13,13 +13,12 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
-  using RegisterBkpt = std::function<void(uint8_t *, Terminator *)>;
+  using BkptCallback = std::function<void(uint8_t *, const LookupBlock&)>;  
+  using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
   uint8_t *addr() const { return addr_; }
   size_t size() const { return size_; }
-
-  virtual void handle_bkpt(uint8_t *addr, LookupBlock lb) { abort(); }
 
   static Terminator *Create(BlockPool& block_pool, const Instruction& branch, const Tracee& trace,
 			    LookupBlock lb, RegisterBkpt rb);
@@ -35,7 +34,7 @@ protected:
   void flush() const;
   
   const Tracee& tracee() const { return tracee_; }
-  
+
 private:
   using Buf = std::vector<uint8_t>;
   uint8_t *addr_;
@@ -71,7 +70,6 @@ class DirJccTerminator: public Terminator {
 public:
   DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee,
 		   RegisterBkpt rb);
-  virtual void handle_bkpt(uint8_t *addr, LookupBlock lb) override;
 private:
   static constexpr size_t DIR_JCC_SIZE =
     Instruction::jcc_relbrd_len + Instruction::jmp_relbrd_len + Instruction::int3_len;
@@ -80,14 +78,18 @@ private:
   uint8_t *orig_fallthru;
   uint8_t *jcc_bkpt_addr;
   uint8_t *fallthru_bkpt_addr;
+
+  void handle_bkpt_fallthru(const LookupBlock& lb);
+  void handle_bkpt_jcc(const LookupBlock& lb);
 };
 
 class IndTerminator: public Terminator {
 public:
   IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee,
 		RegisterBkpt rb);
-  virtual void handle_bkpt(uint8_t *addr, LookupBlock lb) override;
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;
   uint8_t *orig_branch_addr;
+
+  void handle_bkpt(const LookupBlock& lb);
 };

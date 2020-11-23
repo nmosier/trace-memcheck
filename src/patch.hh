@@ -21,7 +21,8 @@ public:
 private:
   //  using BlockMap = std::unordered_map<uint8_t *, Block *>;
   using BlockMap = std::unordered_map<uint8_t *, Block *>;
-  using BkptMap = std::unordered_map<uint8_t *, Terminator *>;
+  using BkptCallback = Terminator::BkptCallback;
+  using BkptMap = std::unordered_map<uint8_t *, BkptCallback>;
 
   static constexpr size_t block_pool_size = 0x100000;
   static constexpr size_t ptr_pool_size = 0x10000;
@@ -33,7 +34,7 @@ private:
   PointerPool ptr_pool;
 
   Block& lookup_block_patch(uint8_t *addr);
-  Terminator& lookup_bkpt(uint8_t *addr) const;
+  const BkptCallback& lookup_bkpt(uint8_t *addr) const;
   void jump_to_block(uint8_t *orig_addr);
   bool is_pool_addr(uint8_t *addr) const;
 };

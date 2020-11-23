@@ -6,3 +6,5 @@
 [X] unify patch/patch_one, since no todo list needed
 [ ] command-line switch for single-stepping
 [ ] check if unregistering bkpts speeds up execution
+[ ] use handlers in bkpt map
+[ ] avoid redundant SET PCs 

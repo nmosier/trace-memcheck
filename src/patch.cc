@@ -9,8 +9,8 @@ void Patcher::patch(uint8_t *start_pc) {
     return lookup_block_patch(addr).pool_addr();
   }; // TODO: unify this with other def of lb
 
-  const auto rb = [&] (uint8_t *addr, Terminator *term) {
-    const auto res = bkpt_map.emplace(addr, term);
+  const auto rb = [&] (uint8_t *addr, const BkptCallback& callback) {
+    const auto res = bkpt_map.emplace(addr, callback);
     assert(res.second);
   };
 
@@ -25,8 +25,8 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
     return lookup_block_patch(addr).pool_addr();
   };
 
-  Terminator& terminator = lookup_bkpt(bkpt_addr);
-  terminator.handle_bkpt(bkpt_addr, lb);
+  const BkptCallback& callback = lookup_bkpt(bkpt_addr);
+  callback(bkpt_addr, lb);
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {
@@ -35,8 +35,8 @@ void Patcher::jump_to_block(uint8_t *orig_addr) {
   block_it->second->jump_to();
 }
 
-Terminator& Patcher::lookup_bkpt(uint8_t *addr) const {
-  return *bkpt_map.at(addr);
+const Patcher::BkptCallback& Patcher::lookup_bkpt(uint8_t *addr) const {
+  return bkpt_map.at(addr);
 }
 
 Block& Patcher::lookup_block_patch(uint8_t *addr) {

@@ -41,15 +41,6 @@ public:
 
   void jump_to(void) const;
 
-  template <typename... Args>
-  void handle_bkpt(Args&&... args) { terminator_->handle_bkpt(args...); }
-
-  /**
-   * Check whether branch instruction *might* be conditional.
-   * @return whether branch instruction is conditional with potential false positives
-   */
-  bool may_have_conditional_branch(void) const;
-  
 private:
   const Tracee& tracee_;
   BlockPool& block_pool_;

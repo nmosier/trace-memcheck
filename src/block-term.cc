@@ -135,29 +135,29 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   flush();
 
   /* register breakpoints */
-  rb(fallthru_bkpt_addr, this);
-  rb(jcc_bkpt_addr, this);
+  rb(fallthru_bkpt_addr, [this] (uint8_t *addr, const LookupBlock& lb) {
+    handle_bkpt_fallthru(lb);
+  });
+
+  rb(jcc_bkpt_addr, [this] (uint8_t *addr, const LookupBlock& lb) {
+    handle_bkpt_jcc(lb);
+  });
 }
 
-void DirJccTerminator::handle_bkpt(uint8_t *addr, LookupBlock lb) {
-  if (addr == jcc_bkpt_addr) {
-    /* replace jump instruction */
-    uint8_t *new_dst = lb(orig_dst);
-    jcc_inst.retarget(new_dst);
-    write(jcc_inst);
-    jcc_bkpt_addr = nullptr; // Not necessary but good for error finding
+void DirJccTerminator::handle_bkpt_fallthru(const LookupBlock& lb) {
+  /* replace fallthru bkpt with jump */
+  uint8_t *new_fallthru = lb(orig_fallthru);
+  const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_bkpt_addr, new_fallthru);
+  write(fallthru_inst);
+  flush();
+}
 
-    tracee().set_pc(new_dst);
-  } else {
-    assert(addr == fallthru_bkpt_addr);
-
-    /* replace fallthru bkpt with jump */
-    uint8_t *new_fallthru = lb(orig_fallthru);
-    const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_bkpt_addr, new_fallthru);
-    write(fallthru_inst);
-    fallthru_bkpt_addr = nullptr;
-  }
-
+void DirJccTerminator::handle_bkpt_jcc(const LookupBlock& lb) {
+  /* replace jump instruction */
+  uint8_t *new_dst = lb(orig_dst);
+  jcc_inst.retarget(new_dst);
+  write(jcc_inst);
+  tracee().set_pc(new_dst);
   flush();
 }
 
@@ -172,10 +172,12 @@ IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
   flush();
 
   /* register bkpt */
-  rb(bkpt_addr, this);
+  rb(bkpt_addr, [this] (uint8_t *addr, const LookupBlock& lb) {
+    handle_bkpt(lb);
+  });
 }
 
-void IndTerminator::handle_bkpt(uint8_t *addr, LookupBlock lb) {
+void IndTerminator::handle_bkpt(const LookupBlock& lb) {
   /* 1. jump to original branch
    * 2. single step
    * 3. lookup block for new pc
