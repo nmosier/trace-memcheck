@@ -20,11 +20,11 @@ public:
   uint8_t *addr() const { return addr_; }
   size_t size() const { return size_; }
 
-  static Terminator *Create(BlockPool& block_pool, const Instruction& branch, const Tracee& trace,
+  static Terminator *Create(BlockPool& block_pool, const Instruction& branch, Tracee& trace,
 			    const LookupBlock& lb, RegisterBkpt rb);
   
 protected:
-  Terminator(BlockPool& block_pool, size_t size, const Tracee& tracee, const LookupBlock& lb);
+  Terminator(BlockPool& block_pool, size_t size, Tracee& tracee, const LookupBlock& lb);
 
   uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
@@ -36,7 +36,7 @@ protected:
   template <typename... Args>
   uint8_t *lookup_block(Args&&... args) { return lb_(args...); }
 
-  const Tracee& tracee() const { return tracee_; }
+  Tracee& tracee() const { return tracee_; }
 
   template <typename Derived>
   static BkptCallback make_callback(Derived *term,
@@ -51,7 +51,7 @@ private:
   uint8_t *addr_;
   size_t size_;
   Buf buf_;
-  const Tracee& tracee_;
+  Tracee& tracee_;
   const LookupBlock lb_;
 
   template <typename I>  
@@ -63,7 +63,7 @@ private:
 
 class DirCallTerminator: public Terminator {
 public:
-  DirCallTerminator(BlockPool& block_pool, const Instruction& call, const Tracee& tracee,
+  DirCallTerminator(BlockPool& block_pool, const Instruction& call, Tracee& tracee,
 		    const LookupBlock& lb);
 private:
   static constexpr size_t DIR_CALL_SIZE =
@@ -72,7 +72,7 @@ private:
 
 class DirJmpTerminator: public Terminator {
 public:
-  DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, const Tracee& tracee,
+  DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, Tracee& tracee,
 		   const LookupBlock& lb);
 private:
   static constexpr size_t DIR_JMP_SIZE = Instruction::jmp_relbrd_len;
@@ -80,7 +80,7 @@ private:
 
 class DirJccTerminator: public Terminator {
 public:
-  DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, const Tracee& tracee,
+  DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, Tracee& tracee,
 		   const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t DIR_JCC_SIZE =
@@ -97,7 +97,7 @@ private:
 
 class IndTerminator: public Terminator {
 public:
-  IndTerminator(BlockPool& block_pool, const Instruction& branch, const Tracee& tracee,
+  IndTerminator(BlockPool& block_pool, const Instruction& branch, Tracee& tracee,
 		const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;

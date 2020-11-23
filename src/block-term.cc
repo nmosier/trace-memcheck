@@ -7,7 +7,7 @@
 #include "debug.h"
 
 Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
-			       const Tracee& tracee, const LookupBlock& lb, RegisterBkpt rb) {
+			       Tracee& tracee, const LookupBlock& lb, RegisterBkpt rb) {
   switch (branch.xed_iclass()) {
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
@@ -34,7 +34,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
 }
 
 Terminator::Terminator(BlockPool& block_pool, size_t size,
-		       const Tracee& tracee, const LookupBlock& lb):
+		       Tracee& tracee, const LookupBlock& lb):
   addr_(block_pool.peek()), size_(size), buf_(size), tracee_(tracee), lb_(lb)
 {
   block_pool.alloc(size_);
@@ -53,7 +53,7 @@ void Terminator::flush() const {
 }
 
 DirCallTerminator::DirCallTerminator(BlockPool& block_pool, const Instruction& call,
-				     const Tracee& tracee, const LookupBlock& lb):
+				     Tracee& tracee, const LookupBlock& lb):
   Terminator(block_pool, DIR_CALL_SIZE, tracee, lb)
 {
   assert(call.xed_iform() == XED_IFORM_CALL_NEAR_RELBRd);
@@ -87,7 +87,7 @@ DirCallTerminator::DirCallTerminator(BlockPool& block_pool, const Instruction& c
 }
 
 DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp,
-				   const Tracee& tracee, const LookupBlock& lb):
+				   Tracee& tracee, const LookupBlock& lb):
   Terminator(block_pool, DIR_JMP_SIZE, tracee, lb)
 {
   assert(jmp.xed_iform() == XED_IFORM_JMP_RELBRd);
@@ -104,7 +104,7 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 }
 
 DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc,
-				   const Tracee& tracee, const LookupBlock& lb,
+				   Tracee& tracee, const LookupBlock& lb,
 				   const RegisterBkpt& rb):
   Terminator(block_pool, DIR_JCC_SIZE, tracee, lb), orig_dst(jcc.branch_dst()),
   orig_fallthru(jcc.after_pc())
@@ -159,7 +159,7 @@ void DirJccTerminator::handle_bkpt_jcc() {
 }
 
 IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
-			     const Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb):
+			     Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb):
   Terminator(block_pool, IND_SIZE, tracee, lb), orig_branch_addr(branch.pc())
 {
   /* just bkpt */

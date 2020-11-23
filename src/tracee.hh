@@ -39,31 +39,25 @@ public:
 
   void write(const Blob& inst) const;
 
-#if 0
-  template <typename T, size_t N>
-  void write(const std::array<T,N>& from, size_t count, void *to) const {
-    write(from.begin(), from.end(), to);
-  }
-#endif
-
   void dump(std::ostream& os, const void *ptr, size_t count) const;
 
-  void get_regs(user_regs_struct& regs) const;
-  user_regs_struct get_regs(void) const;
-  void set_regs(const user_regs_struct& regs) const;
+  const user_regs_struct& get_regs(void);
+  void get_regs(user_regs_struct& regs);
+  void set_regs(const user_regs_struct& regs);
   
-  uint8_t *get_pc(void) const;
-  void set_pc(void *pc) const;
-  void *get_sp(void) const;
-  void set_sp(void *sp) const;
+  uint8_t *get_pc(void);
+  void set_pc(void *pc);
+  void *get_sp(void);
+  void set_sp(void *sp);
 
-  int singlestep(void) const; // returns status from wait(2)
+  int singlestep(void);
+  int cont(void);
 
-  void syscall(user_regs_struct& regs) const;
+  void syscall(user_regs_struct& regs);
 
   // TODO: Replace uintptr with decltype of regs.rip, e.g.
   uintptr_t syscall(uintptr_t syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
-		    uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0) const;
+		    uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
 
   void perror(void) const;
 
@@ -75,4 +69,8 @@ private:
   pid_t pid_;
   int    fd_;
   const char *command;
+  bool regs_good_ = false;
+  user_regs_struct regs_;
+
+  void cache_regs(void);
 };

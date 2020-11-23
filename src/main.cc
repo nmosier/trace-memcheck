@@ -87,8 +87,6 @@ int main(int argc, char *argv[]) {
   Patcher patcher(tracee);
   patcher.start();
   
-  std::vector<void *> insts;
-
   uint8_t *bkpt_pc;
 
   if (profile) {
@@ -102,11 +100,10 @@ int main(int argc, char *argv[]) {
     }
 
 #if SINGLE_STEP
-    ptrace(PTRACE_SINGLESTEP, child, nullptr, nullptr);
+    status = tracee.singlestep();
 #else
-    ptrace(PTRACE_CONT, child, NULL, NULL);
+    status = tracee.cont();
 #endif
-    wait(&status);
 
 # if DEBUG
     if (WIFSTOPPED(status)) {
@@ -138,7 +135,6 @@ int main(int argc, char *argv[]) {
       while (pc_byte == 0xcc) {
 	// printf("bkpt pc = %p\n", get_pc(child));
 	bkpt_pc = tracee.get_pc();
-	insts.push_back(bkpt_pc);
 	tracee.set_pc(bkpt_pc);
 	patcher.handle_bkpt(bkpt_pc);
 
@@ -153,7 +149,6 @@ int main(int argc, char *argv[]) {
 
 #else
       bkpt_pc = tracee.get_pc() - 1;
-      insts.push_back(bkpt_pc);
 
       patcher.handle_bkpt(bkpt_pc);
 

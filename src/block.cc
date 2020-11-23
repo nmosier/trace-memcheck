@@ -12,7 +12,7 @@ size_t Block::size(const InstVec& insts) {
 			 });
 }
 
-Block *Block::Create(uint8_t *orig_addr, const Tracee& tracee, BlockPool& block_pool,
+Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		     PointerPool& ptr_pool, LookupBlock lb, RegisterBkpt rb) {
   Block *block = new Block(tracee, orig_addr, block_pool);
 

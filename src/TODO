@@ -6,7 +6,8 @@
 [X] unify patch/patch_one, since no todo list needed
 [ ] command-line switch for single-stepping
 [ ] check if unregistering bkpts speeds up execution
-[ ] use handlers in bkpt map
-[ ] avoid redundant SET PCs
-[ ] remove useless bkpt addresses in terminators
-[ ] use member class pointer, not std::function, in handlers
+[X] use handlers in bkpt map
+[X] avoid redundant SET PCs
+[X] remove useless bkpt addresses in terminators
+[ ] Cache results from get_pc(), get_sp(), etc in Tracee?
+[ ] Better interface for getting/setting regs -

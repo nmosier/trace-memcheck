@@ -5,7 +5,7 @@
 
 class PointerPool {
 public:
-  PointerPool(const Tracee& tracee, size_t size):
+  PointerPool(Tracee& tracee, size_t size):
     tracee(tracee), mem(tracee, size), alloc_ptr(mem.begin<uintptr_t>()) {}
 
   uintptr_t *alloc() {
@@ -20,7 +20,7 @@ public:
   }
   
 private:
-  const Tracee& tracee;
+  Tracee& tracee;
   UserMemory mem;
   uintptr_t *alloc_ptr;
 

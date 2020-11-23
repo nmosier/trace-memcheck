@@ -81,48 +81,66 @@ void Tracee::dump(std::ostream& os, const void *ptr, size_t count) const {
   os << std::endl;
 }
 
-void Tracee::get_regs(user_regs_struct& regs) const {
-  ptrace(PTRACE_GETREGS, pid(), nullptr, &regs);
+void Tracee::cache_regs(void) {
+  if (!regs_good_) {
+    ptrace(PTRACE_GETREGS, pid(), nullptr, &regs_);
+    regs_good_ = true;
+  }
 }
 
-user_regs_struct Tracee::get_regs(void) const {
-  user_regs_struct regs;
-  get_regs(regs);
-  return regs;
+void Tracee::get_regs(user_regs_struct& regs) {
+  cache_regs();
+  regs = get_regs();
 }
 
-void Tracee::set_regs(const user_regs_struct& regs) const {
+const user_regs_struct& Tracee::get_regs(void) {
+  cache_regs();
+  return regs_;
+}
+
+void Tracee::set_regs(const user_regs_struct& regs) {
+  regs_ = regs; // TODO: Check if not equal?
+  regs_good_ = true;
   ptrace(PTRACE_SETREGS, pid(), nullptr, &regs);
 }
 
-void *Tracee::get_sp(void) const {
+void *Tracee::get_sp(void) {
   return (void *) get_regs().rsp;
 }
 
-void Tracee::set_sp(void *sp) const {
+void Tracee::set_sp(void *sp) {
   auto regs = get_regs();
   regs.rsp = reinterpret_cast<uintptr_t>(sp);
   set_regs(regs);
 }
 
-uint8_t *Tracee::get_pc(void) const {
+uint8_t *Tracee::get_pc(void) {
   return (uint8_t *) get_regs().rip;
 }
 
-void Tracee::set_pc(void *pc) const {
+void Tracee::set_pc(void *pc) {
   auto regs = get_regs();
   regs.rip = (uintptr_t) pc;
   set_regs(regs);
 }
 
-int Tracee::singlestep(void) const {
+int Tracee::singlestep(void) {
+  regs_good_ = false;
   ptrace(PTRACE_SINGLESTEP, pid(), nullptr, nullptr);
   int status;
   wait(&status);
   return status;
 }
 
-void Tracee::syscall(user_regs_struct& regs) const {
+int Tracee::cont(void) {
+  regs_good_ = false;
+  ptrace(PTRACE_CONT, pid(), nullptr, nullptr);
+  int status;
+  wait(&status);
+  return status;
+}
+
+void Tracee::syscall(user_regs_struct& regs) {
   const user_regs_struct saved_regs = get_regs();
   set_regs(regs);
   void *pc = (void *) regs.rip;
@@ -141,7 +159,7 @@ void Tracee::syscall(user_regs_struct& regs) const {
 }
 
 uintptr_t Tracee::syscall(uintptr_t syscallno, uintptr_t a0, uintptr_t a1, uintptr_t a2,
-			  uintptr_t a3, uintptr_t a4, uintptr_t a5) const {
+			  uintptr_t a3, uintptr_t a4, uintptr_t a5) {
   user_regs_struct regs = get_regs();
   regs.rax = syscallno;
   regs.rdi = a0;

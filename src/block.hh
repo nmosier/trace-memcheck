@@ -31,7 +31,7 @@ public:
   using LookupBlock = Terminator::LookupBlock;
   using RegisterBkpt = Terminator::RegisterBkpt;
   
-  static Block *Create(uint8_t *pc, const Tracee& tracee, BlockPool& block_pool,
+  static Block *Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
 		       PointerPool& ptr_pool, LookupBlock lb, RegisterBkpt rb);
   
   uint8_t *orig_addr() const { return orig_addr_; }
@@ -42,7 +42,7 @@ public:
   void jump_to(void) const;
 
 private:
-  const Tracee& tracee_;
+  Tracee& tracee_;
   BlockPool& block_pool_;
   uint8_t *orig_addr_;
   uint8_t *pool_addr_;
@@ -50,7 +50,7 @@ private:
   Instruction orig_branch_;
   std::unique_ptr<Terminator> terminator_;
 
-  Block(const Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
+  Block(Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
     tracee_(tracee), block_pool_(block_pool), orig_addr_(orig_addr) {}
 
   static bool classify_inst(const Instruction& inst) {

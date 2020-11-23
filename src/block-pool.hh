@@ -7,7 +7,7 @@
 
 class BlockPool {
 public:
-  BlockPool(const Tracee& tracee, size_t size):
+  BlockPool(Tracee& tracee, size_t size):
     tracee(tracee), mem(tracee, size), alloc_ptr(mem.begin<uint8_t>()) {}
 
   std::ostream& print(std::ostream& os) const;
@@ -35,7 +35,7 @@ public:
   uint8_t *end() const { return mem.end<uint8_t>(); }
   
 private:
-  const Tracee& tracee;
+  Tracee& tracee;
   UserMemory mem;
   uint8_t *alloc_ptr;
 
