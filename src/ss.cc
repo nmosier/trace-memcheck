@@ -14,7 +14,7 @@
 #include "inst.hh"
 #include "debug.h"
 
-static bool stopped_trace(int status) {
+static inline bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
 }
 

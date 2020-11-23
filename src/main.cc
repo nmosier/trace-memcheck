@@ -15,9 +15,7 @@
 #include "debug.h"
 #include "patch.hh"
 
-
-
-static bool stopped_trace(int status) {
+static inline bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
 }
 

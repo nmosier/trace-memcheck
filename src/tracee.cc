@@ -151,6 +151,7 @@ void Tracee::syscall(user_regs_struct& regs) {
   write(&syscall, sizeof(syscall), pc);
 
   const int status = singlestep();
+  (void) status;
   assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
 
   write(&saved_code, sizeof(saved_code), pc);

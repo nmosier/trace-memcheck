@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <unordered_set>
 #include "block-term.hh"
+#include "util.hh"
 #include "debug.h"
 
 Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
@@ -184,6 +185,7 @@ void IndTerminator::handle_bkpt() {
 
   /* 2 */
   const int status = tracee().singlestep();
+  (void) status;
   assert(WIFSTOPPED(status));
   assert(WSTOPSIG(status) == SIGTRAP);
 
@@ -195,3 +197,26 @@ void IndTerminator::handle_bkpt() {
 }
 
 
+RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
+			     const LookupBlock& lb, const RegisterBkpt& rb):
+  Terminator(block_pool, RET_SIZE, tracee, lb)
+{
+  const uint8_t sizes[] = {4, 1, 7, 7, 2, 7, 1, 3, 2, 4, 1, 4, 1, 1};
+  constexpr auto ninsts = arrlen(sizes);
+
+  /* assign addresses */
+  uint8_t *addrs[ninsts];
+  uint8_t *it = addr();
+  for (unsigned i = 0; i < ninsts; ++i) {
+    addrs[i] = it;
+    it += sizes[i];
+  }
+
+  /* create instructions */
+  Instruction insts[ninsts];
+  insts[0] = Instruction(addrs[0], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
+  insts[1] = Instruction(addrs[1], {0x51}); // push rax
+  // TODO
+  abort();
+  (void) insts;
+}

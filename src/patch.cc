@@ -2,7 +2,8 @@
 #include "patch.hh"
 
 Patcher::Patcher(Tracee& tracee):
-  tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size) {}
+  tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size),
+  rsb(tracee, rsb_size) {}
 
 void Patcher::patch(uint8_t *start_pc) {
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
@@ -11,13 +12,13 @@ void Patcher::patch(uint8_t *start_pc) {
 
   const auto rb = [&] (uint8_t *addr, const BkptCallback& callback) {
     const auto res = bkpt_map.emplace(addr, callback);
-    assert(res.second);
+    assert(res.second); (void) res;
   };
 
   /* create block */
   Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, rb);
   const auto block_it = block_map.emplace(start_pc, block);
-  assert(block_it.second);
+  assert(block_it.second); (void) block_it;
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {

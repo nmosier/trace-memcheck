@@ -105,3 +105,14 @@ private:
 
   void handle_bkpt(void);
 };
+
+class RetTerminator: public Terminator {
+public:
+  RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
+		const LookupBlock& lb, const RegisterBkpt& rb);
+
+private:
+  static constexpr size_t RET_SIZE = 0x2D; // from rsb-ret.asm.
+
+  void handle_bkpt(void);
+};

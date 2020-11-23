@@ -74,3 +74,72 @@ Wait, can just jump to calls, since they (1) never fallthru and (2) it will push
 Bug: RIP-relative data accesses don't work.
 Possible fix: Create shadow copies. But this is bad -- what about RIP-relative arrays?
 Possible fix: push rax \ mov rax, [rip+...] \ xchg [rsp], rax
+
+--------
+
+Performance issue: RETs are common but slow.
+Idea: use RSB-style optimization.
+On each CALL, push return value onto RSB.
+On each RET, pop return value from RSB. If actual return value equals predicted return value, go directly.
+
+Without bounds checking:
+
+CALL_RELBRd:
+push <orig_ra>
+push rax
+mov rax, rsp
+mov rsp, [rel rsb_ptr]
+push [rel new_ra]
+push [rel orig_ra]
+mov [rel rsb_ptr], rsp
+pop rax
+{JMP}
+
+RET:
+xchg rax, [rsp]
+push rcx
+mov rcx, [rel rsb_ptr]
+add qword [rel rsb_ptr], 16
+cmp rax, [rcx]
+jne mismatch
+mov rax, [rcx + 8]
+pop rcx
+xchg rax, [rsp]
+OAret
+
+mismatch:
+   bkpt
+
+With bounds checking:
+
+CALL_RELBRd:
+ push <orig_ra>
+ push rax
+ mov rax, rsp
+ mov rsp, [rel rsb_ptr]
+ cmp rsp, [rel rsb_end]
+ je after_entry         ; full, so bypass store of new entry
+ push [rel new_ra]
+ push [rel orig_ra]
+ mov [rel rsb_ptr], rsp
+after_entry:
+ mov rsp, rax
+ pop rax
+ {JMP}
+
+RET:
+ xchg rax, [rsp]
+ push rcx
+ mov rcx, [rel rsb_ptr]
+ cmp rcx, [rel rsb_begin]
+ je mismatch                  ; RSB empty
+ add qword [rel rsb_ptr], 16
+ cmp rax, [rcx]
+ jne mismatch                 ; mismatch
+ mov rax, [rcx + 8]
+ pop rcx
+ xchg rax, [rsp]
+ ret
+
+mismatch:
+ bkpt

@@ -1,0 +1,23 @@
+
+rsb-ret.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <ret_>:
+   0:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
+   4:	51                   	push   rcx
+   5:	48 8b 0d 00 00 00 00 	mov    rcx,QWORD PTR [rip+0x0]        # c <ret_+0xc>
+   c:	48 3b 0d 00 00 00 00 	cmp    rcx,QWORD PTR [rip+0x0]        # 13 <ret_+0x13>
+  13:	74 17                	je     2c <ret_.mismatch>
+  15:	48 83 05 00 00 00 00 	add    QWORD PTR [rip+0x0],0x10        # 1d <ret_+0x1d>
+  1c:	10 
+  1d:	48 3b 01             	cmp    rax,QWORD PTR [rcx]
+  20:	75 0a                	jne    2c <ret_.mismatch>
+  22:	48 8b 41 08          	mov    rax,QWORD PTR [rcx+0x8]
+  26:	59                   	pop    rcx
+  27:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
+  2b:	c3                   	ret    
+
+000000000000002c <ret_.mismatch>:
+  2c:	cc                   	int3   

@@ -166,7 +166,7 @@ void Instruction::patch_relbr(Op get_dst_ptr) {
     decode(); // TODO: This is unecessary -- only makes following assert() work.
     
     int32_t found_disp = xed_decoded_inst_get_branch_displacement(&xedd_);
-    assert(found_disp == new_disp);
+    assert(found_disp == new_disp); (void) found_disp;
 }
 
 template <typename Op>
@@ -393,8 +393,8 @@ bool Instruction::call_to_jmp(void) {
   decode();
 
   const xed_iform_enum_t jmp_iform = xed_iform();
-  assert(map.find(call_iform) != map.end());
-  assert(map[call_iform] == jmp_iform);
+  assert(map.find(call_iform) != map.end()); (void) call_iform;
+  assert(map[call_iform] == jmp_iform); (void) jmp_iform;
   
   return true;
 }
