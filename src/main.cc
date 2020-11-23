@@ -154,7 +154,6 @@ int main(int argc, char *argv[]) {
 #else
       bkpt_pc = tracee.get_pc() - 1;
       insts.push_back(bkpt_pc);
-      tracee.set_pc(bkpt_pc);
 
       patcher.handle_bkpt(bkpt_pc);
 

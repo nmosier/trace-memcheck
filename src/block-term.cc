@@ -146,6 +146,7 @@ void DirJccTerminator::handle_bkpt_fallthru() {
   const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_bkpt_addr, new_fallthru);
   write(fallthru_inst);
   flush();
+  tracee().set_pc(new_fallthru);
 }
 
 void DirJccTerminator::handle_bkpt_jcc() {
