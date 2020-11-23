@@ -32,7 +32,8 @@ public:
   using RegisterBkpt = Terminator::RegisterBkpt;
   
   static Block *Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
-		       PointerPool& ptr_pool, LookupBlock lb, RegisterBkpt rb);
+		       PointerPool& ptr_pool, const LookupBlock& lb, const RegisterBkpt& rb,
+		       const ReturnStackBuffer& rsb);
   
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }

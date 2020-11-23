@@ -6,7 +6,7 @@
 class PointerPool {
 public:
   PointerPool(Tracee& tracee, size_t size):
-    tracee(tracee), mem(tracee, size), alloc_ptr(mem.begin<uintptr_t>()) {}
+    tracee(tracee), mem(tracee, size, PROT_READ), alloc_ptr(mem.begin<uintptr_t>()) {}
 
   uintptr_t *alloc() {
     assert(alloc_ptr < mem.end<uintptr_t>());

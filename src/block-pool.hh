@@ -8,7 +8,7 @@
 class BlockPool {
 public:
   BlockPool(Tracee& tracee, size_t size):
-    tracee(tracee), mem(tracee, size), alloc_ptr(mem.begin<uint8_t>()) {}
+    tracee(tracee), mem(tracee, size, PROT_READ | PROT_EXEC), alloc_ptr(mem.begin<uint8_t>()) {}
 
   std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }

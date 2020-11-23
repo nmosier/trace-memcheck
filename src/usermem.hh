@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unistd.h>
+#include <sys/mman.h> // for PROT_*
 #include "tracee.hh"
 
 template <typename T>
@@ -8,8 +9,8 @@ using user_ptr_t = T *;
 
 class UserMemory {
 public:
-  UserMemory(Tracee& tracee, size_t size);
-  ~UserMemory();
+  UserMemory(Tracee& tracee, size_t size, int prot); // prot: see mmap(2), mask of PROT_* flags
+  ~UserMemory() {} // don't dealloc, since the tracee will die first so there's no point
 
   size_t size() const { return size_; }
 

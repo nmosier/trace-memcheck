@@ -19,14 +19,15 @@ public:
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
-  static Terminator *Create(BlockPool& block_pool, const Instruction& branch, Tracee& trace,
-			    const LookupBlock& lb, RegisterBkpt rb);
+  static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
+			    Tracee& trace, const LookupBlock& lb, const RegisterBkpt& rb,
+			    const ReturnStackBuffer& rsb);
   
   void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
 
 protected:
-  Terminator(BlockPool& block_pool, size_t size, const Instruction& branch, Tracee& tracee,
-	     const LookupBlock& lb);
+  Terminator(BlockPool& block_pool, size_t size, const Instruction& branch,
+	     Tracee& tracee, const LookupBlock& lb);
 
   uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
@@ -114,7 +115,7 @@ public:
 		const LookupBlock& lb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
 private:
-  static constexpr size_t RET_SIZE = 0x2D; // from rsb-ret.asm.
+  static constexpr size_t RET_SIZE = 0x32; // from rsb-ret.asm.
 };
 
 class CallTerminator: public Terminator {
@@ -127,6 +128,7 @@ protected:
   
 private:
   static constexpr size_t CALL_SIZE = 0x2B; // from rsb-call.asm
+  uint8_t **orig_ra_ptr;
   uint8_t **new_ra_ptr;
 };
 

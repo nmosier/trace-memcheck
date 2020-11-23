@@ -18,28 +18,31 @@ public:
   pid_t pid() const { return pid_; }
   int fd() const { return fd_; }
 
-  void read(void *to, size_t count, const void *from) const;
+  void read(void *to, size_t count, const void *from);
 
   template <typename OutputIt>
-  void read(OutputIt begin, OutputIt end, const void *from) const {
+  void read(OutputIt begin, OutputIt end, const void *from) {
     read(&*begin, end - begin, from);
   }
   
   template <typename T, size_t N>
-  void read(std::array<T,N>& to, const void *from) const {
+  void read(std::array<T,N>& to, const void *from) {
     read(to.begin(), to.end(), from);
   }
 
   void write(const void *from, size_t count, void *to) const;
 
+#if 0
   template <typename InputIt>
-  void write(InputIt begin, InputIt end, void *to) const {
+  void write(InputIt begin, InputIt end, void *to) const { // TODO: Rewrite this
+    static_assert(false, "stub");
     write(&*begin, end - begin, to);
   }
+#endif
 
   void write(const Blob& inst) const;
 
-  void dump(std::ostream& os, const void *ptr, size_t count) const;
+  void dump(std::ostream& os, const void *ptr, size_t count);
 
   const user_regs_struct& get_regs(void);
   void get_regs(user_regs_struct& regs);

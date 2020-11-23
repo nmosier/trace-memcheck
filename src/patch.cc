@@ -16,7 +16,7 @@ void Patcher::patch(uint8_t *start_pc) {
   };
 
   /* create block */
-  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, rb);
+  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, rb, rsb);
   const auto block_it = block_map.emplace(start_pc, block);
   assert(block_it.second); (void) block_it;
 }

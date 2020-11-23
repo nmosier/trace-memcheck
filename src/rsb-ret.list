@@ -20,4 +20,6 @@ Disassembly of section .text:
   2b:	c3                   	ret    
 
 000000000000002c <ret_.mismatch>:
-  2c:	cc                   	int3   
+  2c:	59                   	pop    rcx
+  2d:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
+  31:	cc                   	int3   

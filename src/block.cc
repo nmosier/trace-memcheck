@@ -13,7 +13,8 @@ size_t Block::size(const InstVec& insts) {
 }
 
 Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
-		     PointerPool& ptr_pool, LookupBlock lb, RegisterBkpt rb) {
+		     PointerPool& ptr_pool, const LookupBlock& lb, const RegisterBkpt& rb,
+		     const ReturnStackBuffer& rsb) {
   Block *block = new Block(tracee, orig_addr, block_pool);
 
   uint8_t *it = orig_addr;
@@ -48,7 +49,8 @@ Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   
   /* create terminator instructions */
   block->terminator_ =
-    std::unique_ptr<Terminator>(Terminator::Create(block_pool, *inst, tracee, lb, rb));
+    std::unique_ptr<Terminator>
+    (Terminator::Create(block_pool, ptr_pool, *inst, tracee, lb, rb, rsb));
 
   
   

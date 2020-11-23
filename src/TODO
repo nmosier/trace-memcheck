@@ -11,3 +11,6 @@
 [X] remove useless bkpt addresses in terminators
 [ ] Cache results from get_pc(), get_sp(), etc in Tracee?
 [ ] Better interface for getting/setting regs -
+[ ] Make Terminator constructors accept same args.
+[ ] Rewrite Tracee::write (iterator version) to use buffer
+[ ] CallTerminator needs to check if RA already translated.

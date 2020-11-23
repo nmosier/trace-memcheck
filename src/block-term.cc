@@ -7,15 +7,17 @@
 #include "util.hh"
 #include "debug.h"
 
-Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
-			       Tracee& tracee, const LookupBlock& lb, RegisterBkpt rb) {
+Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
+			       const Instruction& branch, Tracee& tracee,
+			       const LookupBlock& lb, const RegisterBkpt& rb,
+			       const ReturnStackBuffer& rsb) {
   switch (branch.xed_iclass()) {
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
     case XED_IFORM_CALL_NEAR_RELBRd:
-      return new DirCallTerminator(block_pool, branch, tracee, lb);
+      return new CallDirTerminator(block_pool, ptr_pool, branch, tracee, lb, rsb);
     default:
-      return new IndTerminator(block_pool, branch, tracee, lb, rb);
+      return new CallIndTerminator(block_pool, ptr_pool, branch, tracee, lb, rb, rsb);
     }
 
   case XED_ICLASS_JMP:
@@ -27,7 +29,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, const Instruction& branch,
     }
 
   case XED_ICLASS_RET_NEAR:
-    return new IndTerminator(block_pool, branch, tracee, lb, rb);
+    return new RetTerminator(block_pool, branch, tracee, lb, rb, rsb);
 
   default: // XED_ICLASS_JCC
     return new DirJccTerminator(block_pool, branch, tracee, lb, rb);
@@ -203,8 +205,8 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
 			     const ReturnStackBuffer& rsb):
   Terminator(block_pool, RET_SIZE, ret, tracee, lb)
 {
-  constexpr auto NINSTS = 13;
-  const std::array<uint8_t, NINSTS> sizes = {4, 1, 7, 7, 2, 8, 3, 2, 4, 1, 4, 1, 1};
+  constexpr auto NINSTS = 15;
+  const std::array<uint8_t, NINSTS> sizes = {4, 1, 7, 7, 2, 8, 3, 2, 4, 1, 4, 1, 1, 4, 1};
 
   /* assign addressees */
   std::array<uint8_t *, NINSTS> addrs;
@@ -213,7 +215,6 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
     addrs[i] = it;
     it += sizes[i];
   }
-
   /* create instructions */
   std::array<Instruction, NINSTS> insts;
   insts[0] =  Instruction(addrs[0], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
@@ -228,7 +229,16 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   insts[9] =  Instruction(addrs[9], {0x59}); // pop rcx
   insts[10] = Instruction(addrs[10], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
   insts[11] = Instruction(addrs[11], {0xc3}); // ret
-  insts[12] = Instruction(addrs[12], {0xcc}); // int3
+  insts[12] = Instruction(addrs[12], {0x59}); // pop rcx
+  insts[13] = Instruction(addrs[13], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
+  insts[14] = Instruction(addrs[14], {0xcc}); // int3
+
+
+  /* assertions */
+  for (auto i = 0; i < NINSTS; ++i) {
+    assert(sizes[i] == insts[i].size());
+  }
+  assert(RET_SIZE == std::accumulate(sizes.begin(), sizes.end(), 0));
 
   for (const auto& inst : insts) {
     write(inst);
@@ -236,13 +246,8 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   
   flush();
 
-  rb(insts[12].pc(), make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
+  rb(insts[14].pc(), make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 
-  /* assertions */
-  for (auto i = 0; i < NINSTS; ++i) {
-    assert(sizes[i] == insts[i].size());
-  }
-  assert(RET_SIZE == std::accumulate(sizes.begin(), sizes.end(), 0));
 }
 
 CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size,
@@ -262,7 +267,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   }
 
   /* allocate pointers */
-  uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) call.after_pc());
+  orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) nullptr); 
   new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) nullptr); // TODO: optimize -- check if TXed
   
   /* create instructions */

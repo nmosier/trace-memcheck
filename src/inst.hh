@@ -88,7 +88,7 @@ public:
 
   Instruction(): good_(false) {}
   Instruction(uint8_t *pc, const Data& opcode);
-  Instruction(uint8_t *pc, const Tracee& tracee);
+  Instruction(uint8_t *pc, Tracee& tracee);
   Instruction(const Instruction& other, uint8_t *newpc);
 
   uint8_t *data() override { return data_.data(); }

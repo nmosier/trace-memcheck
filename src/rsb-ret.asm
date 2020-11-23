@@ -18,6 +18,8 @@ ret_:
 	xchg rax, [rsp]
 	ret
 .mismatch:
+	pop rcx
+	xchg rax, [rsp]
 	int3
 
 	

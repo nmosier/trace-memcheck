@@ -267,7 +267,7 @@ bool Instruction::retarget_mem(Op get_dst_ptr) {
   return true;
 }
 
-Instruction::Instruction(uint8_t *pc_, const Tracee& tracee): Blob(pc_) {
+Instruction::Instruction(uint8_t *pc_, Tracee& tracee): Blob(pc_) {
   tracee.read(data_, pc());
   decode();
 }

@@ -37,11 +37,12 @@ Tracee::~Tracee(void) {
   }
 }
 
-void Tracee::read(void *to, size_t count, const void *from) const {
-#if 0
+void Tracee::read(void *to, size_t count, const void *from) {
+#if 1
   const ssize_t bytes_read = pread(fd(), to, count, (off_t) from);
   if (bytes_read < 0) {
     std::perror("pread");
+    fprintf(stderr, "pc = %p\n", get_pc());
     abort();
   }
   assert((size_t) bytes_read == count);
@@ -70,7 +71,7 @@ void Tracee::write(const void *from, size_t count, void *to) const {
   assert((size_t) bytes_written == count);
 }
 
-void Tracee::dump(std::ostream& os, const void *ptr, size_t count) const {
+void Tracee::dump(std::ostream& os, const void *ptr, size_t count) {
   std::vector<uint8_t> data(count);
   read(data.data(), count, ptr);
   for (const uint8_t b : data) {
