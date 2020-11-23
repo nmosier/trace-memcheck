@@ -26,7 +26,7 @@ void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   };
 
   const BkptCallback& callback = lookup_bkpt(bkpt_addr);
-  callback(bkpt_addr, lb);
+  callback(lb);
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {

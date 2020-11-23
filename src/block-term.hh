@@ -13,7 +13,7 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
-  using BkptCallback = std::function<void(uint8_t *, const LookupBlock&)>;  
+  using BkptCallback = std::function<void(const LookupBlock&)>;  
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
@@ -34,6 +34,14 @@ protected:
   void flush() const;
   
   const Tracee& tracee() const { return tracee_; }
+
+  template <typename Derived>
+  static BkptCallback make_callback(Derived *term,
+				    void (Derived::*fn)(const LookupBlock&)) {
+    return [=] (const LookupBlock& lb) {
+      (term->*fn)(lb);
+    };
+  }
 
 private:
   using Buf = std::vector<uint8_t>;

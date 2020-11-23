@@ -135,13 +135,8 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   flush();
 
   /* register breakpoints */
-  rb(fallthru_bkpt_addr, [this] (uint8_t *addr, const LookupBlock& lb) {
-    handle_bkpt_fallthru(lb);
-  });
-
-  rb(jcc_bkpt_addr, [this] (uint8_t *addr, const LookupBlock& lb) {
-    handle_bkpt_jcc(lb);
-  });
+  rb(fallthru_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_fallthru));
+  rb(jcc_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_jcc));
 }
 
 void DirJccTerminator::handle_bkpt_fallthru(const LookupBlock& lb) {
@@ -172,9 +167,7 @@ IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
   flush();
 
   /* register bkpt */
-  rb(bkpt_addr, [this] (uint8_t *addr, const LookupBlock& lb) {
-    handle_bkpt(lb);
-  });
+  rb(bkpt_addr, make_callback(this, &IndTerminator::handle_bkpt));
 }
 
 void IndTerminator::handle_bkpt(const LookupBlock& lb) {
