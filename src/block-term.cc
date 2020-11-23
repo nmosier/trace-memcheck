@@ -9,15 +9,15 @@
 
 Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
 			       const Instruction& branch, Tracee& tracee,
-			       const LookupBlock& lb, const RegisterBkpt& rb,
+			       const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
 			       const ReturnStackBuffer& rsb) {
   switch (branch.xed_iclass()) {
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
     case XED_IFORM_CALL_NEAR_RELBRd:
-      return new CallDirTerminator(block_pool, ptr_pool, branch, tracee, lb, rsb);
+      return new CallDirTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rsb);
     default:
-      return new CallIndTerminator(block_pool, ptr_pool, branch, tracee, lb, rb, rsb);
+      return new CallIndTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rb, rsb);
     }
 
   case XED_ICLASS_JMP:
@@ -252,7 +252,7 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
 
 CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size,
 			       const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-			       const ReturnStackBuffer& rsb):
+			       const ProbeBlock& pb, const ReturnStackBuffer& rsb):
   Terminator(block_pool, size + CALL_SIZE, call, tracee, lb)
 {
   constexpr auto NINSTS = 10;
@@ -299,8 +299,8 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
 
 CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				     const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-				     const ReturnStackBuffer& rsb):
-  CallTerminator(block_pool, ptr_pool, CALL_DIR_SIZE, call, tracee, lb, rsb)
+				     const ProbeBlock& pb, const ReturnStackBuffer& rsb):
+  CallTerminator(block_pool, ptr_pool, CALL_DIR_SIZE, call, tracee, lb, pb, rsb)
 {
   /* push [rel orig_ra] 
    * jmp new_dst
@@ -322,8 +322,9 @@ CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_poo
 
 CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				     const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-				     const RegisterBkpt& rb, const ReturnStackBuffer& rsb):
-  CallTerminator(block_pool, ptr_pool, CALL_IND_SIZE, call, tracee, lb, rsb)
+				     const ProbeBlock& pb, const RegisterBkpt& rb,
+				     const ReturnStackBuffer& rsb):
+  CallTerminator(block_pool, ptr_pool, CALL_IND_SIZE, call, tracee, lb, pb, rsb)
 {
   uint8_t *bkpt_addr = subaddr();
   const auto bkpt_inst = Instruction::int3(bkpt_addr);

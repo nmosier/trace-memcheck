@@ -15,13 +15,14 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
+  using ProbeBlock = std::function<uint8_t *(uint8_t *)>; // returns nullptr if block not present
   using BkptCallback = std::function<void(void)>;
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
   static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
-			    Tracee& trace, const LookupBlock& lb, const RegisterBkpt& rb,
-			    const ReturnStackBuffer& rsb);
+			    Tracee& trace, const LookupBlock& lb, const ProbeBlock& pb,
+			    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
   void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
 
@@ -121,7 +122,8 @@ private:
 class CallTerminator: public Terminator {
 public:
   CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size, const Instruction& call,
-		 Tracee& tracee, const LookupBlock& lb, const ReturnStackBuffer& rsb);
+		 Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
+		 const ReturnStackBuffer& rsb);
 
 protected:
   uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE; }
@@ -135,7 +137,8 @@ private:
 class CallDirTerminator: public CallTerminator {
 public:
   CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
-		    Tracee& tracee, const LookupBlock& lb, const ReturnStackBuffer& rsb);
+		    Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
+		    const ReturnStackBuffer& rsb);
   
 private:
   static constexpr size_t CALL_DIR_SIZE = 11;
@@ -144,8 +147,8 @@ private:
 class CallIndTerminator: public CallTerminator {
 public:
   CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
-		    Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb,
-		    const ReturnStackBuffer& rsb);
+		    Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
+		    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
 private:
   static constexpr size_t CALL_IND_SIZE = 1;

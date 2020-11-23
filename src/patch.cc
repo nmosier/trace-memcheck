@@ -10,13 +10,22 @@ void Patcher::patch(uint8_t *start_pc) {
     return lookup_block_patch(addr).pool_addr();
   }; // TODO: unify this with other def of lb
 
+  const auto pb = [&] (uint8_t *addr) -> uint8_t * {
+    const auto it = block_map.find(addr);
+    if (it == block_map.end()) {
+      return nullptr;
+    } else {
+      return it->second->pool_addr();
+    }
+  };
+
   const auto rb = [&] (uint8_t *addr, const BkptCallback& callback) {
     const auto res = bkpt_map.emplace(addr, callback);
     assert(res.second); (void) res;
   };
 
   /* create block */
-  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, rb, rsb);
+  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, pb, rb, rsb);
   const auto block_it = block_map.emplace(start_pc, block);
   assert(block_it.second); (void) block_it;
 }
