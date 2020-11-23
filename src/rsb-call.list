@@ -5,29 +5,28 @@ rsb-call.o:     file format elf64-x86-64
 Disassembly of section .text:
 
 0000000000000000 <call_relbrd>:
-   0:	ff 35 30 00 00 00    	push   QWORD PTR [rip+0x30]        # 36 <orig_ra>
-   6:	50                   	push   rax
-   7:	48 89 e0             	mov    rax,rsp
-   a:	48 8b 25 00 00 00 00 	mov    rsp,QWORD PTR [rip+0x0]        # 11 <call_relbrd+0x11>
-  11:	48 3b 25 00 00 00 00 	cmp    rsp,QWORD PTR [rip+0x0]        # 18 <call_relbrd+0x18>
-  18:	74 13                	je     2d <call_relbrd.after_entry>
-  1a:	ff 35 1e 00 00 00    	push   QWORD PTR [rip+0x1e]        # 3e <new_ra>
-  20:	ff 35 10 00 00 00    	push   QWORD PTR [rip+0x10]        # 36 <orig_ra>
-  26:	48 89 25 00 00 00 00 	mov    QWORD PTR [rip+0x0],rsp        # 2d <call_relbrd.after_entry>
+   0:	50                   	push   rax
+   1:	48 89 e0             	mov    rax,rsp
+   4:	48 8b 25 00 00 00 00 	mov    rsp,QWORD PTR [rip+0x0]        # b <call_relbrd+0xb>
+   b:	48 3b 25 00 00 00 00 	cmp    rsp,QWORD PTR [rip+0x0]        # 12 <call_relbrd+0x12>
+  12:	74 13                	je     27 <call_relbrd.after_entry>
+  14:	ff 35 1e 00 00 00    	push   QWORD PTR [rip+0x1e]        # 38 <new_ra>
+  1a:	ff 35 10 00 00 00    	push   QWORD PTR [rip+0x10]        # 30 <orig_ra>
+  20:	48 89 25 00 00 00 00 	mov    QWORD PTR [rip+0x0],rsp        # 27 <call_relbrd.after_entry>
 
-000000000000002d <call_relbrd.after_entry>:
-  2d:	48 89 c4             	mov    rsp,rax
-  30:	58                   	pop    rax
-  31:	e9 00 00 00 00       	jmp    36 <orig_ra>
+0000000000000027 <call_relbrd.after_entry>:
+  27:	48 89 c4             	mov    rsp,rax
+  2a:	58                   	pop    rax
+  2b:	e9 00 00 00 00       	jmp    30 <orig_ra>
 
-0000000000000036 <orig_ra>:
-  36:	2a 00                	sub    al,BYTE PTR [rax]
-  38:	00 00                	add    BYTE PTR [rax],al
-  3a:	00 00                	add    BYTE PTR [rax],al
+0000000000000030 <orig_ra>:
+  30:	2a 00                	sub    al,BYTE PTR [rax]
+  32:	00 00                	add    BYTE PTR [rax],al
+  34:	00 00                	add    BYTE PTR [rax],al
 	...
 
-000000000000003e <new_ra>:
-  3e:	2a 00                	sub    al,BYTE PTR [rax]
-  40:	00 00                	add    BYTE PTR [rax],al
-  42:	00 00                	add    BYTE PTR [rax],al
+0000000000000038 <new_ra>:
+  38:	2a 00                	sub    al,BYTE PTR [rax]
+  3a:	00 00                	add    BYTE PTR [rax],al
+  3c:	00 00                	add    BYTE PTR [rax],al
 	...

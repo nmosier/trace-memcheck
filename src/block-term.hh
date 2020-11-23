@@ -19,13 +19,14 @@ public:
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
-  uint8_t *addr() const { return addr_; }
-
   static Terminator *Create(BlockPool& block_pool, const Instruction& branch, Tracee& trace,
 			    const LookupBlock& lb, RegisterBkpt rb);
   
+  void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
+
 protected:
-  Terminator(BlockPool& block_pool, size_t size, Tracee& tracee, const LookupBlock& lb);
+  Terminator(BlockPool& block_pool, size_t size, const Instruction& branch, Tracee& tracee,
+	     const LookupBlock& lb);
 
   uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
   uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
@@ -47,6 +48,8 @@ protected:
     };
   }
 
+  uint8_t *addr() const { return addr_; }
+
 private:
   using Buf = std::vector<uint8_t>;
   uint8_t *addr_;
@@ -54,6 +57,7 @@ private:
   Buf buf_;
   Tracee& tracee_;
   const LookupBlock lb_;
+  uint8_t *orig_branch_addr;
 
   template <typename I>  
   uint8_t *write_i(uint8_t *addr, I i) {
@@ -102,9 +106,6 @@ public:
 		const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;
-  uint8_t *orig_branch_addr;
-
-  void handle_bkpt(void);
 };
 
 class RetTerminator: public Terminator {
@@ -114,15 +115,37 @@ public:
 
 private:
   static constexpr size_t RET_SIZE = 0x2D; // from rsb-ret.asm.
-
-  void handle_bkpt(void);
 };
 
 class CallTerminator: public Terminator {
 public:
   CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size, const Instruction& call,
 		 Tracee& tracee, const LookupBlock& lb, const ReturnStackBuffer& rsb);
+
+protected:
+  uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE; }
+  
 private:
-  static constexpr size_t CALL_SIZE = 0x36; // from rsb-call.asm
+  static constexpr size_t CALL_SIZE = 0x2B; // from rsb-call.asm
   uint8_t **new_ra_ptr;
 };
+
+class CallDirTerminator: public CallTerminator {
+public:
+  CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
+		    Tracee& tracee, const LookupBlock& lb, const ReturnStackBuffer& rsb);
+  
+private:
+  static constexpr size_t CALL_DIR_SIZE = 11;
+};
+
+class CallIndTerminator: public CallTerminator {
+public:
+  CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
+		    Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb,
+		    const ReturnStackBuffer& rsb);
+  
+private:
+  static constexpr size_t CALL_IND_SIZE = 1;
+};
+
