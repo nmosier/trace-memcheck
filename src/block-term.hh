@@ -7,6 +7,8 @@ class Terminator;
 #include <type_traits>
 #include "inst.hh"
 #include "block-pool.hh"
+#include "ptr-pool.hh"
+#include "rsb.hh"
 
 class Terminator {
 public:
@@ -18,7 +20,6 @@ public:
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
   uint8_t *addr() const { return addr_; }
-  size_t size() const { return size_; }
 
   static Terminator *Create(BlockPool& block_pool, const Instruction& branch, Tracee& trace,
 			    const LookupBlock& lb, RegisterBkpt rb);
@@ -109,10 +110,19 @@ private:
 class RetTerminator: public Terminator {
 public:
   RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
-		const LookupBlock& lb, const RegisterBkpt& rb);
+		const LookupBlock& lb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
 private:
   static constexpr size_t RET_SIZE = 0x2D; // from rsb-ret.asm.
 
   void handle_bkpt(void);
+};
+
+class CallTerminator: public Terminator {
+public:
+  CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size, const Instruction& call,
+		 Tracee& tracee, const LookupBlock& lb, const ReturnStackBuffer& rsb);
+private:
+  static constexpr size_t CALL_SIZE = 0x36; // from rsb-call.asm
+  uint8_t **new_ra_ptr;
 };

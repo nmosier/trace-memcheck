@@ -140,12 +140,17 @@ public:
   enum class reg_t {RAX = 0b000, RBX = 0b011, RCX = 0b001, RDX = 0b010, RDI = 0b111, RSI = 0b110,
     RSP = 0b100, RBP = 0b101};
   static Instruction mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
+  static Instruction mov_mem64(uint8_t *pc, uint8_t *mem, reg_t reg);
   static constexpr size_t mov_mem64_len = 7;
+  static Instruction cmp_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
+  static constexpr size_t cmp_mem64_len = 7;
+  
   static Instruction push_reg(uint8_t *pc, reg_t reg);
   static constexpr size_t push_reg_len = 1;
   static Instruction pop_reg(uint8_t *pc, reg_t reg);
   static constexpr size_t pop_reg_len = 1;
-  
+  static Instruction add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm);
+  static constexpr size_t add_mem64_imm8_len = 8;
   
   /**
    * Convert call instruction to corresponding jump instruction.

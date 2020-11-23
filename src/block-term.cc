@@ -198,25 +198,90 @@ void IndTerminator::handle_bkpt() {
 
 
 RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
-			     const LookupBlock& lb, const RegisterBkpt& rb):
+			     const LookupBlock& lb, const RegisterBkpt& rb,
+			     const ReturnStackBuffer& rsb):
   Terminator(block_pool, RET_SIZE, tracee, lb)
 {
-  const uint8_t sizes[] = {4, 1, 7, 7, 2, 7, 1, 3, 2, 4, 1, 4, 1, 1};
-  constexpr auto ninsts = arrlen(sizes);
+  constexpr auto NINSTS = 13;
+  const std::array<uint8_t, NINSTS> sizes = {4, 1, 7, 7, 2, 8, 3, 2, 4, 1, 4, 1, 1};
 
-  /* assign addresses */
-  uint8_t *addrs[ninsts];
+  /* assign addressees */
+  std::array<uint8_t *, NINSTS> addrs;
   uint8_t *it = addr();
-  for (unsigned i = 0; i < ninsts; ++i) {
+  for (unsigned i = 0; i < NINSTS; ++i) {
     addrs[i] = it;
     it += sizes[i];
   }
 
   /* create instructions */
-  Instruction insts[ninsts];
-  insts[0] = Instruction(addrs[0], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
-  insts[1] = Instruction(addrs[1], {0x51}); // push rax
-  // TODO
-  abort();
-  (void) insts;
+  std::array<Instruction, NINSTS> insts;
+  insts[0] =  Instruction(addrs[0], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
+  insts[1] =  Instruction(addrs[1], {0x51}); // push rcx
+  insts[2] =  Instruction::mov_mem64(addrs[2], Instruction::reg_t::RCX, (uint8_t *) rsb.ptr());
+  insts[3] =  Instruction::cmp_mem64(addrs[3], Instruction::reg_t::RCX, (uint8_t *) rsb.begin());
+  insts[4] =  Instruction(addrs[4], {0x74, 0x17}); // je .mismatch
+  insts[5] =  Instruction::add_mem64_imm8(addrs[5], (uint8_t *) rsb.ptr(), 16); // add qword [rel ptr], 16
+  insts[6] =  Instruction(addrs[6], {0x48, 0x3b, 0x01}); // cmp rax, qword [rcx]
+  insts[7] =  Instruction(addrs[7], {0x75, 0x0a}); // jne .mismatch
+  insts[8] =  Instruction(addrs[8], {0x48, 0x8b, 0x41, 0x08}); // mov rax, qword [rcx + 8]
+  insts[9] =  Instruction(addrs[9], {0x59}); // pop rcx
+  insts[10] = Instruction(addrs[10], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
+  insts[11] = Instruction(addrs[11], {0xc3}); // ret
+  insts[12] = Instruction(addrs[12], {0xcc}); // int3
+
+  for (const auto& inst : insts) {
+    write(inst);
+  }
+  
+  flush();
+
+  rb(insts[12].pc(), make_callback(this, &RetTerminator::handle_bkpt));
 }
+
+void RetTerminator::handle_bkpt(void) {
+  // TODO: implement
+  abort();
+
+  // this should derive from IndTerminator, use that bkpt handler
+}
+
+CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size,
+			       const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+			       const ReturnStackBuffer& rsb):
+  Terminator(block_pool, size + CALL_SIZE, tracee, lb)
+{
+  constexpr auto NINSTS = 10;
+  const std::array<uint8_t, NINSTS> lens = {1, 3, 7, 7, 2, 6, 6, 7, 3, 1};
+
+  /* assign addresses */
+  std::array<uint8_t *, NINSTS> addrs;
+  uint8_t *it = addr();
+  for (auto i = 0; i < NINSTS; ++i) {
+    addrs[i] = it;
+    it += lens[i];
+  }
+
+  /* allocate pointers */
+  uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) call.after_pc());
+  new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) nullptr); // TODO: optimize -- check if TXed
+  
+  /* create instructions */
+  std::array<Instruction, NINSTS> insts;
+  insts[0]  = Instruction(addrs[0], {0x50}); // push rax
+  insts[1]  = Instruction(addrs[1], {0x48, 0x89, 0xe0}); // mov rax, rsp
+  insts[2]  = Instruction::mov_mem64(addrs[2], Instruction::reg_t::RSP, (uint8_t *) rsb.ptr());
+  insts[3]  = Instruction::cmp_mem64(addrs[3], Instruction::reg_t::RSP, (uint8_t *) rsb.end());
+  insts[4]  = Instruction(addrs[4], {0x74, 0x13}); // je 0x2d
+  insts[5]  = Instruction::push_mem(addrs[5], (uint8_t *) new_ra_ptr);
+  insts[6]  = Instruction::push_mem(addrs[6], (uint8_t *) orig_ra_ptr);
+  insts[7]  = Instruction::mov_mem64(addrs[7], (uint8_t *) rsb.ptr(), Instruction::reg_t::RSP);
+  insts[8]  = Instruction(addrs[8], {0x48, 0x89, 0xc4});
+  insts[9]  = Instruction(addrs[9], {0x58});
+
+  /* write instructions */
+  for (const auto& inst : insts) {
+    write(inst);
+  }
+  flush();
+}
+

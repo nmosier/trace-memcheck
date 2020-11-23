@@ -8,7 +8,6 @@ EXTERN rsb_end
 EXTERN dst
 	
 call_relbrd:
-	push qword [rel orig_ra]
 	push rax
 	mov rax, rsp
 	mov rsp, [rel rsb_ptr]

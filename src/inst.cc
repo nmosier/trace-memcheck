@@ -322,6 +322,27 @@ Instruction Instruction::mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem) {
   return Instruction(pc, data);
 }
 
+Instruction Instruction::mov_mem64(uint8_t *pc, uint8_t *mem, reg_t reg) {
+  Data data {0x48, 0x89, 0x05};
+  data[2] |= static_cast<uint8_t>(reg) << 3;
+  *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + mov_mem64_len);
+  return Instruction(pc, data);
+}
+
+Instruction Instruction::cmp_mem64(uint8_t *pc, reg_t reg, uint8_t *mem) {
+  Data data {0x48, 0x3b, 0x05};
+  data[2] |= static_cast<uint8_t>(reg) << 3;
+  *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + cmp_mem64_len);
+  return Instruction(pc, data);
+}
+
+Instruction Instruction::add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm) {
+  Data data {0x48, 0x83, 0x05};
+  *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + add_mem64_imm8_len);
+  data[7] = imm;
+  return Instruction(pc, data);
+}
+
 Instruction Instruction::push_reg(uint8_t *pc, reg_t reg) {
   return Instruction(pc, {static_cast<uint8_t>(0x50 | static_cast<uint8_t>(reg))});
 }
