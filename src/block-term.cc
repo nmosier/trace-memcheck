@@ -23,6 +23,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
   case XED_ICLASS_JMP:
     switch (branch.xed_iform()) {
     case XED_IFORM_JMP_RELBRd:
+    case XED_IFORM_JMP_RELBRb:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
     default:
       return new IndTerminator(block_pool, branch, tracee, lb, rb);
@@ -60,7 +61,7 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 				   Tracee& tracee, const LookupBlock& lb):
   Terminator(block_pool, DIR_JMP_SIZE, jmp, tracee, lb)
 {
-  assert(jmp.xed_iform() == XED_IFORM_JMP_RELBRd);
+  // assert(jmp.xed_iform() == XED_IFORM_JMP_RELBRd);
 
   uint8_t *orig_dst_addr = jmp.branch_dst();
   uint8_t *new_dst_addr = lb(orig_dst_addr);
@@ -140,6 +141,12 @@ IndTerminator::IndTerminator(BlockPool& block_pool, const Instruction& branch,
 
   /* register bkpt */
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
+
+#if 0
+  std::cout << "indjmp " << std::hex << (void *) branch.pc() << " "
+	    << branch.xed_iform_str() << " "
+	    << branch << std::endl;
+#endif
 }
 
 void Terminator::handle_bkpt_singlestep(void) {
