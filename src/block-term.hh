@@ -93,9 +93,9 @@ private:
   void handle_bkpt_jcc(void);
 };
 
-class IndTerminator: public Terminator {
+class JmpIndTerminator: public Terminator {
 public:
-  IndTerminator(BlockPool& block_pool, const Instruction& branch, Tracee& tracee,
+  JmpIndTerminator(BlockPool& block_pool, const Instruction& branch, Tracee& tracee,
 		const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t IND_SIZE = Instruction::int3_len;
@@ -107,7 +107,7 @@ public:
 		const LookupBlock& lb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
 private:
-  static constexpr size_t RET_SIZE = 0x32; // from rsb-ret.asm.
+  static constexpr size_t RET_SIZE = 0x35; // from rsb-ret.asm.
 };
 
 class CallTerminator: public Terminator {
@@ -120,7 +120,7 @@ protected:
   uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE_PRE; }
   
 private:
-  static constexpr size_t CALL_SIZE_PRE = 0x2B; // from rsb-call.asm
+  static constexpr size_t CALL_SIZE_PRE = 0x2D; // from rsb-call.asm
   static constexpr size_t CALL_SIZE_POST = 1; // one breakpoint
   static constexpr size_t CALL_SIZE = CALL_SIZE_PRE + CALL_SIZE_POST;
   uint8_t *orig_ra_val;
@@ -149,3 +149,5 @@ private:
   static constexpr size_t CALL_IND_SIZE = 1;
 };
 
+constexpr uint8_t PUSHF = 0x9c;
+constexpr uint8_t POPF = 0x9d;

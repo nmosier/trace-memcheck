@@ -6,6 +6,7 @@ EXTERN rsb_end
 
 ret_:
 	xchg rax, [rsp]
+	pushf 			; NEW
 	push rcx
 	mov rcx, [rel rsb_ptr]
 	cmp rcx, [rel rsb_begin]
@@ -15,10 +16,12 @@ ret_:
 	jne .mismatch
 	mov rax, [rcx + 8]
 	pop rcx
+	popf 			; NEW
 	xchg rax, [rsp]
 	ret
 .mismatch:
 	pop rcx
+	popf 			; NEW
 	xchg rax, [rsp]
 	int3
 

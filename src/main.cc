@@ -157,7 +157,9 @@ int main(int argc, char *argv[]) {
 	}
       } else {
 	bkpt_pc = tracee.get_pc() - 1;
-	
+	uint8_t pc_byte;
+	tracee.read(&pc_byte, 1, bkpt_pc);
+	assert(pc_byte == 0xcc);
 	patcher.handle_bkpt(bkpt_pc);
       }
     } else {

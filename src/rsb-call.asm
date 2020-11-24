@@ -9,6 +9,7 @@ EXTERN orig_ra
 EXTERN dst
 	
 call_relbrd:
+	pushf
 	push rax
 	mov rax, rsp
 	mov rsp, [rel rsb_ptr]
@@ -20,4 +21,5 @@ call_relbrd:
 .after_entry:
 	mov rsp, rax
 	pop rax
-	jmp dst
+	popf
+
