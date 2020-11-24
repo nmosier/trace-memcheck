@@ -22,11 +22,13 @@ static inline bool stopped_trace(int status) {
 int main(int argc, char *argv[]) {
   const auto usage = [=] (FILE *f) {
     const char *usage =
-      "usage: %s [-hg] command [args...]\n"	\
+      "usage: %s [-hgs] command [args...]\n"	\
       "Options:\n"				\
       " -h        show help\n"			\
       " -g        transfer control to GDB on error\n"	\
       " -p        enable profiling\n"			\
+      " -s        single-step\n"			\
+      " -x        print execution trace\n"		\
       ""
       ;
     fprintf(f, usage, argv[0]);
@@ -34,8 +36,10 @@ int main(int argc, char *argv[]) {
 
   bool gdb = false;
   bool profile = false;
+  bool singlestep = false;
+  bool execution_trace = false;
   
-  const char *optstring = "hgp";
+  const char *optstring = "hgpsx";
   int optchar;
   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
     switch (optchar) {
@@ -51,6 +55,14 @@ int main(int argc, char *argv[]) {
       profile = true;
       break;
 
+    case 's':
+      singlestep = true;
+      break;
+
+    case 'x':
+      execution_trace = true;
+      break;
+      
     default:
       usage(stderr);
       return 1;
@@ -97,19 +109,19 @@ int main(int argc, char *argv[]) {
       printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
     }
 
-#if SINGLE_STEP
-    status = tracee.singlestep();
-#else
-    status = tracee.cont();
-#endif
-
-# if DEBUG
-    if (WIFSTOPPED(status)) {
-      std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
-      Instruction cur_inst(tracee.get_pc(), tracee);
-      std::clog << cur_inst << std::endl;
+    if (singlestep) {
+      status = tracee.singlestep();
+    } else {
+      status = tracee.cont();
     }
-# endif
+
+    if (execution_trace) { 
+      if (WIFSTOPPED(status)) {
+	std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	Instruction cur_inst(tracee.get_pc(), tracee);
+	std::clog << cur_inst << std::endl;
+      }
+    }
 
     if (WIFSTOPPED(status)) {
       const int stopsig = WSTOPSIG(status);
@@ -127,30 +139,27 @@ int main(int argc, char *argv[]) {
 	}
       }
 
-#if SINGLE_STEP
-      uint8_t pc_byte;
-      tracee.read(&pc_byte, 1, tracee.get_pc());
-      while (pc_byte == 0xcc) {
-	// printf("bkpt pc = %p\n", get_pc(child));
-	bkpt_pc = tracee.get_pc();
-	tracee.set_pc(bkpt_pc);
-	patcher.handle_bkpt(bkpt_pc);
-
-# if DEBUG
-    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
-    Instruction cur_inst(tracee.get_pc(), tracee);
-    std::clog << cur_inst << std::endl;
-# endif	
-	
+      if (singlestep) {
+	uint8_t pc_byte;
 	tracee.read(&pc_byte, 1, tracee.get_pc());
+	while (pc_byte == 0xcc) {
+	  // printf("bkpt pc = %p\n", get_pc(child));
+	  bkpt_pc = tracee.get_pc();
+	  tracee.set_pc(bkpt_pc);
+	  patcher.handle_bkpt(bkpt_pc);
+
+	  if (execution_trace) {
+	    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	    Instruction cur_inst(tracee.get_pc(), tracee);
+	    std::clog << cur_inst << std::endl;
+	  }
+	  tracee.read(&pc_byte, 1, tracee.get_pc());
+	}
+      } else {
+	bkpt_pc = tracee.get_pc() - 1;
+	
+	patcher.handle_bkpt(bkpt_pc);
       }
-
-#else
-      bkpt_pc = tracee.get_pc() - 1;
-
-      patcher.handle_bkpt(bkpt_pc);
-
-#endif
     } else {
       break;
     }
