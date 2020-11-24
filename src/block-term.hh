@@ -121,6 +121,7 @@ protected:
   
 private:
   static constexpr size_t CALL_SIZE = 0x2B; // from rsb-call.asm
+  uint8_t *orig_ra_val;
   uint8_t **orig_ra_ptr;
   uint8_t **new_ra_ptr;
 };

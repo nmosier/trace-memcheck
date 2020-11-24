@@ -233,9 +233,15 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   }
 
   /* allocate pointers */
-  orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) nullptr); 
-  new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) nullptr); // TODO: optimize -- check if TXed
-  
+  orig_ra_val = call.after_pc();
+  uint8_t *orig_ra_val_tmp = nullptr;
+  uint8_t *new_ra_val;
+  if ((new_ra_val = pb(call.after_pc())) != nullptr) {
+    orig_ra_val_tmp = orig_ra_val;
+  }
+  orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val_tmp); 
+  new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) new_ra_val); // TODO: optimize -- check if TXed
+
   /* create instructions */
   std::array<Instruction, NINSTS> insts;
   insts[0]  = Instruction(addrs[0], {0x50}); // push rax
