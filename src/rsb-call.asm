@@ -3,8 +3,9 @@ BITS 64
 SECTION .text
 
 EXTERN rsb_ptr
-EXTERN rsb_begin
 EXTERN rsb_end
+EXTERN new_ra
+EXTERN orig_ra
 EXTERN dst
 	
 call_relbrd:
@@ -20,7 +21,3 @@ call_relbrd:
 	mov rsp, rax
 	pop rax
 	jmp dst
-	
-orig_ra: dq 42
-new_ra:	 dq 42
-

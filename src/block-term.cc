@@ -15,7 +15,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
     case XED_IFORM_CALL_NEAR_RELBRd:
-      return new CallDirTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rsb);
+      return new CallDirTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rb, rsb);
     default:
       return new CallIndTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rb, rsb);
     }
@@ -218,7 +218,8 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
 
 CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size,
 			       const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-			       const ProbeBlock& pb, const ReturnStackBuffer& rsb):
+			       const ProbeBlock& pb, const RegisterBkpt& rb,
+			       const ReturnStackBuffer& rsb):
   Terminator(block_pool, size + CALL_SIZE, call, tracee, lb)
 {
   constexpr auto NINSTS = 10;
@@ -231,18 +232,18 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
     addrs[i] = it;
     it += lens[i];
   }
+  uint8_t *bkpt_addr = addr() + CALL_SIZE_PRE + size;
 
   /* allocate pointers */
   orig_ra_val = call.after_pc();
-  uint8_t *orig_ra_val_tmp = nullptr;
   uint8_t *new_ra_val;
-  if ((new_ra_val = pb(call.after_pc())) != nullptr) {
-    orig_ra_val_tmp = orig_ra_val;
+  if ((new_ra_val = pb(call.after_pc())) == nullptr) {
+    new_ra_val = bkpt_addr;
   }
-  orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val_tmp); 
+  uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val);
   new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) new_ra_val); // TODO: optimize -- check if TXed
 
-  /* create instructions */
+  /* create pre instructions */
   std::array<Instruction, NINSTS> insts;
   insts[0]  = Instruction(addrs[0], {0x50}); // push rax
   insts[1]  = Instruction(addrs[1], {0x48, 0x89, 0xe0}); // mov rax, rsp
@@ -259,20 +260,32 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   for (auto i = 0; i < NINSTS; ++i) {
     assert(insts[i].size() == lens[i]);
   }
-  assert(CALL_SIZE == std::accumulate(lens.begin(), lens.end(), 0));
+  assert(CALL_SIZE_PRE == std::accumulate(lens.begin(), lens.end(), 0));
 
   /* write instructions */
   for (const auto& inst : insts) {
     write(inst);
   }
-  flush(); // TODO: duplicate flush with subclasses
 
+  /* post instructions */
+  const auto bkpt = Instruction::int3(bkpt_addr);
+  write(bkpt);
+  rb(bkpt_addr, make_callback(this, &CallTerminator::handle_bkpt_ret));
+  
+  flush(); // TODO: duplicate flush with subclasses
+}
+
+void CallTerminator::handle_bkpt_ret(void) {
+  uint8_t *new_ra_val = lookup_block(orig_ra_val);
+  tracee().write(&new_ra_val, sizeof(new_ra_val), new_ra_ptr);
+  tracee().set_pc(new_ra_val);
 }
 
 CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				     const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-				     const ProbeBlock& pb, const ReturnStackBuffer& rsb):
-  CallTerminator(block_pool, ptr_pool, CALL_DIR_SIZE, call, tracee, lb, pb, rsb)
+				     const ProbeBlock& pb, const RegisterBkpt& rb,
+				     const ReturnStackBuffer& rsb):
+  CallTerminator(block_pool, ptr_pool, CALL_DIR_SIZE, call, tracee, lb, pb, rb, rsb)
 {
   /* push [rel orig_ra] 
    * jmp new_dst
@@ -296,7 +309,7 @@ CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_poo
 				     const Instruction& call, Tracee& tracee, const LookupBlock& lb,
 				     const ProbeBlock& pb, const RegisterBkpt& rb,
 				     const ReturnStackBuffer& rsb):
-  CallTerminator(block_pool, ptr_pool, CALL_IND_SIZE, call, tracee, lb, pb, rsb)
+  CallTerminator(block_pool, ptr_pool, CALL_IND_SIZE, call, tracee, lb, pb, rb, rsb)
 {
   uint8_t *bkpt_addr = subaddr();
   const auto bkpt_inst = Instruction::int3(bkpt_addr);

@@ -113,24 +113,27 @@ private:
 class CallTerminator: public Terminator {
 public:
   CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size, const Instruction& call,
-		 Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
+		 Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
 		 const ReturnStackBuffer& rsb);
 
 protected:
-  uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE; }
+  uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE_PRE; }
   
 private:
-  static constexpr size_t CALL_SIZE = 0x2B; // from rsb-call.asm
+  static constexpr size_t CALL_SIZE_PRE = 0x2B; // from rsb-call.asm
+  static constexpr size_t CALL_SIZE_POST = 1; // one breakpoint
+  static constexpr size_t CALL_SIZE = CALL_SIZE_PRE + CALL_SIZE_POST;
   uint8_t *orig_ra_val;
-  uint8_t **orig_ra_ptr;
   uint8_t **new_ra_ptr;
+
+  void handle_bkpt_ret(void);  
 };
 
 class CallDirTerminator: public CallTerminator {
 public:
   CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
 		    Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
-		    const ReturnStackBuffer& rsb);
+		    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
 private:
   static constexpr size_t CALL_DIR_SIZE = 11;
