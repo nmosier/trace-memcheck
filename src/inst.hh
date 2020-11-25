@@ -115,6 +115,7 @@ public:
   uint8_t modrm_rm() const { return modrm() & 0b111; }
   void modrm_rm(uint8_t rm);
   
+  
   uint8_t *branch_dst(void) const;
   uint8_t *mem_dst(void) const;
 
@@ -144,6 +145,8 @@ public:
   static constexpr size_t mov_mem64_len = 7;
   static Instruction cmp_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
   static constexpr size_t cmp_mem64_len = 7;
+  static Instruction lea(uint8_t *pc, reg_t reg, uint8_t *mem);
+  static constexpr size_t lea_len = 7;
   
   static Instruction push_reg(uint8_t *pc, reg_t reg);
   static constexpr size_t push_reg_len = 1;
@@ -151,6 +154,10 @@ public:
   static constexpr size_t pop_reg_len = 1;
   static Instruction add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm);
   static constexpr size_t add_mem64_imm8_len = 8;
+  static Instruction pushf(uint8_t *pc) { return Instruction(pc, {0x9c}); }
+  static constexpr size_t pushf_len = 1;
+  static Instruction popf(uint8_t *pc) { return Instruction(pc, {0x9d}); }
+  static constexpr size_t popf_len = 1;
   
   /**
    * Convert call instruction to corresponding jump instruction.

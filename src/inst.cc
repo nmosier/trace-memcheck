@@ -336,6 +336,13 @@ Instruction Instruction::cmp_mem64(uint8_t *pc, reg_t reg, uint8_t *mem) {
   return Instruction(pc, data);
 }
 
+Instruction Instruction::lea(uint8_t *pc, reg_t reg, uint8_t *mem) {
+  Data data {0x48, 0x8d, 0x05};
+  data[2] |= static_cast<uint8_t>(reg) << 3;
+  *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + lea_len);
+  return Instruction(pc, data);
+}
+
 Instruction Instruction::add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm) {
   Data data {0x48, 0x83, 0x05};
   *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + add_mem64_imm8_len);
@@ -452,3 +459,4 @@ Instruction::Instruction(const Instruction& other, uint8_t *newpc) {
   *this = other;
   relocate(newpc);
 }
+
