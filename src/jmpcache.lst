@@ -7,8 +7,10 @@ Disassembly of section .text:
 0000000000000000 <jmpcache>:
    0:	9c                   	pushf  
    1:	50                   	push   rax
+   
    2:	48 8b 05 00 00 00 00 	mov    rax,QWORD PTR [rip+0x0]        # 9 <jmpcache+0x9>
    9:	48 8b 00             	mov    rax,QWORD PTR [rax]
+   
    c:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 13 <jmpcache+0x13>
   13:	75 07                	jne    1c <jmpcache.mismatch>
   15:	58                   	pop    rax

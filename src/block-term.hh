@@ -163,5 +163,11 @@ private:
   static constexpr size_t CALL_IND_SIZE = 1;
 };
 
-constexpr uint8_t PUSHF = 0x9c;
-constexpr uint8_t POPF = 0x9d;
+class IndTerminator: public virtual Terminator {
+public:
+  IndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
+		Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
+protected:
+  static constexpr size_t IND_SIZE = 0; // TODO
+private:
+};

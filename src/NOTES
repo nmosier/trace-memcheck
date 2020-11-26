@@ -143,3 +143,8 @@ RET:
 
 mismatch:
  bkpt
+
+------
+
+Optimizations:
+Indirect jmps/calls also need cache.

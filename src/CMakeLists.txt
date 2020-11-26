@@ -17,6 +17,7 @@ add_library(core_objs STATIC
   usermem.cc
   block-term.cc
   rsb.cc
+  config.cc
   )
 add_dependencies(core_objs xed)
 

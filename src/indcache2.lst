@@ -1,0 +1,24 @@
+
+indcache2.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <indcache>:
+   0:	9c                   	pushf  
+   1:	50                   	push   rax
+   2:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 9 <indcache+0x9>
+   9:	74 0a                	je     15 <indcache.match0>
+   b:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 12 <indcache+0x12>
+  12:	74 08                	je     1c <indcache.matchN>
+  14:	cc                   	int3   
+
+0000000000000015 <indcache.match0>:
+  15:	58                   	pop    rax
+  16:	9d                   	popf   
+  17:	e9 00 00 00 00       	jmp    1c <indcache.matchN>
+
+000000000000001c <indcache.matchN>:
+  1c:	58                   	pop    rax
+  1d:	9d                   	popf   
+  1e:	e9 00 00 00 00       	jmp    23 <indcache.matchN+0x7>

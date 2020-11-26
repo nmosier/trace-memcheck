@@ -9,10 +9,12 @@
 [X] use handlers in bkpt map
 [X] avoid redundant SET PCs
 [X] remove useless bkpt addresses in terminators
-[ ] Cache results from get_pc(), get_sp(), etc in Tracee?
-[ ] Better interface for getting/setting regs -
+[X] Cache results from get_pc(), get_sp(), etc in Tracee?
+[X] Better interface for getting/setting regs -
 [ ] Make Terminator constructors accept same args.
-[ ] Rewrite Tracee::write (iterator version) to use buffer
-[ ] CallTerminator needs to check if RA already translated.
-[ ] Fix potential bug -- CALL/RET modifies flags
+[X] Rewrite Tracee::write (iterator version) to use buffer
+[X] CallTerminator needs to check if RA already translated.
+[X] Fix potential bug -- CALL/RET modifies flags
 [ ] Fix duplicate flush with subclasses in Terminator
+[ ] Make JmpMemTerminator more general and accept subclasses
+[ ] Don't mess w/ stack -- use 'xchg rsp, [rel memcheck_stack]'

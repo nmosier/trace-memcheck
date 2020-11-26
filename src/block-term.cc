@@ -6,6 +6,7 @@
 #include "block-term.hh"
 #include "util.hh"
 #include "debug.h"
+#include "config.hh"
 
 Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
 			       const Instruction& branch, Tracee& tracee,
@@ -173,9 +174,11 @@ void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
   /* 4 */
   tracee().set_pc(new_pc);
 
-#if 0
-  printf("bkpt %016lx\n", (intptr_t) orig_branch_addr);
-#endif
+  if (g_conf.dump_ss_bkpts) {
+    fprintf(stderr, "bkpt %016lx ", (intptr_t) orig_branch_addr);
+    std::clog << "bkpt " << (void *) orig_branch_addr << " -> "
+	      << (void *) orig_pc << ": " << Instruction(orig_branch_addr, tracee()) << std::endl;
+  }
 }
 
 void Terminator::handle_bkpt_singlestep(void) {
@@ -205,7 +208,7 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   /* create instructions */
   std::array<Instruction, NINSTS> insts;
   insts[ 0] = Instruction(addrs[0], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
-  insts[ 1] = Instruction(addrs[1], {PUSHF}); // pushf
+  insts[ 1] = Instruction::pushf(addrs[1]); // pushf
   insts[ 2] = Instruction(addrs[2], {0x51}); // push rcx
   insts[ 3] = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RCX, (uint8_t *) rsb.ptr());
   insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RCX, (uint8_t *) rsb.begin());
@@ -215,11 +218,11 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   insts[ 8] = Instruction(addrs[8], {0x75, 0x0b}); // jne .mismatch
   insts[ 9] = Instruction(addrs[9], {0x48, 0x8b, 0x41, 0x08}); // mov rax, qword [rcx + 8]
   insts[10] = Instruction(addrs[10], {0x59}); // pop rcx
-  insts[11] = Instruction(addrs[11], {POPF}); // popf
+  insts[11] = Instruction::popf(addrs[11]); // popf
   insts[12] = Instruction(addrs[12], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
   insts[13] = Instruction(addrs[13], {0xc3}); // ret
   insts[14] = Instruction(addrs[14], {0x59}); // pop rcx
-  insts[15] = Instruction(addrs[15], {POPF}); // popf
+  insts[15] = Instruction::popf(addrs[15]); // popf
   insts[16] = Instruction(addrs[16], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
   insts[17] = Instruction(addrs[17], {0xcc}); // int3
 
@@ -267,7 +270,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
 
   /* create pre instructions */
   std::array<Instruction, NINSTS> insts;
-  insts[0]  = Instruction(addrs[0], {PUSHF}); // pushf
+  insts[0]  = Instruction::pushf(addrs[0]); // pushf
   insts[1]  = Instruction(addrs[1], {0x50}); // push rax
   insts[2]  = Instruction(addrs[2], {0x48, 0x89, 0xe0}); // mov rax, rsp
   insts[3]  = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RSP, (uint8_t *) rsb.ptr());
@@ -278,7 +281,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   insts[8]  = Instruction::mov_mem64(addrs[8], (uint8_t *) rsb.ptr(), Instruction::reg_t::RSP);
   insts[9]  = Instruction(addrs[9], {0x48, 0x89, 0xc4}); // mov rsp, rax
   insts[10] = Instruction(addrs[10], {0x58}); // pop rax
-  insts[11] = Instruction(addrs[11], {POPF}); // popf
+  insts[11] = Instruction::popf(addrs[11]); // popf
   
   /* assertions */
   for (auto i = 0; i < NINSTS; ++i) {
@@ -369,7 +372,7 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   insts[ 0] = Instruction::pushf(addrs[0]); // pushf
   insts[ 1] = Instruction(addrs[1], {0x50}); // push rax
   insts[ 2] = Instruction::mov_mem64(addrs[2], Instruction::reg_t::RAX, (uint8_t *) pointer); // mov rax,
-  insts[ 3] = Instruction(addrs[3], {0x48, 0x8b, 0x00});
+  insts[ 3] = Instruction(addrs[3], {0x48, 0x8b, 0x00}); // mov rax, [rax]
   insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RAX, (uint8_t *) orig_ptr); // cmp rax, []
   insts[ 5] = Instruction(addrs[5], {0x75, 0x07}); // jne .mismatch
   insts[ 6] = Instruction(addrs[6], {0x58}); // pop rax
@@ -405,8 +408,6 @@ void JmpMemTerminator::handle_bkpt(void) {
   uint8_t *new_pc;
   Terminator::handle_bkpt_singlestep(orig_pc, new_pc);
 
-  // fprintf(stderr, "updating cache: orig %p, new %p\n", orig_pc, new_pc);
-  
   /* update cache */
   tracee().write(&orig_pc, sizeof(orig_pc), (uint8_t *) orig_ptr);
   new_jmp.retarget(new_pc);

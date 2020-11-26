@@ -14,6 +14,7 @@
 #include "util.hh"
 #include "debug.h"
 #include "patch.hh"
+#include "config.hh"
 
 static inline bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
@@ -29,17 +30,13 @@ int main(int argc, char *argv[]) {
       " -p        enable profiling\n"			\
       " -s        single-step\n"			\
       " -x        print execution trace\n"		\
+      " -b        dump single-step breakpoint info\n"	\
       ""
       ;
     fprintf(f, usage, argv[0]);
   };
 
-  bool gdb = false;
-  bool profile = false;
-  bool singlestep = false;
-  bool execution_trace = false;
-  
-  const char *optstring = "hgpsx";
+  const char *optstring = "hgpsxb";
   int optchar;
   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
     switch (optchar) {
@@ -48,19 +45,23 @@ int main(int argc, char *argv[]) {
       return 0;
 
     case 'g':
-      gdb = true;
+      g_conf.gdb = true;
       break;
 
     case 'p':
-      profile = true;
+      g_conf.profile = true;
       break;
 
     case 's':
-      singlestep = true;
+      g_conf.singlestep = true;
       break;
 
     case 'x':
-      execution_trace = true;
+      g_conf.execution_trace = true;
+      break;
+
+    case 'b':
+      g_conf.dump_ss_bkpts = true;
       break;
       
     default:
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]) {
   
   uint8_t *bkpt_pc;
 
-  if (profile) {
+  if (g_conf.profile) {
     ProfilerStart("memcheck.prof");
   }
 
@@ -109,13 +110,13 @@ int main(int argc, char *argv[]) {
       printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
     }
 
-    if (singlestep) {
+    if (g_conf.singlestep) {
       status = tracee.singlestep();
     } else {
       status = tracee.cont();
     }
 
-    if (execution_trace) { 
+    if (g_conf.execution_trace) { 
       if (WIFSTOPPED(status)) {
 	std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
 	Instruction cur_inst(tracee.get_pc(), tracee);
@@ -132,14 +133,14 @@ int main(int argc, char *argv[]) {
 	Instruction inst(stop_pc, tracee);
 	fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
 	
-	if (gdb) {
+	if (g_conf.gdb) {
 	  tracee.gdb();
 	} else {
 	  abort();
 	}
       }
 
-      if (singlestep) {
+      if (g_conf.singlestep) {
 	uint8_t pc_byte;
 	tracee.read(&pc_byte, 1, tracee.get_pc());
 	while (pc_byte == 0xcc) {
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
 	  tracee.set_pc(bkpt_pc);
 	  patcher.handle_bkpt(bkpt_pc);
 
-	  if (execution_trace) {
+	  if (g_conf.execution_trace) {
 	    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
 	    Instruction cur_inst(tracee.get_pc(), tracee);
 	    std::clog << cur_inst << std::endl;
@@ -167,7 +168,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (profile) {
+  if (g_conf.profile) {
     ProfilerStop();
   }
   
