@@ -27,8 +27,10 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
       
     case XED_IFORM_JMP_MEMv:
-      return new JmpMemTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
-      
+      if (branch.xed_base_reg() == XED_REG_RIP) {
+	return new JmpMemTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
+      }
+      // fallthrough
     default:
       return new JmpIndTerminator(block_pool, branch, tracee, lb, rb);
     }
@@ -385,5 +387,6 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   rb(addrs[10], make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
   rb(addrs[11], [] () {
     std::clog << "jumped to NULL" << std::endl;
+    abort();
   });
 }
