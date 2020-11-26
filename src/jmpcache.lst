@@ -8,16 +8,17 @@ Disassembly of section .text:
    0:	9c                   	pushf  
    1:	50                   	push   rax
    2:	48 8b 05 00 00 00 00 	mov    rax,QWORD PTR [rip+0x0]        # 9 <jmpcache+0x9>
-   9:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 10 <jmpcache+0x10>
-  10:	75 07                	jne    19 <jmpcache.mismatch>
-  12:	58                   	pop    rax
-  13:	9d                   	popf   
-  14:	e9 00 00 00 00       	jmp    19 <jmpcache.mismatch>
+   9:	48 8b 00             	mov    rax,QWORD PTR [rax]
+   c:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 13 <jmpcache+0x13>
+  13:	75 07                	jne    1c <jmpcache.mismatch>
+  15:	58                   	pop    rax
+  16:	9d                   	popf   
+  17:	e9 00 00 00 00       	jmp    1c <jmpcache.mismatch>
 
-0000000000000019 <jmpcache.mismatch>:
-  19:	58                   	pop    rax
-  1a:	9d                   	popf   
-  1b:	cc                   	int3   
+000000000000001c <jmpcache.mismatch>:
+  1c:	58                   	pop    rax
+  1d:	9d                   	popf   
+  1e:	cc                   	int3   
 
-000000000000001c <jmpcache.null>:
-  1c:	cc                   	int3   
+000000000000001f <jmpcache.null>:
+  1f:	cc                   	int3   

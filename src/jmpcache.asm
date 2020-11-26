@@ -11,6 +11,7 @@ jmpcache:
 	pushf
 	push rax
 	mov rax, [rel pointer]
+	mov rax, [rax]
 	cmp rax, qword [rel orig0]
 	jne .mismatch
 	pop rax

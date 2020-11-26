@@ -25,6 +25,7 @@ public:
 			    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
   void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
+  void handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc); // also return original PC after single-stepping
 
 protected:
   Terminator(BlockPool& block_pool, size_t size, const Instruction& branch,
@@ -106,10 +107,12 @@ public:
   JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
 		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
 private:
-  static constexpr size_t JMP_MEM_SIZE = 0x1D;
+  static constexpr size_t JMP_MEM_SIZE = 0x20;
 
   uint8_t **orig_ptr;
   Instruction new_jmp;
+
+  void handle_bkpt(void);
 };
 
 class RetTerminator: public Terminator {

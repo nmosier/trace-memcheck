@@ -149,7 +149,7 @@ JmpIndTerminator::JmpIndTerminator(BlockPool& block_pool, const Instruction& bra
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 
-void Terminator::handle_bkpt_singlestep(void) {
+void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
   /* 1. jump to original branch
    * 2. single step
    * 3. lookup block for new pc
@@ -165,15 +165,23 @@ void Terminator::handle_bkpt_singlestep(void) {
   assert(WIFSTOPPED(status));
   assert(WSTOPSIG(status) == SIGTRAP);
 
+  orig_pc = tracee().get_pc();
+  
   /* 3 */
-  uint8_t *new_addr = lookup_block(tracee().get_pc());
+  new_pc = lookup_block(orig_pc);
 
   /* 4 */
-  tracee().set_pc(new_addr);
+  tracee().set_pc(new_pc);
 
 #if 0
   printf("bkpt %016lx\n", (intptr_t) orig_branch_addr);
 #endif
+}
+
+void Terminator::handle_bkpt_singlestep(void) {
+  uint8_t *orig_pc;
+  uint8_t *new_pc;
+  handle_bkpt_singlestep(orig_pc, new_pc);
 }
 
 
@@ -341,8 +349,8 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				   const LookupBlock& lb, const RegisterBkpt& rb):
   Terminator(block_pool, JMP_MEM_SIZE, jmp, tracee, lb)
 {
-  constexpr auto NINSTS = 12;
-  const std::array<uint8_t, NINSTS> lens = {1, 1, 7, 7, 2, 1, 1, 5, 1, 1, 1, 1};
+  constexpr auto NINSTS = 13;
+  const std::array<uint8_t, NINSTS> lens = {1, 1, 7, 3, 7, 2, 1, 1, 5, 1, 1, 1, 1};
 
   /* create pointers */
   uint8_t **pointer = (uint8_t **) ptr_pool.add(reinterpret_cast<uintptr_t>(jmp.mem_dst()));
@@ -361,15 +369,16 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   insts[ 0] = Instruction::pushf(addrs[0]); // pushf
   insts[ 1] = Instruction(addrs[1], {0x50}); // push rax
   insts[ 2] = Instruction::mov_mem64(addrs[2], Instruction::reg_t::RAX, (uint8_t *) pointer); // mov rax,
-  insts[ 3] = Instruction::cmp_mem64(addrs[3], Instruction::reg_t::RAX, (uint8_t *) orig_ptr); // cmp rax, []
-  insts[ 4] = Instruction(addrs[4], {0x75, 0x07}); // jne .mismatch
-  insts[ 5] = Instruction(addrs[5], {0x58}); // pop rax
-  insts[ 6] = Instruction::popf(addrs[6]); // popf
-  insts[ 7] = Instruction::jmp_relbrd(addrs[7], addrs[11]); // jmp .null
-  insts[ 8] = Instruction(addrs[8], {0x58}); // pop rax
-  insts[ 9] = Instruction::popf(addrs[9]); // popf
-  insts[10] = Instruction::int3(addrs[10]); // int3 (.mismtch)
-  insts[11] = Instruction::int3(addrs[11]); // int3 (.null)
+  insts[ 3] = Instruction(addrs[3], {0x48, 0x8b, 0x00});
+  insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RAX, (uint8_t *) orig_ptr); // cmp rax, []
+  insts[ 5] = Instruction(addrs[5], {0x75, 0x07}); // jne .mismatch
+  insts[ 6] = Instruction(addrs[6], {0x58}); // pop rax
+  insts[ 7] = Instruction::popf(addrs[7]); // popf
+  insts[ 8] = new_jmp = Instruction::jmp_relbrd(addrs[8], addrs[12]); // jmp .null
+  insts[ 9] = Instruction(addrs[9], {0x58}); // pop rax
+  insts[10] = Instruction::popf(addrs[10]); // popf
+  insts[11] = Instruction::int3(addrs[11]); // int3 (.mismtch)
+  insts[12] = Instruction::int3(addrs[12]); // int3 (.null)
   
   /* assertions */
   for (auto i = 0; i < NINSTS; ++i) {
@@ -384,9 +393,23 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   flush();
   
   /* register breakpoints */
-  rb(addrs[10], make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
-  rb(addrs[11], [] () {
+  rb(addrs[11], make_callback<JmpMemTerminator>(this, &JmpMemTerminator::handle_bkpt));
+  rb(addrs[12], [] () {
     std::clog << "jumped to NULL" << std::endl;
     abort();
   });
+}
+
+void JmpMemTerminator::handle_bkpt(void) {
+  uint8_t *orig_pc;
+  uint8_t *new_pc;
+  Terminator::handle_bkpt_singlestep(orig_pc, new_pc);
+
+  // fprintf(stderr, "updating cache: orig %p, new %p\n", orig_pc, new_pc);
+  
+  /* update cache */
+  tracee().write(&orig_pc, sizeof(orig_pc), (uint8_t *) orig_ptr);
+  new_jmp.retarget(new_pc);
+  write(new_jmp);
+  flush();
 }
