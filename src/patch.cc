@@ -7,8 +7,10 @@ Patcher::Patcher(Tracee& tracee):
 
 bool Patcher::patch(uint8_t *start_pc) {
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
-    return lookup_block_patch(addr, false)->pool_addr(); // cannot fail
-  }; // TODO: unify this with other def of lb
+    const auto res = lookup_block_patch(addr, true);
+    if (res == nullptr) { return nullptr; }
+    return res->pool_addr();
+  };
 
   const auto pb = [&] (uint8_t *addr) -> uint8_t * {
     const auto it = block_map.find(addr);
@@ -24,15 +26,13 @@ bool Patcher::patch(uint8_t *start_pc) {
     assert(res.second); (void) res;
   };
 
-  /* create block */
-  Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, pb, rb, rsb);
-  if (block == nullptr) {
-    return false;
-  }
-  const auto block_it = block_map.emplace(start_pc, block);
-  assert(block_it.second); (void) block_it;
+  const auto ib = [&] (uint8_t *addr, Block *block) {
+    const auto it = block_map.emplace(addr, block);
+    assert(it.second); (void) it;
+  };
 
-  return true;
+  /* create block */
+  return Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, pb, rb, rsb, ib);
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {

@@ -40,7 +40,14 @@ protected:
   void flush() const;
 
   template <typename... Args>
-  uint8_t *lookup_block(Args&&... args) { return lb_(args...); }
+  uint8_t *try_lookup_block(Args&&... args) { return lb_(args...); }
+
+  template <typename... Args>
+  uint8_t *lookup_block(Args&&... args) {
+    const auto res = try_lookup_block(args...);
+    assert(res != nullptr);
+    return res;
+  }
 
   Tracee& tracee() const { return tracee_; }
 
@@ -85,7 +92,7 @@ private:
 class DirJccTerminator: public Terminator {
 public:
   DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, Tracee& tracee,
-		   const LookupBlock& lb, const RegisterBkpt& rb);
+		   const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb);
 private:
   static constexpr size_t DIR_JCC_SIZE =
     Instruction::jcc_relbrd_len + Instruction::jmp_relbrd_len + Instruction::int3_len;
@@ -93,33 +100,11 @@ private:
   uint8_t *orig_dst;
   uint8_t *orig_fallthru;
   uint8_t *jcc_bkpt_addr;
-  uint8_t *fallthru_bkpt_addr;
-
+  uint8_t *fallthru_addr;
+  
   void handle_bkpt_fallthru(void);
   void handle_bkpt_jcc(void);
 };
-
-#if 0
-class JmpIndTerminator: public Terminator {
-public:
-  JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
-		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
-private:
-  static constexpr size_t JMP_MEM_SIZE_base = 3;
-  static constexpr size_t JMP_IND_SIZE_per = 7 + 9;
-  static size_t jmp_mem_size(const Instruction& jmp) {
-    return JMP_MEM_SIZE_base + load_addr_size(jmp);
-  }
-
-  Instruction new_jmp;
-
-  void handle_bkpt(void);
-
-  uint8_t *load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr);
-  static size_t load_addr_size(const Instruction& jmp);
-};
-
-#else
 
 template <size_t CACHELEN>
 class JmpIndTerminator: public Terminator {
@@ -142,9 +127,6 @@ private:
   std::array<Instruction, CACHELEN> newjmps;
   unsigned eviction_index = 0; // next entry to evict. Always in range [0, CACHELEN).
 };
-
-#endif
-
 
 class RetTerminator: public Terminator {
 public:

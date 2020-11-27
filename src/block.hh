@@ -31,10 +31,11 @@ public:
   using LookupBlock = Terminator::LookupBlock;
   using ProbeBlock = Terminator::ProbeBlock;
   using RegisterBkpt = Terminator::RegisterBkpt;
+  using InsertBlock = std::function<void (uint8_t *, Block *)>;
   
-  static Block *Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
-		       PointerPool& ptr_pool, const LookupBlock& lb, const ProbeBlock& pb,
-		       const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
+  static bool Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
+		     PointerPool& ptr_pool, const LookupBlock& lb, const ProbeBlock& pb,
+		     const RegisterBkpt& rb, const ReturnStackBuffer& rsb, const InsertBlock& ib);
   
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }

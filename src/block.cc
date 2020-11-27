@@ -12,9 +12,9 @@ size_t Block::size(const InstVec& insts) {
 			 });
 }
 
-Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
-		     PointerPool& ptr_pool, const LookupBlock& lb, const ProbeBlock& pb,
-		     const RegisterBkpt& rb, const ReturnStackBuffer& rsb) {
+bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
+		   PointerPool& ptr_pool, const LookupBlock& lb, const ProbeBlock& pb,
+		   const RegisterBkpt& rb, const ReturnStackBuffer& rsb, const InsertBlock& ib) {
   Block *block = new Block(tracee, orig_addr, block_pool);
 
   uint8_t *it = orig_addr;
@@ -25,7 +25,7 @@ Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   while (true) {
     inst = std::make_unique<Instruction>(it, tracee);
     if (!*inst) {
-      return nullptr;
+      return false;
     }
 
     it += inst->size(); // update original PC
@@ -48,15 +48,15 @@ Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   block->orig_branch_ = *inst;
   block->pool_addr_ = block_pool.alloc(size(block->insts_));
   block_pool.write_insts(block->pool_addr_, block->insts_);
+
+  ib(orig_addr, block);
   
   /* create terminator instructions */
   block->terminator_ =
     std::unique_ptr<Terminator>
     (Terminator::Create(block_pool, ptr_pool, *inst, tracee, lb, pb, rb, rsb));
-
   
-  
-  return block;
+  return true;
 }
 
 template <typename OutputIt>

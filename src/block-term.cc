@@ -34,7 +34,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
     return new RetTerminator(block_pool, branch, tracee, lb, rb, rsb);
 
   default: // XED_ICLASS_JCC
-    return new DirJccTerminator(block_pool, branch, tracee, lb, rb);
+    return new DirJccTerminator(block_pool, branch, tracee, lb, pb, rb);
   }
 }
 
@@ -65,7 +65,7 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
   // assert(jmp.xed_iform() == XED_IFORM_JMP_RELBRd);
 
   uint8_t *orig_dst_addr = jmp.branch_dst();
-  uint8_t *new_dst_addr = lb(orig_dst_addr);
+  uint8_t *new_dst_addr = lookup_block(orig_dst_addr);
 
   /* jmp <dst> */
 
@@ -76,7 +76,7 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 }
 
 DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc,
-				   Tracee& tracee, const LookupBlock& lb,
+				   Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
 				   const RegisterBkpt& rb):
   Terminator(block_pool, DIR_JCC_SIZE, jcc, tracee, lb), orig_dst(jcc.branch_dst()),
   orig_fallthru(jcc.after_pc())
@@ -91,31 +91,48 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
 
   /* assign addresses */
   uint8_t *jcc_addr = addr();
-  fallthru_bkpt_addr = jcc_addr + Instruction::jcc_relbrd_len;
-  jcc_bkpt_addr = fallthru_bkpt_addr + Instruction::jmp_relbrd_len;
+  fallthru_addr = jcc_addr + Instruction::jcc_relbrd_len;
+  jcc_bkpt_addr = fallthru_addr + Instruction::jmp_relbrd_len;
+
+  /* check for dst blocks */
+  const auto new_dst = pb(orig_dst);
+#if 0
+  const auto new_fallthru = try_lookup_block(orig_fallthru);
+#else
+  const auto new_fallthru = pb(orig_fallthru);
+#endif
   
   /* create blobs */
-  jcc_inst = jcc; jcc_inst.relocate(jcc_addr); jcc_inst.retarget(jcc_bkpt_addr); // TODO: optim
-  const auto fallthru_bkpt_inst = Instruction::int3(fallthru_bkpt_addr);
+  jcc_inst = jcc;
+  jcc_inst.relocate(jcc_addr);
+  if (new_dst == nullptr) {
+    jcc_inst.retarget(jcc_bkpt_addr); // TODO: optim
+    rb(jcc_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_jcc));
+  } else {
+    jcc_inst.retarget(new_dst);
+  }
+  Instruction fallthru_inst;
+  if (new_fallthru == nullptr) {
+    fallthru_inst = Instruction::int3(fallthru_addr);
+    rb(fallthru_addr, make_callback(this, &DirJccTerminator::handle_bkpt_fallthru));
+  } else {
+    fallthru_inst = Instruction::jmp_relbrd(fallthru_addr, new_fallthru);
+  }
   const auto jcc_bkpt_inst = Instruction::int3(jcc_bkpt_addr);
 
   /* write blobs */
   write(jcc_inst);
-  write(fallthru_bkpt_inst);
+  write(fallthru_inst);
   write(jcc_bkpt_inst);
-
+  
   /* flush */
   flush();
-
-  /* register breakpoints */
-  rb(fallthru_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_fallthru));
-  rb(jcc_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_jcc));
 }
 
 void DirJccTerminator::handle_bkpt_fallthru() {
   /* replace fallthru bkpt with jump */
   uint8_t *new_fallthru = lookup_block(orig_fallthru);
-  const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_bkpt_addr, new_fallthru);
+  const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_addr, new_fallthru);
   write(fallthru_inst);
   flush();
   tracee().set_pc(new_fallthru);
@@ -300,7 +317,7 @@ CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_poo
   
   uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) call.after_pc());
   uint8_t *orig_dst = call.branch_dst();
-  uint8_t *new_dst = lb(orig_dst);
+  uint8_t *new_dst = lookup_block(orig_dst);
 
   uint8_t *it = subaddr();
   it = write(Instruction::push_mem(it, (uint8_t *) orig_ra_ptr));
