@@ -5,9 +5,9 @@ Patcher::Patcher(Tracee& tracee):
   tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size),
   rsb(tracee, rsb_size) {}
 
-void Patcher::patch(uint8_t *start_pc) {
+bool Patcher::patch(uint8_t *start_pc) {
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
-    return lookup_block_patch(addr).pool_addr();
+    return lookup_block_patch(addr, false)->pool_addr(); // cannot fail
   }; // TODO: unify this with other def of lb
 
   const auto pb = [&] (uint8_t *addr) -> uint8_t * {
@@ -26,8 +26,13 @@ void Patcher::patch(uint8_t *start_pc) {
 
   /* create block */
   Block *block = Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, pb, rb, rsb);
+  if (block == nullptr) {
+    return false;
+  }
   const auto block_it = block_map.emplace(start_pc, block);
   assert(block_it.second); (void) block_it;
+
+  return true;
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
@@ -45,7 +50,7 @@ const Patcher::BkptCallback& Patcher::lookup_bkpt(uint8_t *addr) const {
   return bkpt_map.at(addr);
 }
 
-Block& Patcher::lookup_block_patch(uint8_t *addr) {
+Block *Patcher::lookup_block_patch(uint8_t *addr, bool can_fail) {
   assert(!is_pool_addr(addr));
   
   BlockMap::iterator it;
@@ -54,15 +59,23 @@ Block& Patcher::lookup_block_patch(uint8_t *addr) {
     if (it != block_map.end()) {
       break;
     }
-    patch(addr);
+    if (!patch(addr)) {
+      if (can_fail) {
+	return nullptr;
+      } else {
+	std::clog << "failed to translate block" << std::endl;
+	abort();
+      }
+    }
   }
-
-  return *it->second;
+  
+  return it->second;
 }
 
 void Patcher::start(uint8_t *root) {
-  patch(root);
-  Block& block = lookup_block_patch(root);
+  const bool patched = patch(root);
+  assert(patched); (void) patched;
+  Block& block = *lookup_block_patch(root, false); // cannot fail
   block.jump_to();
 }
 

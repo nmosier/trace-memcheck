@@ -14,7 +14,7 @@ class Patcher {
 public:
   Patcher(Tracee& tracee);
 
-  void patch(uint8_t *root);
+  bool patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);
   void start(uint8_t *root);
   void start(void);
@@ -36,7 +36,7 @@ private:
   PointerPool ptr_pool;
   ReturnStackBuffer rsb;
 
-  Block& lookup_block_patch(uint8_t *addr);
+  Block *lookup_block_patch(uint8_t *addr, bool can_fail);
   const BkptCallback& lookup_bkpt(uint8_t *addr) const;
   void jump_to_block(uint8_t *orig_addr);
   bool is_pool_addr(uint8_t *addr) const;

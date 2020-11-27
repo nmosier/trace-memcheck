@@ -24,7 +24,9 @@ Block *Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   /* get non-branch instructions */
   while (true) {
     inst = std::make_unique<Instruction>(it, tracee);
-    assert(*inst);
+    if (!*inst) {
+      return nullptr;
+    }
 
     it += inst->size(); // update original PC
     

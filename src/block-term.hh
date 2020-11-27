@@ -15,6 +15,7 @@ public:
   using InstVec = std::list<std::unique_ptr<Blob>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
+  using TryLookupBlock = std::function<uint8_t *(uint8_t *)>;
   using ProbeBlock = std::function<uint8_t *(uint8_t *)>; // returns nullptr if block not present
   using BkptCallback = std::function<void(void)>;
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
