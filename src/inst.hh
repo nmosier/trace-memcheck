@@ -127,6 +127,11 @@ public:
   bool good() const { return good_; }
   operator bool() const { return good(); }
 
+  enum class reg_t {RAX = 0b000, RBX = 0b011, RCX = 0b001, RDX = 0b010, RDI = 0b111, RSI = 0b110,
+    RSP = 0b100, RBP = 0b101};
+  enum class xreg_t {R8 = 0b000, R9 = 0b001, R10 = 0b010, R11 = 0b011, R12 = 0b100, R13 = 0b101,
+    R14 = 0b110, R15 = 0b111};
+  
   /*** INSTRUCTION GENERATORS ***/
   /* generates instruction of XED_JMP_RELBRd iform */
   static Instruction jmp_relbrd(uint8_t *pc, uint8_t *dst);
@@ -138,8 +143,6 @@ public:
   static Instruction int3(uint8_t *pc) { return Instruction(pc, Data {0xcc}); }
   static constexpr size_t int3_len = 1;
   static constexpr size_t jcc_relbrd_len = 6;
-  enum class reg_t {RAX = 0b000, RBX = 0b011, RCX = 0b001, RDX = 0b010, RDI = 0b111, RSI = 0b110,
-    RSP = 0b100, RBP = 0b101};
   static Instruction mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
   static Instruction mov_mem64(uint8_t *pc, uint8_t *mem, reg_t reg);
   static constexpr size_t mov_mem64_len = 7;
@@ -158,6 +161,10 @@ public:
   static constexpr size_t pushf_len = 1;
   static Instruction popf(uint8_t *pc) { return Instruction(pc, {0x9d}); }
   static constexpr size_t popf_len = 1;
+  static Instruction mov(uint8_t *pc, reg_t dst, reg_t src);
+  static Instruction mov(uint8_t *pc, reg_t dst, xreg_t src);
+
+  static reg_t reg_from_xed_reg(xed_reg_enum_t xed_reg);
   
   /**
    * Convert call instruction to corresponding jump instruction.

@@ -107,12 +107,18 @@ public:
   JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
 		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
 private:
-  static constexpr size_t JMP_MEM_SIZE = 0x20;
+  static constexpr size_t JMP_MEM_SIZE_base = 22;
+  static size_t jmp_mem_size(const Instruction& jmp) {
+    return JMP_MEM_SIZE_base + load_addr_size(jmp);
+  }
 
   uint8_t **orig_ptr;
   Instruction new_jmp;
 
   void handle_bkpt(void);
+
+  uint8_t *load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr);
+  static size_t load_addr_size(const Instruction& jmp);
 };
 
 class RetTerminator: public Terminator {

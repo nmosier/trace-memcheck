@@ -350,7 +350,7 @@ CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_poo
 JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				   const Instruction& jmp, Tracee& tracee,
 				   const LookupBlock& lb, const RegisterBkpt& rb):
-  Terminator(block_pool, JMP_MEM_SIZE, jmp, tracee, lb)
+  Terminator(block_pool, jmp_mem_size(jmp), jmp, tracee, lb)
 {
   constexpr auto NINSTS = 13;
   const std::array<uint8_t, NINSTS> lens = {1, 1, 7, 3, 7, 2, 1, 1, 5, 1, 1, 1, 1};
@@ -371,7 +371,7 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   std::array<Instruction, NINSTS> insts;
   insts[ 0] = Instruction::pushf(addrs[0]); // pushf
   insts[ 1] = Instruction(addrs[1], {0x50}); // push rax
-  insts[ 2] = Instruction::mov_mem64(addrs[2], Instruction::reg_t::RAX, (uint8_t *) pointer); // mov rax,
+  insts[ 2] = Instruction::mov_mem64(addrs[2], Instruction::reg_t::RAX, (uint8_t *) pointer); // mov rax, [rel pointer]
   insts[ 3] = Instruction(addrs[3], {0x48, 0x8b, 0x00}); // mov rax, [rax]
   insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RAX, (uint8_t *) orig_ptr); // cmp rax, []
   insts[ 5] = Instruction(addrs[5], {0x75, 0x07}); // jne .mismatch
@@ -387,7 +387,7 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   for (auto i = 0; i < NINSTS; ++i) {
     assert(insts[i].size() == lens[i]);
   }
-  assert(JMP_MEM_SIZE == std::accumulate(lens.begin(), lens.end(), 0));
+  assert(jmp_mem_size(jmp) == std::accumulate(lens.begin(), lens.end(), 0U));
 
   /* write instructions */
   for (const auto& inst : insts) {
@@ -413,4 +413,77 @@ void JmpMemTerminator::handle_bkpt(void) {
   new_jmp.retarget(new_pc);
   write(new_jmp);
   flush();
+}
+
+uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr) {
+  assert(jmp.xed_iclass() == XED_ICLASS_JMP);
+  
+  if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
+    uint8_t *dst = jmp.mem_dst();
+    uint8_t **ptr = (uint8_t **) ptr_pool.add((uintptr_t) dst);
+    const auto inst1 = Instruction::mov_mem64(addr, Instruction::reg_t::RAX, (uint8_t *) ptr);
+    addr += inst1.size();
+    const Instruction inst2(addr, {0x48, 0x8b, 0x00});
+    addr += inst2.size();
+
+    write(inst1);
+    write(inst2);
+
+    assert(inst1.size() + inst2.size() == load_addr_size(jmp));
+
+    return addr;
+  }
+
+  using Data = Instruction::Data;
+  Data newdata;
+  const uint8_t *data_it = jmp.data();
+  const uint8_t *data_end = data_it + jmp.size();
+  
+  Data::iterator newdata_it  = newdata.begin();
+  
+  /* check for prefix */
+  if ((*data_it & 0xf0) == 0x40) {
+    const uint8_t rex = *data_it++;
+    assert((rex & 0x43) == 0x43);
+    const uint8_t newrex = rex | 0b1000;
+    *newdata_it++ = newrex;
+  } else {
+    *newdata_it++ = 0x48;
+  }
+
+  /* opcode */
+  const uint8_t opcode = *data_it++;
+  assert(opcode == 0xff);
+  const uint8_t newopcode = 0x8b;
+  *newdata_it++ = newopcode;
+  
+  /* modify modrm byte */
+  const uint8_t modrm = *data_it;
+  const uint8_t newmodrm = (modrm & ~(0b111 << 3)) | (static_cast<uint8_t>(Instruction::reg_t::RAX) << 3);
+  *newdata_it++ = newmodrm;
+
+  /* copy remaining bytes */
+  std::copy(data_it, data_end, newdata_it);
+
+  /* create instruction */
+  const Instruction inst(addr, newdata);
+  write(inst);
+
+  // DEBUG: write inst
+  std::clog << jmp << " -> " << inst << std::endl;
+
+  assert(inst.size() == load_addr_size(jmp));
+  return addr + inst.size();
+}
+
+size_t JmpMemTerminator::load_addr_size(const Instruction& jmp) {
+  if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
+    return 10;
+  } else if (jmp.data()[0] == 0xff) {
+    return jmp.size() + 1;
+  } else {
+    const uint8_t rex = jmp.data()[0];
+    assert((rex & 0xf0) == 0x40);
+    return jmp.size();
+  }
 }

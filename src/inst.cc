@@ -460,3 +460,10 @@ Instruction::Instruction(const Instruction& other, uint8_t *newpc) {
   relocate(newpc);
 }
 
+Instruction Instruction::mov(uint8_t *pc, reg_t dst, reg_t src) {
+  uint8_t modrm = 0xc0;
+  modrm |= static_cast<uint8_t>(dst) << 3;
+  modrm |= static_cast<uint8_t>(src) << 0;
+  return Instruction(pc, {0x48, 0x89, modrm});
+}
+

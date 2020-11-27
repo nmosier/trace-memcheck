@@ -18,3 +18,4 @@
 [ ] Fix duplicate flush with subclasses in Terminator
 [ ] Make JmpMemTerminator more general and accept subclasses
 [ ] Don't mess w/ stack -- use 'xchg rsp, [rel memcheck_stack]'
+[ ] Optimize by not copying all instruction data
