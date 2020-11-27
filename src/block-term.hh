@@ -100,15 +100,7 @@ private:
 
 class JmpIndTerminator: public Terminator {
 public:
-  JmpIndTerminator(BlockPool& block_pool, const Instruction& branch, Tracee& tracee,
-		const LookupBlock& lb, const RegisterBkpt& rb);
-private:
-  static constexpr size_t IND_SIZE = Instruction::int3_len;
-};
-
-class JmpMemTerminator: public Terminator {
-public:
-  JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
+  JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
 		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
 private:
   static constexpr size_t JMP_MEM_SIZE_base = 22;

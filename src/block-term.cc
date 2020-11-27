@@ -26,19 +26,8 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
     case XED_IFORM_JMP_RELBRd:
     case XED_IFORM_JMP_RELBRb:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
-
-#if 0
-    case XED_IFORM_JMP_MEMv:
-      if (branch.xed_base_reg() == XED_REG_RIP) {
-	return new JmpMemTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
-      }
-      // fallthrough
     default:
-      return new JmpIndTerminator(block_pool, branch, tracee, lb, rb);
-#else
-    default:
-      return new JmpMemTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
-#endif
+      return new JmpIndTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
     }
 
   case XED_ICLASS_RET_NEAR:
@@ -139,20 +128,6 @@ void DirJccTerminator::handle_bkpt_jcc() {
   write(jcc_inst);
   tracee().set_pc(new_dst);
   flush();
-}
-
-JmpIndTerminator::JmpIndTerminator(BlockPool& block_pool, const Instruction& branch,
-			     Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb):
-  Terminator(block_pool, IND_SIZE, branch, tracee, lb)
-{
-  /* just bkpt */
-  uint8_t *bkpt_addr = addr();
-  const auto bkpt_inst = Instruction::int3(bkpt_addr);
-  write(bkpt_inst);
-  flush();
-
-  /* register bkpt */
-  rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 
 void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
@@ -352,7 +327,7 @@ CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_poo
 }
 
 
-JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
+JmpIndTerminator::JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				   const Instruction& jmp, Tracee& tracee,
 				   const LookupBlock& lb, const RegisterBkpt& rb):
   Terminator(block_pool, jmp_mem_size(jmp), jmp, tracee, lb)
@@ -408,14 +383,14 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   flush();
   
   /* register breakpoints */
-  rb(addrs[7], make_callback<JmpMemTerminator>(this, &JmpMemTerminator::handle_bkpt));
+  rb(addrs[7], make_callback<JmpIndTerminator>(this, &JmpIndTerminator::handle_bkpt));
   rb(addrs[8], [] () {
     std::clog << "jumped to NULL" << std::endl;
     abort();
   });
 }
 
-void JmpMemTerminator::handle_bkpt(void) {
+void JmpIndTerminator::handle_bkpt(void) {
   uint8_t *orig_pc;
   uint8_t *new_pc;
   Terminator::handle_bkpt_singlestep(orig_pc, new_pc);
@@ -427,7 +402,7 @@ void JmpMemTerminator::handle_bkpt(void) {
   flush();
 }
 
-uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr) {
+uint8_t *JmpIndTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr) {
   assert(jmp.xed_iclass() == XED_ICLASS_JMP);
   
   if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
@@ -500,7 +475,7 @@ uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_po
   return addr + inst.size();
 }
 
-size_t JmpMemTerminator::load_addr_size(const Instruction& jmp) {
+size_t JmpIndTerminator::load_addr_size(const Instruction& jmp) {
   if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
     return 10;
   } else {
