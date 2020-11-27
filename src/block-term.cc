@@ -26,7 +26,8 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
     case XED_IFORM_JMP_RELBRd:
     case XED_IFORM_JMP_RELBRb:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
-      
+
+#if 0
     case XED_IFORM_JMP_MEMv:
       if (branch.xed_base_reg() == XED_REG_RIP) {
 	return new JmpMemTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
@@ -34,6 +35,10 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
       // fallthrough
     default:
       return new JmpIndTerminator(block_pool, branch, tracee, lb, rb);
+#else
+    default:
+      return new JmpMemTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
+#endif
     }
 
   case XED_ICLASS_RET_NEAR:
@@ -447,11 +452,23 @@ uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_po
   const uint8_t *data_end = data_it + jmp.size();
   
   Data::iterator newdata_it  = newdata.begin();
+
+  /* check for non-REX prefix */
+  while (true) {
+    switch (*data_it) {
+    case 0xF2:
+      *newdata_it++ = *data_it++;
+      break;
+    default:
+      goto post_prefixes;
+    }
+  }
+ post_prefixes:
   
   /* check for prefix */
   if ((*data_it & 0xf0) == 0x40) {
     const uint8_t rex = *data_it++;
-    assert((rex & 0x43) == 0x43);
+    assert((rex & 0x43) == rex);
     const uint8_t newrex = rex | 0b1000;
     *newdata_it++ = newrex;
   } else {
@@ -465,7 +482,7 @@ uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_po
   *newdata_it++ = newopcode;
   
   /* modify modrm byte */
-  const uint8_t modrm = *data_it;
+  const uint8_t modrm = *data_it++;
   const uint8_t newmodrm = (modrm & ~(0b111 << 3)) | (static_cast<uint8_t>(Instruction::reg_t::RAX) << 3);
   *newdata_it++ = newmodrm;
 
@@ -477,7 +494,7 @@ uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_po
   write(inst);
 
   // DEBUG: write inst
-  std::clog << jmp << " -> " << inst << std::endl;
+  // std::clog << jmp << " -> " << inst << std::endl;
 
   assert(inst.size() == load_addr_size(jmp));
   return addr + inst.size();
@@ -486,12 +503,26 @@ uint8_t *JmpMemTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_po
 size_t JmpMemTerminator::load_addr_size(const Instruction& jmp) {
   if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
     return 10;
-  } else if (jmp.data()[0] == 0xff) {
-    return jmp.size() + 1;
   } else {
-    const uint8_t rex = jmp.data()[0];
-    assert((rex & 0xf0) == 0x40);
-    return jmp.size();
+    /* skip non-REX prefixes */
+    auto it = jmp.data();
+    while (true) {
+      switch (*it) {
+      case 0xF2:
+	++it;
+	break;
+      default:
+	goto label;
+      }
+    }
+  label:
+    if (*it == 0xff) {
+      return jmp.size() + 1;
+    } else {
+      const uint8_t rex = *it;
+      assert((rex & 0xf0) == 0x40);
+      return jmp.size();
+    }
   }
 }
 
