@@ -352,42 +352,49 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 				   const LookupBlock& lb, const RegisterBkpt& rb):
   Terminator(block_pool, jmp_mem_size(jmp), jmp, tracee, lb)
 {
-  constexpr auto NINSTS = 13;
-  const std::array<uint8_t, NINSTS> lens = {1, 1, 7, 3, 7, 2, 1, 1, 5, 1, 1, 1, 1};
+  uint8_t *addr_it = addr();
 
+  const auto pushf = Instruction::pushf(addr_it);
+  addr_it += pushf.size();
+
+  const Instruction push_rax(addr_it, {0x50});
+  addr_it += push_rax.size();
+
+  write(pushf);
+  write(push_rax);
+
+  /* get address into RAX */
+  addr_it = load_addr(jmp, ptr_pool, addr_it);
+
+  /* rest of instructions */
+  constexpr auto NINSTS = 9;
+  const std::array<uint8_t, NINSTS> lens = {7, 2, 1, 1, 5, 1, 1, 1, 1};
+  
   /* create pointers */
-  uint8_t **pointer = (uint8_t **) ptr_pool.add(reinterpret_cast<uintptr_t>(jmp.mem_dst()));
   orig_ptr = (uint8_t **) ptr_pool.add(reinterpret_cast<uintptr_t>(nullptr));
 
   /* assign addresses */
   std::array<uint8_t *, NINSTS> addrs;
-  auto it = addr();
-  for (auto i = 0; i < NINSTS; ++i) {
-    addrs[i] = it;
-    it += lens[i];
-  }
+  addr_it = assign_addresses(lens, addrs, addr_it);
 
   /* create instructions */
   std::array<Instruction, NINSTS> insts;
-  insts[ 0] = Instruction::pushf(addrs[0]); // pushf
-  insts[ 1] = Instruction(addrs[1], {0x50}); // push rax
-  insts[ 2] = Instruction::mov_mem64(addrs[2], Instruction::reg_t::RAX, (uint8_t *) pointer); // mov rax, [rel pointer]
-  insts[ 3] = Instruction(addrs[3], {0x48, 0x8b, 0x00}); // mov rax, [rax]
-  insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RAX, (uint8_t *) orig_ptr); // cmp rax, []
-  insts[ 5] = Instruction(addrs[5], {0x75, 0x07}); // jne .mismatch
-  insts[ 6] = Instruction(addrs[6], {0x58}); // pop rax
-  insts[ 7] = Instruction::popf(addrs[7]); // popf
-  insts[ 8] = new_jmp = Instruction::jmp_relbrd(addrs[8], addrs[12]); // jmp .null
-  insts[ 9] = Instruction(addrs[9], {0x58}); // pop rax
-  insts[10] = Instruction::popf(addrs[10]); // popf
-  insts[11] = Instruction::int3(addrs[11]); // int3 (.mismtch)
-  insts[12] = Instruction::int3(addrs[12]); // int3 (.null)
+  insts[0] = Instruction::cmp_mem64(addrs[0], Instruction::reg_t::RAX,
+				    (uint8_t *) orig_ptr); // cmp rax, []
+  insts[1] = Instruction(addrs[1], {0x75, 0x07}); // jne .mismatch
+  insts[2] = Instruction(addrs[2], {0x58}); // pop rax
+  insts[3] = Instruction::popf(addrs[3]); // popf
+  insts[4] = new_jmp = Instruction::jmp_relbrd(addrs[4], addrs[8]); // jmp .null
+  insts[5] = Instruction(addrs[5], {0x58}); // pop rax
+  insts[6] = Instruction::popf(addrs[6]); // popf
+  insts[7] = Instruction::int3(addrs[7]); // int3 (.mismtch)
+  insts[8] = Instruction::int3(addrs[8]); // int3 (.null)
   
   /* assertions */
   for (auto i = 0; i < NINSTS; ++i) {
     assert(insts[i].size() == lens[i]);
   }
-  assert(jmp_mem_size(jmp) == std::accumulate(lens.begin(), lens.end(), 0U));
+  assert(jmp_mem_size(jmp) == static_cast<size_t>(addr_it - addr()));
 
   /* write instructions */
   for (const auto& inst : insts) {
@@ -396,8 +403,8 @@ JmpMemTerminator::JmpMemTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
   flush();
   
   /* register breakpoints */
-  rb(addrs[11], make_callback<JmpMemTerminator>(this, &JmpMemTerminator::handle_bkpt));
-  rb(addrs[12], [] () {
+  rb(addrs[7], make_callback<JmpMemTerminator>(this, &JmpMemTerminator::handle_bkpt));
+  rb(addrs[8], [] () {
     std::clog << "jumped to NULL" << std::endl;
     abort();
   });
@@ -487,3 +494,17 @@ size_t JmpMemTerminator::load_addr_size(const Instruction& jmp) {
     return jmp.size();
   }
 }
+
+template <size_t N>
+uint8_t *Terminator::assign_addresses(const std::array<uint8_t, N>& lens,
+				      std::array<uint8_t *, N>& addrs, uint8_t *addr) {
+  auto lens_it = lens.begin();
+  auto addrs_it = addrs.begin();
+  for (; lens_it != lens.end(); ++lens_it) {
+    *addrs_it++ = addr;
+    addr += *lens_it;
+  }
+
+  return addr;
+}
+

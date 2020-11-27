@@ -53,6 +53,10 @@ protected:
 
   uint8_t *addr() const { return addr_; }
 
+  template <size_t N>
+  static uint8_t *assign_addresses(const std::array<uint8_t, N>& lens,
+				   std::array<uint8_t *, N>& addrs, uint8_t *addr);
+
 private:
   using Buf = std::vector<uint8_t>;
   uint8_t *addr_;
