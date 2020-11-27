@@ -27,7 +27,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
     case XED_IFORM_JMP_RELBRb:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
     default:
-      return new JmpIndTerminator(block_pool, ptr_pool, branch, tracee, lb, rb);
+      return new JmpIndTerminator<1>(block_pool, ptr_pool, branch, tracee, lb, rb);
     }
 
   case XED_ICLASS_RET_NEAR:
@@ -326,83 +326,122 @@ CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_poo
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 
+template <size_t CACHELEN>
+uint8_t *JmpIndTerminator<CACHELEN>::match_addr(size_t n, const Instruction& jmp) const {
+  return addr() + JMP_IND_SIZE_base + JMP_IND_SIZE_cmp * CACHELEN
+    + load_addr_size(jmp) + JMP_IND_SIZE_match * n;
+}
 
-JmpIndTerminator::JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
-				   const Instruction& jmp, Tracee& tracee,
-				   const LookupBlock& lb, const RegisterBkpt& rb):
-  Terminator(block_pool, jmp_mem_size(jmp), jmp, tracee, lb)
+template <size_t CACHELEN>
+size_t JmpIndTerminator<CACHELEN>::jmp_ind_size(const Instruction& jmp) {
+  return JMP_IND_SIZE_base + CACHELEN * JMP_IND_SIZE_per + load_addr_size(jmp);
+}
+
+template <size_t CACHELEN>
+JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
+					     const Instruction& jmp, Tracee& tracee,
+					     const LookupBlock& lb, const RegisterBkpt& rb):
+  Terminator(block_pool, jmp_ind_size(jmp), jmp, tracee, lb)
 {
-  uint8_t *addr_it = addr();
+  /* make orig pointers */
+  for (auto& orig : origs) {
+    orig = (uint8_t **) ptr_pool.add((uintptr_t) nullptr);
+  }
+  
+  uint8_t *it = addr();
 
-  const auto pushf = Instruction::pushf(addr_it);
-  addr_it += pushf.size();
-
-  const Instruction push_rax(addr_it, {0x50});
-  addr_it += push_rax.size();
+  const auto pushf = Instruction::pushf(it);
+  it += pushf.size();
+  const auto push_rax = Instruction(it, {0x50});
+  it += push_rax.size();
 
   write(pushf);
   write(push_rax);
 
   /* get address into RAX */
-  addr_it = load_addr(jmp, ptr_pool, addr_it);
+  it = load_addr(jmp, ptr_pool, it);
 
-  /* rest of instructions */
-  constexpr auto NINSTS = 9;
-  const std::array<uint8_t, NINSTS> lens = {7, 2, 1, 1, 5, 1, 1, 1, 1};
-  
-  /* create pointers */
-  orig_ptr = (uint8_t **) ptr_pool.add(reinterpret_cast<uintptr_t>(nullptr));
+  /* comparisons */
+  for (size_t i = 0; i < CACHELEN; ++i) {
+    const auto cmp = Instruction::cmp_mem64(it, Instruction::reg_t::RAX, (uint8_t *) origs[i]);
+    it += cmp.size();
+    const auto je = Instruction::je_b(it,  match_addr(i, jmp));
+    it += je.size();
 
-  /* assign addresses */
-  std::array<uint8_t *, NINSTS> addrs;
-  addr_it = assign_addresses(lens, addrs, addr_it);
-
-  /* create instructions */
-  std::array<Instruction, NINSTS> insts;
-  insts[0] = Instruction::cmp_mem64(addrs[0], Instruction::reg_t::RAX,
-				    (uint8_t *) orig_ptr); // cmp rax, []
-  insts[1] = Instruction(addrs[1], {0x75, 0x07}); // jne .mismatch
-  insts[2] = Instruction(addrs[2], {0x58}); // pop rax
-  insts[3] = Instruction::popf(addrs[3]); // popf
-  insts[4] = new_jmp = Instruction::jmp_relbrd(addrs[4], addrs[8]); // jmp .null
-  insts[5] = Instruction(addrs[5], {0x58}); // pop rax
-  insts[6] = Instruction::popf(addrs[6]); // popf
-  insts[7] = Instruction::int3(addrs[7]); // int3 (.mismtch)
-  insts[8] = Instruction::int3(addrs[8]); // int3 (.null)
-  
-  /* assertions */
-  for (auto i = 0; i < NINSTS; ++i) {
-    assert(insts[i].size() == lens[i]);
+    write(cmp);
+    write(je);
   }
-  assert(jmp_mem_size(jmp) == static_cast<size_t>(addr_it - addr()));
 
-  /* write instructions */
-  for (const auto& inst : insts) {
-    write(inst);
-  }
-  flush();
+  /* mismatch cleanup */
+  const auto pop_rax = Instruction(it, {0x58});
+  it += pop_rax.size();
+  const auto popf = Instruction::popf(it);
+  it += popf.size();
+  write(pop_rax);
+  write(popf);
   
-  /* register breakpoints */
-  rb(addrs[7], make_callback<JmpIndTerminator>(this, &JmpIndTerminator::handle_bkpt));
-  rb(addrs[8], [] () {
+  /* mismatch breakpoint */
+  const auto mismatch_bkpt = Instruction::int3(it);
+  it += mismatch_bkpt.size();
+  write(mismatch_bkpt);
+  rb(mismatch_bkpt.pc(), make_callback(this, &JmpIndTerminator::handle_bkpt));
+
+  /* null breakpoint */
+  const auto null_bkpt = Instruction::int3(it);
+  it += null_bkpt.size();
+  write(null_bkpt);
+  rb(null_bkpt.pc(), [&] () {
     std::clog << "jumped to NULL" << std::endl;
+    std::clog << "pc: " << (void *) tracee.get_pc() << std::endl;
+    const auto begin = addr();
+    const auto end = begin + jmp_ind_size(jmp);
+    tracee.disas(std::clog, begin, end);
+    
     abort();
   });
+  
+  assert(static_cast<size_t>(it - addr())
+	 == JMP_IND_SIZE_base + JMP_IND_SIZE_cmp * CACHELEN + load_addr_size(jmp));
+  
+  /* matches */
+  for (size_t i = 0; i < CACHELEN; ++i) {
+    const auto pop_rax = Instruction(it, {0x58});
+    it += pop_rax.size();
+    const auto popf = Instruction::popf(it);
+    it += popf.size();
+    newjmps[i] = Instruction::jmp_relbrd(it, null_bkpt.pc());
+    it += newjmps[i].size();
+    
+    write(pop_rax);
+    write(popf);
+    write(newjmps[i]);
+  }
+
+  flush();
+
+  /* assertions */
+  assert(jmp_ind_size(jmp) == static_cast<size_t>(it - addr()));
 }
 
-void JmpIndTerminator::handle_bkpt(void) {
+template <size_t CACHELEN>
+void JmpIndTerminator<CACHELEN>::handle_bkpt(void) {
   uint8_t *orig_pc;
   uint8_t *new_pc;
   Terminator::handle_bkpt_singlestep(orig_pc, new_pc);
 
-  /* update cache */
-  tracee().write(&orig_pc, sizeof(orig_pc), (uint8_t *) orig_ptr);
-  new_jmp.retarget(new_pc);
-  write(new_jmp);
+  /* Update cache: shift origs & newjmps down, add new pair at front.
+   */
+  const auto i = eviction_index;
+  tracee().write(&orig_pc, sizeof(orig_pc), (uint8_t *) origs[i]);
+  newjmps[i].retarget(new_pc);
+  write(newjmps[i]);
   flush();
+  eviction_index = (eviction_index + 1) % CACHELEN;
 }
 
-uint8_t *JmpIndTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr) {
+template <size_t CACHELEN>
+uint8_t *JmpIndTerminator<CACHELEN>::load_addr(const Instruction& jmp, PointerPool& ptr_pool,
+					       uint8_t *addr) {
   assert(jmp.xed_iclass() == XED_ICLASS_JMP);
   
   if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
@@ -475,7 +514,8 @@ uint8_t *JmpIndTerminator::load_addr(const Instruction& jmp, PointerPool& ptr_po
   return addr + inst.size();
 }
 
-size_t JmpIndTerminator::load_addr_size(const Instruction& jmp) {
+template <size_t CACHELEN>
+size_t JmpIndTerminator<CACHELEN>::load_addr_size(const Instruction& jmp) {
   if (jmp.xed_iform() == XED_IFORM_JMP_MEMv && jmp.xed_base_reg() == XED_REG_RIP) {
     return 10;
   } else {

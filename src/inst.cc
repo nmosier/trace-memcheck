@@ -449,7 +449,7 @@ bool Instruction::is_conditional_branch(void) const {
   case XED_ICLASS_JS:
   case XED_ICLASS_JZ:
     return true;
-
+    
   default:
     return false;
   }
@@ -467,3 +467,7 @@ Instruction Instruction::mov(uint8_t *pc, reg_t dst, reg_t src) {
   return Instruction(pc, {0x48, 0x89, modrm});
 }
 
+Instruction Instruction::je_b(uint8_t *pc, uint8_t *dst) {
+  int8_t diff = dst - (pc + je_b_len);
+  return Instruction(pc, {0x74, static_cast<uint8_t>(diff)});
+}

@@ -67,6 +67,8 @@ public:
   void gdb(void);
 
   std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
+
+  void disas(std::ostream& os, uint8_t *begin, uint8_t *end);
   
 private:
   pid_t pid_;

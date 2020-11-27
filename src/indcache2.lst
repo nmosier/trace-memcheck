@@ -8,17 +8,20 @@ Disassembly of section .text:
    0:	9c                   	pushf  
    1:	50                   	push   rax
    2:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 9 <indcache+0x9>
-   9:	74 0a                	je     15 <indcache.match0>
+   9:	74 0b                	je     16 <indcache.match0>
    b:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 12 <indcache+0x12>
-  12:	74 08                	je     1c <indcache.matchN>
+  12:	74 09                	je     1d <indcache.matchN>
   14:	cc                   	int3   
 
-0000000000000015 <indcache.match0>:
-  15:	58                   	pop    rax
-  16:	9d                   	popf   
-  17:	e9 00 00 00 00       	jmp    1c <indcache.matchN>
+0000000000000015 <indcache.null>:
+  15:	cc                   	int3   
 
-000000000000001c <indcache.matchN>:
-  1c:	58                   	pop    rax
-  1d:	9d                   	popf   
-  1e:	e9 00 00 00 00       	jmp    23 <indcache.matchN+0x7>
+0000000000000016 <indcache.match0>:
+  16:	58                   	pop    rax
+  17:	9d                   	popf   
+  18:	e9 00 00 00 00       	jmp    1d <indcache.matchN>
+
+000000000000001d <indcache.matchN>:
+  1d:	58                   	pop    rax
+  1e:	9d                   	popf   
+  1f:	e9 00 00 00 00       	jmp    24 <indcache.matchN+0x7>

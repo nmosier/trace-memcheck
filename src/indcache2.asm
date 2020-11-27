@@ -11,13 +11,19 @@ indcache:
 	cmp rax, [rel origN]
 	je .matchN
 	;;
+	pop rax
+	popf
 	int3			; bkpt
+.null:
+	int3 			; null
 	
 .match0:
 	pop rax
 	popf
 	jmp new0
-
+	
+	;; ...
+	
 .matchN:
 	pop rax
 	popf

@@ -234,3 +234,11 @@ std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {
 void Tracee::write(const Blob& blob) const {
   write(blob.data(), blob.size(), blob.pc());
 }
+
+void Tracee::disas(std::ostream& os, uint8_t *begin, uint8_t *end) {
+  Instruction inst;
+  for (uint8_t *it = begin; it < end; it += inst.size()) {
+    inst = Instruction(it, *this);
+    std::clog << inst << std::endl;
+  }
+}

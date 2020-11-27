@@ -98,17 +98,18 @@ private:
   void handle_bkpt_jcc(void);
 };
 
+#if 0
 class JmpIndTerminator: public Terminator {
 public:
   JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
 		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
 private:
-  static constexpr size_t JMP_MEM_SIZE_base = 22;
+  static constexpr size_t JMP_MEM_SIZE_base = 3;
+  static constexpr size_t JMP_IND_SIZE_per = 7 + 9;
   static size_t jmp_mem_size(const Instruction& jmp) {
     return JMP_MEM_SIZE_base + load_addr_size(jmp);
   }
 
-  uint8_t **orig_ptr;
   Instruction new_jmp;
 
   void handle_bkpt(void);
@@ -116,6 +117,33 @@ private:
   uint8_t *load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr);
   static size_t load_addr_size(const Instruction& jmp);
 };
+
+#else
+
+template <size_t CACHELEN>
+class JmpIndTerminator: public Terminator {
+public:
+  JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& jmp,
+		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
+private:
+  static constexpr size_t JMP_IND_SIZE_base = 6;
+  static constexpr size_t JMP_IND_SIZE_cmp = 9;
+  static constexpr size_t JMP_IND_SIZE_match = 7;
+  static constexpr size_t JMP_IND_SIZE_per = JMP_IND_SIZE_cmp + JMP_IND_SIZE_match;
+  static size_t jmp_ind_size(const Instruction& jmp);
+  uint8_t *load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr);
+  static size_t load_addr_size(const Instruction& jmp);
+  uint8_t *match_addr(size_t n, const Instruction& jmp) const;
+
+  void handle_bkpt(void);
+
+  std::array<uint8_t **, CACHELEN> origs;
+  std::array<Instruction, CACHELEN> newjmps;
+  unsigned eviction_index = 0; // next entry to evict. Always in range [0, CACHELEN).
+};
+
+#endif
+
 
 class RetTerminator: public Terminator {
 public:

@@ -163,6 +163,8 @@ public:
   static constexpr size_t popf_len = 1;
   static Instruction mov(uint8_t *pc, reg_t dst, reg_t src);
   static Instruction mov(uint8_t *pc, reg_t dst, xreg_t src);
+  static Instruction je_b(uint8_t *pc, uint8_t *dst);
+  static constexpr size_t je_b_len = 2;
 
   static reg_t reg_from_xed_reg(xed_reg_enum_t xed_reg);
   
