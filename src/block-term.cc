@@ -260,15 +260,9 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   orig_ra_val = call.after_pc();
   uint8_t *new_ra_val;
 
-#if 0
-  if ((new_ra_val = pb(call.after_pc())) == nullptr) {
-    new_ra_val = bkpt_addr;
-  }
-#else
   if ((new_ra_val = try_lookup_block(call.after_pc())) == nullptr) {
     new_ra_val = bkpt_addr;
   }
-#endif
   
   uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val);
   new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) new_ra_val); // TODO: optimize -- check if TXed
