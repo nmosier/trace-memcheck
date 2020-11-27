@@ -259,24 +259,32 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   /* allocate pointers */
   orig_ra_val = call.after_pc();
   uint8_t *new_ra_val;
+
+#if 0
   if ((new_ra_val = pb(call.after_pc())) == nullptr) {
     new_ra_val = bkpt_addr;
   }
+#else
+  if ((new_ra_val = try_lookup_block(call.after_pc())) == nullptr) {
+    new_ra_val = bkpt_addr;
+  }
+#endif
+  
   uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val);
   new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) new_ra_val); // TODO: optimize -- check if TXed
 
   /* create pre instructions */
   std::array<Instruction, NINSTS> insts;
-  insts[0]  = Instruction::pushf(addrs[0]); // pushf
-  insts[1]  = Instruction(addrs[1], {0x50}); // push rax
-  insts[2]  = Instruction(addrs[2], {0x48, 0x89, 0xe0}); // mov rax, rsp
-  insts[3]  = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RSP, (uint8_t *) rsb.ptr());
-  insts[4]  = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RSP, (uint8_t *) rsb.end());
-  insts[5]  = Instruction(addrs[5], {0x74, 0x13}); // je 0x2d
-  insts[6]  = Instruction::push_mem(addrs[6], (uint8_t *) new_ra_ptr); // push qword [rel new_ra]
-  insts[7]  = Instruction::push_mem(addrs[7], (uint8_t *) orig_ra_ptr); // push qword [rel orig_ra]
-  insts[8]  = Instruction::mov_mem64(addrs[8], (uint8_t *) rsb.ptr(), Instruction::reg_t::RSP);
-  insts[9]  = Instruction(addrs[9], {0x48, 0x89, 0xc4}); // mov rsp, rax
+  insts[ 0] = Instruction::pushf(addrs[0]); // pushf
+  insts[ 1] = Instruction(addrs[1], {0x50}); // push rax
+  insts[ 2] = Instruction(addrs[2], {0x48, 0x89, 0xe0}); // mov rax, rsp
+  insts[ 3] = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RSP, (uint8_t *) rsb.ptr());
+  insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RSP, (uint8_t *) rsb.end());
+  insts[ 5] = Instruction(addrs[5], {0x74, 0x13}); // je 0x2d
+  insts[ 6] = Instruction::push_mem(addrs[6], (uint8_t *) new_ra_ptr); // push qword [rel new_ra]
+  insts[ 7] = Instruction::push_mem(addrs[7], (uint8_t *) orig_ra_ptr); // push qword [rel orig_ra]
+  insts[ 8] = Instruction::mov_mem64(addrs[8], (uint8_t *) rsb.ptr(), Instruction::reg_t::RSP);
+  insts[ 9] = Instruction(addrs[9], {0x48, 0x89, 0xc4}); // mov rsp, rax
   insts[10] = Instruction(addrs[10], {0x58}); // pop rax
   insts[11] = Instruction::popf(addrs[11]); // popf
   
