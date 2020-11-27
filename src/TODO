@@ -19,4 +19,5 @@
 [ ] Make JmpMemTerminator more general and accept subclasses
 [ ] Don't mess w/ stack -- use 'xchg rsp, [rel memcheck_stack]'
 [ ] Optimize by not copying all instruction data
-[ ] Support multiple jmp cache slots
+[X] Support multiple jmp cache slots
+[ ] For-loop for large jmp cache

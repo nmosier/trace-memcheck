@@ -148,3 +148,11 @@ mismatch:
 
 Optimizations:
 Indirect jmps/calls also need cache.
+
+-----
+
+1   0.500
+2   0.461
+3   0.446
+4   0.440
+8   0.433

@@ -27,7 +27,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
     case XED_IFORM_JMP_RELBRb:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
     default:
-      return new JmpIndTerminator<1>(block_pool, ptr_pool, branch, tracee, lb, rb);
+      return new JmpIndTerminator<4>(block_pool, ptr_pool, branch, tracee, lb, rb);
     }
 
   case XED_ICLASS_RET_NEAR:
