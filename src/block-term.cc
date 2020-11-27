@@ -491,7 +491,7 @@ uint8_t *JmpIndTerminator<CACHELEN>::load_addr(const Instruction& jmp, PointerPo
 
   /* opcode */
   const uint8_t opcode = *data_it++;
-  assert(opcode == 0xff);
+  assert(opcode == 0xff); (void) opcode;
   const uint8_t newopcode = 0x8b;
   *newdata_it++ = newopcode;
   
@@ -535,7 +535,7 @@ size_t JmpIndTerminator<CACHELEN>::load_addr_size(const Instruction& jmp) {
       return jmp.size() + 1;
     } else {
       const uint8_t rex = *it;
-      assert((rex & 0xf0) == 0x40);
+      assert((rex & 0xf0) == 0x40); (void) rex;
       return jmp.size();
     }
   }
