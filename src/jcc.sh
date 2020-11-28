@@ -25,11 +25,13 @@ END {
     print \"CC\", \"JCC\", \"FALLTHRU\", \"FRAC\";
     for (cc in jccs) {
     	/* compute factor */
-	frac = jccs[cc] / fallthrus[cc];
-	if (frac == 0) {
+	if (jccs[cc] == 0 || fallthrus[cc] == 0) {
 	   frac = \"inf\";
-	} else if (frac < 1) {
-	   frac = 1 / frac;
+	} else {
+	   frac = jccs[cc] / fallthrus[cc];
+	   if (frac < 1) {
+	      frac = 1 / frac;
+	   }
 	}
     	print cc, jccs[cc], fallthrus[cc], frac;
     }
