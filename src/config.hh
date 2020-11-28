@@ -6,6 +6,7 @@ struct Config {
   bool singlestep = false;
   bool execution_trace = false;
   bool dump_ss_bkpts = false;
+  bool dump_jcc_bkpts = false;
 };
 
 extern Config g_conf;

@@ -23,20 +23,21 @@ static inline bool stopped_trace(int status) {
 int main(int argc, char *argv[]) {
   const auto usage = [=] (FILE *f) {
     const char *usage =
-      "usage: %s [-hgs] command [args...]\n"	\
-      "Options:\n"				\
-      " -h        show help\n"			\
-      " -g        transfer control to GDB on error\n"	\
-      " -p        enable profiling\n"			\
-      " -s        single-step\n"			\
-      " -x        print execution trace\n"		\
-      " -b        dump single-step breakpoint info\n"	\
+      "usage: %s [-hgs] command [args...]\n"			\
+      "Options:\n"						\
+      " -h        show help\n"					\
+      " -g        transfer control to GDB on error\n"		\
+      " -p        enable profiling\n"				\
+      " -s        single-step\n"				\
+      " -x        print execution trace\n"			\
+      " -b        dump single-step breakpoint info\n"		\
+      " -j        dump conditional jump breakpoint info\n"	\
       ""
       ;
     fprintf(f, usage, argv[0]);
   };
 
-  const char *optstring = "hgpsxb";
+  const char *optstring = "hgpsxbj";
   int optchar;
   while ((optchar = getopt(argc, argv, optstring)) >= 0) {
     switch (optchar) {
@@ -62,6 +63,10 @@ int main(int argc, char *argv[]) {
 
     case 'b':
       g_conf.dump_ss_bkpts = true;
+      break;
+
+    case 'j':
+      g_conf.dump_jcc_bkpts = true;
       break;
       
     default:

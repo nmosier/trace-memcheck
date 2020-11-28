@@ -1,5 +1,6 @@
 #include <memory>
 #include <algorithm>
+#include <unordered_map>
 #include <cassert>
 #include <sys/wait.h>
 #include <unordered_set>
@@ -95,12 +96,42 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   jcc_bkpt_addr = fallthru_addr + Instruction::jmp_relbrd_len;
 
   /* check for dst blocks */
-  const auto new_dst = pb(orig_dst);
-#if 0
-  const auto new_fallthru = try_lookup_block(orig_fallthru);
+#if 1
+  const Bias bias = get_bias(jcc);
+    
 #else
-  const auto new_fallthru = pb(orig_fallthru);
+  
+  static const std::unordered_map<int, Bias> biases =
+    {{XED_ICLASS_JS,   Bias::FALLTHRU}, // F 6.5
+     {XED_ICLASS_JNS,  Bias::JCC     }, // J 1.7
+     {XED_ICLASS_JBE,  Bias::NONE    }, // J 1.2
+     {XED_ICLASS_JL,   Bias::FALLTHRU}, // F 1.5
+     {XED_ICLASS_JZ,   Bias::NONE    }, // F 1.4
+     {XED_ICLASS_JNLE, Bias::FALLTHRU}, // F 2.8
+     {XED_ICLASS_JNL,  Bias::FALLTHRU}, // F 1.6
+     {XED_ICLASS_JNZ,  Bias::FALLTHRU}, // F 2.0
+     {XED_ICLASS_JO,   Bias::FALLTHRU}, // F inf
+     {XED_ICLASS_JB,   Bias::FALLTHRU}, // F 1.5
+     {XED_ICLASS_JNBE, Bias::FALLTHRU}, // F 2.4
+     {XED_ICLASS_JNB,  Bias::FALLTHRU}, // F 1.8
+     {XED_ICLASS_JLE,  Bias::NONE    }, // F 1.1
+    };
+  const Bias bias = biases.at(jcc.xed_iclass());
 #endif
+
+  uint8_t *new_dst;
+  if (bias == Bias::JCC) {
+    new_dst = try_lookup_block(orig_dst);
+  } else {
+    new_dst = pb(orig_dst);
+  }
+
+  uint8_t *new_fallthru;
+  if (bias == Bias::FALLTHRU) {
+    new_fallthru = try_lookup_block(orig_fallthru);
+  } else {
+    new_fallthru = pb(orig_fallthru);
+  }
   
   /* create blobs */
   jcc_inst = jcc;
@@ -129,6 +160,62 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   flush();
 }
 
+DirJccTerminator::Bias DirJccTerminator::get_bias(const Instruction& inst) {
+  const auto data = inst.data();
+  uint8_t index;
+  if (data[0] == 0x0f) {
+    assert((data[1] & 0xf0) == 0x80);
+    index = data[1] & 0x0f;
+  } else {
+    assert((data[0] & 0xf0) == 0x70);
+    index = data[0] & 0x0f;
+  }
+  
+  constexpr unsigned
+    JO  = 0x0,
+    JNO = 0x1,
+    JB  = 0x2,
+    JNB = 0x3,
+    JZ  = 0x4,
+    JNZ = 0x5,
+    JBE = 0x6,
+    JNBE= 0x7,
+    JS  = 0x8,
+    JNS = 0x9,
+    JP  = 0xa,
+    JNP = 0xb,
+    JL  = 0xc,
+    JNL = 0xd,
+    JLE = 0xe,
+    JNLE= 0xf
+    ;
+  (void) JNO; (void) JP; (void) JNP;
+
+  switch (index) {
+  case JZ:
+  case JBE:
+    return Bias::NONE;
+    
+  case JS:
+  case JL:
+  case JNLE:
+  case JNL:
+  case JNZ:
+  case JO: 
+  case JB: 
+  case JNBE:
+  case JNB: 
+  case JLE:
+    return Bias::FALLTHRU;
+    
+  case JNS:
+    return Bias::JCC;
+    
+  default:
+    abort();
+  }
+}
+
 void DirJccTerminator::handle_bkpt_fallthru() {
   /* replace fallthru bkpt with jump */
   uint8_t *new_fallthru = lookup_block(orig_fallthru);
@@ -136,6 +223,10 @@ void DirJccTerminator::handle_bkpt_fallthru() {
   write(fallthru_inst);
   flush();
   tracee().set_pc(new_fallthru);
+
+  if (g_conf.dump_jcc_bkpts) {
+    std::clog << "FALLTHRU " << jcc_inst << std::endl;
+  }
 }
 
 void DirJccTerminator::handle_bkpt_jcc() {
@@ -145,6 +236,10 @@ void DirJccTerminator::handle_bkpt_jcc() {
   write(jcc_inst);
   tracee().set_pc(new_dst);
   flush();
+
+  if (g_conf.dump_jcc_bkpts) {
+    std::clog << "JCC " << jcc_inst << std::endl;
+  }
 }
 
 void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
@@ -302,6 +397,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
 }
 
 void CallTerminator::handle_bkpt_ret(void) {
+  std::clog << "warning: return address misprediction" << std::endl;
   uint8_t *new_ra_val = lookup_block(orig_ra_val);
   tracee().write(&new_ra_val, sizeof(new_ra_val), new_ra_ptr);
   tracee().set_pc(new_ra_val);
