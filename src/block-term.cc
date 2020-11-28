@@ -82,7 +82,7 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   Terminator(block_pool, DIR_JCC_SIZE, jcc, tracee, lb), orig_dst(jcc.branch_dst()),
   orig_fallthru(jcc.after_pc())
 {
-  const std::unordered_set<int> jcc_iclasses = {XED_ICLASS_JB, XED_ICLASS_JBE, XED_ICLASS_JL, XED_ICLASS_JLE, XED_ICLASS_JNB, XED_ICLASS_JNBE, XED_ICLASS_JNL, XED_ICLASS_JNLE, XED_ICLASS_JNO, XED_ICLASS_JNP, XED_ICLASS_JNS, XED_ICLASS_JNZ, XED_ICLASS_JO, XED_ICLASS_JP, XED_ICLASS_JS, XED_ICLASS_JZ};
+  static const std::unordered_set<int> jcc_iclasses = {XED_ICLASS_JB, XED_ICLASS_JBE, XED_ICLASS_JL, XED_ICLASS_JLE, XED_ICLASS_JNB, XED_ICLASS_JNBE, XED_ICLASS_JNL, XED_ICLASS_JNLE, XED_ICLASS_JNO, XED_ICLASS_JNP, XED_ICLASS_JNS, XED_ICLASS_JNZ, XED_ICLASS_JO, XED_ICLASS_JP, XED_ICLASS_JS, XED_ICLASS_JZ};
   assert(jcc_iclasses.find(jcc.xed_iclass()) != jcc_iclasses.end());
   
   /* jcc L0
@@ -286,7 +286,8 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   Terminator(block_pool, RET_SIZE, ret, tracee, lb)
 {
   constexpr auto NINSTS = 18;
-  const std::array<uint8_t, NINSTS> lens = {4, 1, 1, 7, 7, 2, 8, 3, 2, 4, 1, 1, 4, 1, 1, 1, 4, 1};
+  static const std::array<uint8_t, NINSTS> lens
+    {4, 1, 1, 7, 7, 2, 8, 3, 2, 4, 1, 1, 4, 1, 1, 1, 4, 1};
 
   /* assign addressees */
   std::array<uint8_t *, NINSTS> addrs;
@@ -340,7 +341,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   Terminator(block_pool, size + CALL_SIZE, call, tracee, lb)
 {
   constexpr auto NINSTS = 12;
-  const std::array<uint8_t, NINSTS> lens = {1, 1, 3, 7, 7, 2, 6, 6, 7, 3, 1, 1};
+  static const std::array<uint8_t, NINSTS> lens = {1, 1, 3, 7, 7, 2, 6, 6, 7, 3, 1, 1};
 
   /* assign addresses */
   std::array<uint8_t *, NINSTS> addrs;
