@@ -110,7 +110,7 @@ private:
   void handle_bkpt_jcc(void);
 
   enum class Bias {JCC, FALLTHRU, NONE};
-  static Bias get_bias(const Instruction& inst);
+  Bias get_bias(const Instruction& inst);
 };
 
 template <size_t CACHELEN>
