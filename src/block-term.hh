@@ -65,6 +65,7 @@ protected:
   static uint8_t *assign_addresses(const std::array<uint8_t, N>& lens,
 				   std::array<uint8_t *, N>& addrs, uint8_t *addr);
 
+  
 private:
   using Buf = std::vector<uint8_t>;
   uint8_t *addr_;
@@ -72,13 +73,15 @@ private:
   Buf buf_;
   Tracee& tracee_;
   const LookupBlock lb_;
-  uint8_t *orig_branch_addr;
+  uint8_t *orig_branch_addr_;
 
   template <typename I>  
   uint8_t *write_i(uint8_t *addr, I i) {
     static_assert(std::is_integral<I>(), "require integral type");
     return write(addr, reinterpret_cast<const uint8_t *>(&i), sizeof(i));
   }
+
+  uint8_t *orig_branch_addr() const { return orig_branch_addr_; }
 };
 
 class DirJmpTerminator: public Terminator {
@@ -101,6 +104,7 @@ private:
   uint8_t *orig_fallthru;
   uint8_t *jcc_bkpt_addr;
   uint8_t *fallthru_addr;
+  xed_iform_enum_t iform;
   
   void handle_bkpt_fallthru(void);
   void handle_bkpt_jcc(void);

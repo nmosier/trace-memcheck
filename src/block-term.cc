@@ -42,7 +42,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
 Terminator::Terminator(BlockPool& block_pool, size_t size, const Instruction& branch,
 		       Tracee& tracee, const LookupBlock& lb):
   addr_(block_pool.peek()), size_(size), buf_(size), tracee_(tracee), lb_(lb),
-  orig_branch_addr(branch.pc())
+  orig_branch_addr_(branch.pc())
 {
   block_pool.alloc(size_);
 }
@@ -80,7 +80,7 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
 				   Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
 				   const RegisterBkpt& rb):
   Terminator(block_pool, DIR_JCC_SIZE, jcc, tracee, lb), orig_dst(jcc.branch_dst()),
-  orig_fallthru(jcc.after_pc())
+  orig_fallthru(jcc.after_pc()), iform(jcc.xed_iform())
 {
   static const std::unordered_set<int> jcc_iclasses = {XED_ICLASS_JB, XED_ICLASS_JBE, XED_ICLASS_JL, XED_ICLASS_JLE, XED_ICLASS_JNB, XED_ICLASS_JNBE, XED_ICLASS_JNL, XED_ICLASS_JNLE, XED_ICLASS_JNO, XED_ICLASS_JNP, XED_ICLASS_JNS, XED_ICLASS_JNZ, XED_ICLASS_JO, XED_ICLASS_JP, XED_ICLASS_JS, XED_ICLASS_JZ};
   assert(jcc_iclasses.find(jcc.xed_iclass()) != jcc_iclasses.end());
@@ -96,28 +96,7 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   jcc_bkpt_addr = fallthru_addr + Instruction::jmp_relbrd_len;
 
   /* check for dst blocks */
-#if 1
   const Bias bias = get_bias(jcc);
-    
-#else
-  
-  static const std::unordered_map<int, Bias> biases =
-    {{XED_ICLASS_JS,   Bias::FALLTHRU}, // F 6.5
-     {XED_ICLASS_JNS,  Bias::JCC     }, // J 1.7
-     {XED_ICLASS_JBE,  Bias::NONE    }, // J 1.2
-     {XED_ICLASS_JL,   Bias::FALLTHRU}, // F 1.5
-     {XED_ICLASS_JZ,   Bias::NONE    }, // F 1.4
-     {XED_ICLASS_JNLE, Bias::FALLTHRU}, // F 2.8
-     {XED_ICLASS_JNL,  Bias::FALLTHRU}, // F 1.6
-     {XED_ICLASS_JNZ,  Bias::FALLTHRU}, // F 2.0
-     {XED_ICLASS_JO,   Bias::FALLTHRU}, // F inf
-     {XED_ICLASS_JB,   Bias::FALLTHRU}, // F 1.5
-     {XED_ICLASS_JNBE, Bias::FALLTHRU}, // F 2.4
-     {XED_ICLASS_JNB,  Bias::FALLTHRU}, // F 1.8
-     {XED_ICLASS_JLE,  Bias::NONE    }, // F 1.1
-    };
-  const Bias bias = biases.at(jcc.xed_iclass());
-#endif
 
   uint8_t *new_dst;
   if (bias == Bias::JCC) {
@@ -161,54 +140,24 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
 }
 
 DirJccTerminator::Bias DirJccTerminator::get_bias(const Instruction& inst) {
-  const auto data = inst.data();
-  uint8_t index;
-  if (data[0] == 0x0f) {
-    assert((data[1] & 0xf0) == 0x80);
-    index = data[1] & 0x0f;
-  } else {
-    assert((data[0] & 0xf0) == 0x70);
-    index = data[0] & 0x0f;
-  }
-  
-  constexpr unsigned
-    JO  = 0x0,
-    JNO = 0x1,
-    JB  = 0x2,
-    JNB = 0x3,
-    JZ  = 0x4,
-    JNZ = 0x5,
-    JBE = 0x6,
-    JNBE= 0x7,
-    JS  = 0x8,
-    JNS = 0x9,
-    JP  = 0xa,
-    JNP = 0xb,
-    JL  = 0xc,
-    JNL = 0xd,
-    JLE = 0xe,
-    JNLE= 0xf
-    ;
-  (void) JNO; (void) JP; (void) JNP;
-
-  switch (index) {
-  case JZ:
-  case JBE:
+  switch (inst.xed_iclass()) {
+  case XED_ICLASS_JZ:
+  case XED_ICLASS_JBE:
     return Bias::NONE;
     
-  case JS:
-  case JL:
-  case JNLE:
-  case JNL:
-  case JNZ:
-  case JO: 
-  case JB: 
-  case JNBE:
-  case JNB: 
-  case JLE:
+  case XED_ICLASS_JS:
+  case XED_ICLASS_JL:
+  case XED_ICLASS_JNLE:
+  case XED_ICLASS_JNL:
+  case XED_ICLASS_JNZ:
+  case XED_ICLASS_JO: 
+  case XED_ICLASS_JB: 
+  case XED_ICLASS_JNBE:
+  case XED_ICLASS_JNB: 
+  case XED_ICLASS_JLE:
     return Bias::FALLTHRU;
     
-  case JNS:
+  case XED_ICLASS_JNS:
     return Bias::JCC;
     
   default:
@@ -250,7 +199,7 @@ void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
    */
   
   /* 1 */
-  tracee().set_pc(orig_branch_addr);
+  tracee().set_pc(orig_branch_addr());
 
   /* 2 */
   const int status = tracee().singlestep();
@@ -267,9 +216,9 @@ void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
   tracee().set_pc(new_pc);
 
   if (g_conf.dump_ss_bkpts) {
-    fprintf(stderr, "bkpt %016lx ", (intptr_t) orig_branch_addr);
-    std::clog << "bkpt " << (void *) orig_branch_addr << " -> "
-	      << (void *) orig_pc << ": " << Instruction(orig_branch_addr, tracee()) << std::endl;
+    fprintf(stderr, "bkpt %016lx ", (intptr_t) orig_branch_addr());
+    std::clog << "bkpt " << (void *) orig_branch_addr() << " -> "
+	      << (void *) orig_pc << ": " << Instruction(orig_branch_addr(), tracee()) << std::endl;
   }
 }
 
