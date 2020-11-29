@@ -105,7 +105,7 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
   /* convert main instruction */
   const auto modrm_ptr = new_inst.modrm_ptr();
   std::copy(modrm_ptr + 5, new_inst.data() + new_inst.size(), modrm_ptr + 1);
-  new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg));
+  new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg), true);
 
 #if PRINT_RIPREL_TRANSLATIONS
   std::clog << "orig inst: " << inst << std::endl;

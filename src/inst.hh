@@ -113,7 +113,7 @@ public:
   uint8_t modrm_mod() const { return modrm() >> 6; }
   uint8_t modrm_reg() const { return (modrm() >> 3) & 0b111; }
   uint8_t modrm_rm() const { return modrm() & 0b111; }
-  void modrm_rm(uint8_t rm);
+  void modrm_rm(uint8_t rm, bool decode);
   
   
   uint8_t *branch_dst(void) const;
