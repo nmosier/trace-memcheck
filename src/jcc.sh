@@ -62,7 +62,10 @@ BEGIN {
 }
 
 END {
-  printf "default: break;\n";
+  printf "default:\n";
+  printf "  jcc = false;\n";
+  printf "  fallthru = false;\n";
+  printf "  break;\n";
   printf "}\n";
 }
 ' > $CFILE

@@ -51,5 +51,8 @@ case XED_ICLASS_JBE:
   jcc = 0.783 >= thresh;
   fallthru = 0.500 >= thresh;
   break;
-default: break;
+default:
+  jcc = false;
+  fallthru = false;
+  break;
 }
