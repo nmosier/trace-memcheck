@@ -281,6 +281,13 @@ void Instruction::data(const uint8_t *newdata, size_t len) {
 
 void Instruction::decode(void) {
   good_ = Decoder::decode(data_.data(), data_.size(), xedd_);
+  decoded_ = true;
+  size_ = xed_decoded_inst_get_length(&xedd());
+}
+
+size_t Instruction::size(void) const {
+  assert(size_ != 0);
+  return size_;
 }
 
 Instruction::Instruction(uint8_t *pc, const Data& opcode): Blob(pc), data_(opcode) {

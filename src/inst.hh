@@ -56,8 +56,8 @@ class Data: public Blob {
 public:
   using Content = std::vector<uint8_t>;
 
-  template <typename T>
-  Data(uint8_t *pc, const T& data): Blob(pc), data_(data) {}
+  template <typename... Args>
+  Data(uint8_t *pc, Args&&... args): Blob(pc), data_(args...) {}
 
   template <typename InputIt>
   Data(uint8_t *pc, InputIt begin, InputIt end): Blob(pc), data_(begin, end) {}
@@ -99,7 +99,7 @@ public:
   void data(const Data& newdata) { data(newdata.data(), newdata.size()); }
   
   const xed_decoded_inst_t& xedd() const { return xedd_; }
-  virtual size_t size() const override { return xed_decoded_inst_get_length(&xedd()); }
+  virtual size_t size() const override;
   xed_iform_enum_t xed_iform() const { return xed_decoded_inst_get_iform_enum(&xedd()); }
   xed_iclass_enum_t xed_iclass() const { return xed_decoded_inst_get_iclass(&xedd()); }
   const char *xed_iform_str() const { return xed_iform_enum_t2str(xed_iform()); }
@@ -180,6 +180,8 @@ private:
   bool good_;
   Data data_;
   xed_decoded_inst_t xedd_;
+  bool decoded_ = false;
+  size_t size_ = 0;
 
   uint8_t *is_mem_rip(void) const;
   
