@@ -104,13 +104,29 @@ private:
   uint8_t *orig_fallthru;
   uint8_t *jcc_bkpt_addr;
   uint8_t *fallthru_addr;
+
+  // branch prediction members
+  xed_iclass_enum_t iclass;
   xed_iform_enum_t iform;
+  enum class Direction {FWD, BACK} dir;
   
   void handle_bkpt_fallthru(void);
   void handle_bkpt_jcc(void);
 
-  enum class Bias {JCC, FALLTHRU, NONE};
-  Bias get_bias(const Instruction& inst);
+  struct Prediction {
+    bool jcc;
+    bool fallthru;
+  };
+  Prediction get_prediction(void) const;
+
+  enum class Bias {NONE, JCC, FALLTHRU};
+  
+  Bias get_bias(void) const;
+
+  Bias get_bias_none(void) const;
+  Bias get_bias_iclass(void) const;
+  Bias get_bias_iform(void) const;
+  Bias get_bias_dir(void) const;
 };
 
 template <size_t CACHELEN>

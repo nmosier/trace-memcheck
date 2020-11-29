@@ -26,7 +26,7 @@ private:
   using BkptMap = std::unordered_map<uint8_t *, BkptCallback>;
 
   static constexpr size_t block_pool_size = 0x100000;
-  static constexpr size_t ptr_pool_size = 0x20000;
+  static constexpr size_t ptr_pool_size = 0x30000;
   static constexpr size_t rsb_size = 0x1000;
   
   Tracee& tracee;
