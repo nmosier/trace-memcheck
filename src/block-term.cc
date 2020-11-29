@@ -137,6 +137,14 @@ DirJccTerminator::Prediction DirJccTerminator::get_prediction_iform(void) const 
   return Prediction {jcc, fallthru};
 }
 
+DirJccTerminator::Prediction DirJccTerminator::get_prediction_dir(void) const {
+  if (dir == Direction::BACK) {
+    return {true, true};
+  } else {
+    return {false, false};
+  }
+}
+
 DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
   switch (g_conf.prediction_mode) {
   case Config::PredictionMode::NONE:
@@ -145,6 +153,8 @@ DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
     return get_prediction_iclass();
   case Config::PredictionMode::IFORM:
     return get_prediction_iform();
+  case Config::PredictionMode::DIR:
+    return get_prediction_dir();
   default: abort();
   }
 }
@@ -176,18 +186,19 @@ DirJccTerminator::Bias DirJccTerminator::get_bias_iclass(void) const {
 }
 
 void DirJccTerminator::log_bkpt(const char *kind) const {
-  if (g_conf.dump_jcc_info == Config::PredictionMode::NONE) { return; }
-  std::clog << kind << " ";
-  switch (g_conf.dump_jcc_info) {
-  case Config::PredictionMode::ICLASS:
-    std::clog << xed_iclass_enum_t2str(iclass);
-    break;
-  case Config::PredictionMode::IFORM:
-    std::clog << xed_iform_enum_t2str(iform);
-    break;
+  if (!g_conf.dump_jcc_info) { return; }
+
+  std::clog << kind << " " << (void *) orig_dst << " " << xed_iclass_enum_t2str(iclass) << " "
+	    << xed_iform_enum_t2str(iform) << " " << dir_str()
+	    << std::endl;
+}
+
+const char *DirJccTerminator::dir_str(void) const {
+  switch (dir) {
+  case Direction::FWD: return "FWD";
+  case Direction::BACK: return "BACK";
   default: abort();
   }
-  std::clog << " " << (void *) orig_dst << std::endl;
 }
 
 void DirJccTerminator::handle_bkpt_fallthru() {

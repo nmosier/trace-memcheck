@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     fprintf(f, usage, argv[0]);
   };
 
-  const char *optstring = "hgpsxbj:";
+  const char *optstring = "hgpsxbj";
   enum Option {
     PREDICTION_MODE = 256,
   };
@@ -77,10 +77,7 @@ int main(int argc, char *argv[]) {
       break;
 
     case 'j':
-      if (!g_conf.set_dump_jcc_info(optarg)) {
-	fprintf(stderr, "%s: -j: bad argument\n", argv[0]);
-	return 1;
-      }
+      g_conf.dump_jcc_info = true;
       break;
 
     case PREDICTION_MODE:
