@@ -1,20 +1,25 @@
 #!/bin/bash
 
+set -e  # exit on any error
+set -o pipefail
+
 usage() {
     cat <<EOF
 usage: $0 [-hm]
 Options:
  -h       print help dialog
- -m<arg>  set mode; <arg> options: 'iclass', 'iform'
+ -m<arg>  set mode; <arg> options: 'none', 'iclass', 'iform', 'dir'
  -o<path> output includable C code to <path>
 EOF
 }
 
-MODE='iclass'
+MODE=''
 CFILE=''
 
 FILE=`mktemp`
 trap "rm -f $FILE" EXIT
+MEMCHECK_STDERR=`mktemp`
+trap "rm -f $MEMCHECK_STDERR" EXIT
 
 while getopts 'hm:o:' OPTCHAR; do
     case $OPTCHAR in
@@ -42,21 +47,40 @@ fi
 
 mode=$(echo "$MODE" | tr [A-Z] [a-z])
 MODE=$(echo "$MODE" | tr [a-z] [A-Z])
-if [[ "$mode" != 'iclass' ]] && [[ "$mode" != 'iform' ]]; then
-    echo "$0: -m$MODE: illegal mode value"
-    exit 1
-fi
 
 shift $((OPTIND-1))
 
-./memcheck -j"$mode" --prediction-mode=none -- "$@" 2>&1 | grep -E '^(JCC|FALLTHRU) ' | awk '
+if ! ./memcheck -j --prediction-mode=none -- "$@" > /dev/null 2> $MEMCHECK_STDERR; then
+    cat $MEMCHECK_STDERR | grep -Ev '^(JCC|FALLTHRU)'
+    exit 1
+fi
+
+AWK_DEFS="-v k_kind=1 -v k_ptr=2 -v k_iclass=3 -v k_iform=4 -v k_dir=5"
+
+case "$mode" in
+    "iclass")
+	key=3
+	;;
+    "iform")
+	key=4
+	;;
+    "dir")
+	key=5
+	;;
+    *)
+	echo "$0: bad mode" >&2
+	exit 1
+	;;
+esac
+
+grep -E '^(JCC|FALLTHRU) ' < $MEMCHECK_STDERR | awk $AWK_DEFS -v k_key=$key '
 {
-      if ($3 in arr) {
-      	 arr[$3] = "BOTH";
+      if ($k_ptr in arr) {
+      	 arr[$k_ptr] = "BOTH";
       } else {
-      	arr[$3] = $1;
+      	arr[$k_ptr] = $k_kind;
       }
-      iclasses[$3] = $2;
+      iclasses[$k_ptr] = $k_key;
 }
 
 END {
@@ -89,7 +113,7 @@ END {
     sum_both = both;
     sum = jcc + both + fallthru;
 
-    printf "%s %.3f %.3f\n", i, sum_jcc / sum, sum_fallthru / sum;
+    printf "%s %.3f %.3f %d\n", i, sum_jcc / sum, sum_fallthru / sum, sum;
   }
 }
 

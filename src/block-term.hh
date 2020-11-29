@@ -109,11 +109,12 @@ private:
   xed_iclass_enum_t iclass;
   xed_iform_enum_t iform;
   enum class Direction {FWD, BACK} dir;
-  
+
+  const char *dir_str(void) const;
   void handle_bkpt_fallthru(void);
   void handle_bkpt_jcc(void);
   void log_bkpt(const char *kind) const;
-
+  
   struct Prediction {
     bool jcc;
     bool fallthru;
@@ -123,6 +124,7 @@ private:
   Prediction get_prediction_none(void) const { return {false, false}; }
   Prediction get_prediction_iclass(void) const;
   Prediction get_prediction_iform(void) const;
+  Prediction get_prediction_dir(void) const;
 
   enum class Bias {NONE, JCC, FALLTHRU};
   

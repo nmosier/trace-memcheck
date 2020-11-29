@@ -1,7 +1,7 @@
 #pragma once
 
 struct Config {
-  enum class PredictionMode {NONE, ICLASS, IFORM};
+  enum class PredictionMode {NONE, ICLASS, IFORM, DIR};
 
   bool gdb = false;
   bool profile = false;
@@ -9,10 +9,9 @@ struct Config {
   bool execution_trace = false;
   bool dump_ss_bkpts = false;
   PredictionMode prediction_mode;
-  PredictionMode dump_jcc_info;
+  bool dump_jcc_info;
 
   bool set_prediction_mode(const char *s);
-  bool set_dump_jcc_info(const char *s);
 
 private:
   bool set_prediction_mode(const char *s, PredictionMode Config::*memb);

@@ -9,6 +9,7 @@ bool Config::set_prediction_mode(const char *s, PredictionMode Config::*memb) {
     {{"none", PredictionMode::NONE},
      {"iclass", PredictionMode::ICLASS},
      {"iform", PredictionMode::IFORM},
+     {"dir", PredictionMode::DIR},
     };
 
   const auto it = map.find(s);
@@ -22,8 +23,4 @@ bool Config::set_prediction_mode(const char *s, PredictionMode Config::*memb) {
 
 bool Config::set_prediction_mode(const char *s) {
   return set_prediction_mode(s, &Config::prediction_mode);
-}
-
-bool Config::set_dump_jcc_info(const char *s) {
-  return set_prediction_mode(s, &Config::dump_jcc_info);
 }
