@@ -4,55 +4,65 @@ FILE=memcheck.jcc
 CFILE=memcheck.jcc_inc
 
 rm -f $FILE
-./memcheck -j -- "$@" 2>&1 | grep -E '^(JCC|FALLTHRU) ' | cut -d' ' -f1,2 | sort -k2 -k1 | uniq -c | awk "
-BEGIN {
-}
-
-/JCC/ {
-      jccs[\$3] = \$1;
-      if (!(\$3 in fallthrus)) {
-      	 fallthrus[\$3] = 0;
+./memcheck -j -- "$@" 2>&1 | grep -E '^(JCC|FALLTHRU) ' | awk '
+{
+      if ($3 in arr) {
+      	 arr[$3] = "BOTH";
+      } else {
+      	arr[$3] = $1;
       }
-}
-
-/FALLTHRU/ {
-      fallthrus[\$3] = \$1;
-      if (!(\$3 in jccs)) {
-      	 jccs[\$3] = 0;
-      }
+      iclasses[$3] = $2;
 }
 
 END {
-    for (cc in jccs) {
-    	/* compute factor */
-	if (jccs[cc] == 0 || fallthrus[cc] == 0) {
-	   frac = \"INFINITY\";
-	} else {
-	   frac = jccs[cc] / fallthrus[cc];
-	   if (frac < 1) {
-	      frac = 1 / frac;
-	   }
-	}
-    	print cc, jccs[cc], fallthrus[cc], frac;
+    for (inst in arr) {
+    	print iclasses[inst], arr[inst];    	
     }
 }
-" | (echo "CC" "JCC" "FALLTHRU" "FRAC"; sort -rnk4) | column -t | tee $FILE
+' | sort | uniq -c | awk '
+{ arr[$2][$3] = $1; }
+END {
+  for (i in arr) {
+    if ("BOTH" in arr[i]) {
+       both = arr[i]["BOTH"];
+    } else {
+       both = 0;
+    }
+    if ("JCC" in arr[i]) {
+       jcc = arr[i]["JCC"];
+    } else {
+      jcc = 0;
+    }
+    if ("FALLTHRU" in arr[i]) {
+       fallthru = arr[i]["FALLTHRU"];
+    } else {
+      fallthru = 0;
+    }
 
-# also create file in different format
-truncate --size=0 $CFILE
-N=$(cat $FILE | wc -l)
-(( --N ))
-printf "constexpr std::array<std::tuple<xed_iform_enum_t, Bias, float>, %d> bias_arr = {\n" $N >> $CFILE
+    sum_jcc = jcc + both;
+    sum_fallthru = fallthru + both;
+    sum_both = both;
+    sum = jcc + both + fallthru;
 
-tail -n+2 $FILE | awk "
-{
-      if (\$2 > \$3) {
-   	name = \"JCC\";
-      }	else {
-      	name = \"FALLTHRU\";
-      }
-      printf \"std::make_tuple (XED_IFORM_%s, Bias::%s, %s),\\n\", \$1, name, \$4;
+    printf "%s %.3f %.3f\n", i, sum_jcc / sum, sum_fallthru / sum;
+  }
 }
-" >> $CFILE
 
-printf "};\n" >> $CFILE
+' | (echo 'CC JCC FALLTHRU'; cat) | column -t | tee $FILE
+tail -n+2 $FILE | awk '
+BEGIN {
+  printf "switch (iclass) {\n";
+}
+
+{
+  printf "case XED_ICLASS_%s:\n", $1;
+  printf "  jcc = %s >= thresh;\n", $2;
+  printf "  fallthru = %s >= thresh;\n", $3;
+  printf "  break;\n";
+}
+
+END {
+  printf "default: break;\n";
+  printf "}\n";
+}
+' > $CFILE

@@ -1,27 +1,14 @@
-CC           JCC  FALLTHRU  FRAC
-JS_RELBRd    7    65        9.28571
-JS_RELBRb    9    40        4.44444
-JNLE_RELBRd  13   46        3.53846
-JNBE_RELBRd  41   132       3.21951
-JNS_RELBRb   14   5         2.8
-JNZ_RELBRd   242  638       2.63636
-JL_RELBRb    3    7         2.33333
-JNLE_RELBRb  13   26        2
-JNB_RELBRb   30   59        1.96667
-JB_RELBRd    24   47        1.95833
-JZ_RELBRd    509  959       1.88409
-JNBE_RELBRb  60   113       1.88333
-JNL_RELBRd   6    10        1.66667
-JNB_RELBRd   26   43        1.65385
-JNZ_RELBRb   439  707       1.61048
-JBE_RELBRb   120  79        1.51899
-JL_RELBRd    3    2         1.5
-JNL_RELBRb   3    4         1.33333
-JBE_RELBRd   55   73        1.32727
-JB_RELBRb    40   49        1.225
-JLE_RELBRb   31   34        1.09677
-JLE_RELBRd   38   41        1.07895
-JZ_RELBRb    922  990       1.07375
-JNS_RELBRd   8    8         1
-JO_RELBRd    0    1         INFINITY
-JO_RELBRb    0    1         INFINITY
+CC    JCC    FALLTHRU
+JS    0.228  0.891
+JNL   0.500  0.625
+JNZ   0.481  0.756
+JNLE  0.597  0.806
+JNB   0.509  0.781
+JL    0.625  0.750
+JZ    0.599  0.641
+JLE   0.637  0.637
+JO    0.000  1.000
+JNBE  0.500  0.871
+JB    0.660  0.679
+JNS   0.759  0.552
+JBE   0.783  0.500

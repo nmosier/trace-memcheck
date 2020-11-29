@@ -1,28 +1,55 @@
-constexpr std::array<std::tuple<xed_iform_enum_t, Bias, float>, 26> bias_arr = {
-std::make_tuple (XED_IFORM_JS_RELBRd, Bias::FALLTHRU, 9.28571),
-std::make_tuple (XED_IFORM_JS_RELBRb, Bias::FALLTHRU, 4.44444),
-std::make_tuple (XED_IFORM_JNLE_RELBRd, Bias::FALLTHRU, 3.53846),
-std::make_tuple (XED_IFORM_JNBE_RELBRd, Bias::FALLTHRU, 3.21951),
-std::make_tuple (XED_IFORM_JNS_RELBRb, Bias::JCC, 2.8),
-std::make_tuple (XED_IFORM_JNZ_RELBRd, Bias::FALLTHRU, 2.63636),
-std::make_tuple (XED_IFORM_JL_RELBRb, Bias::FALLTHRU, 2.33333),
-std::make_tuple (XED_IFORM_JNLE_RELBRb, Bias::FALLTHRU, 2),
-std::make_tuple (XED_IFORM_JNB_RELBRb, Bias::FALLTHRU, 1.96667),
-std::make_tuple (XED_IFORM_JB_RELBRd, Bias::FALLTHRU, 1.95833),
-std::make_tuple (XED_IFORM_JZ_RELBRd, Bias::FALLTHRU, 1.88409),
-std::make_tuple (XED_IFORM_JNBE_RELBRb, Bias::FALLTHRU, 1.88333),
-std::make_tuple (XED_IFORM_JNL_RELBRd, Bias::FALLTHRU, 1.66667),
-std::make_tuple (XED_IFORM_JNB_RELBRd, Bias::FALLTHRU, 1.65385),
-std::make_tuple (XED_IFORM_JNZ_RELBRb, Bias::FALLTHRU, 1.61048),
-std::make_tuple (XED_IFORM_JBE_RELBRb, Bias::JCC, 1.51899),
-std::make_tuple (XED_IFORM_JL_RELBRd, Bias::JCC, 1.5),
-std::make_tuple (XED_IFORM_JNL_RELBRb, Bias::FALLTHRU, 1.33333),
-std::make_tuple (XED_IFORM_JBE_RELBRd, Bias::FALLTHRU, 1.32727),
-std::make_tuple (XED_IFORM_JB_RELBRb, Bias::FALLTHRU, 1.225),
-std::make_tuple (XED_IFORM_JLE_RELBRb, Bias::FALLTHRU, 1.09677),
-std::make_tuple (XED_IFORM_JLE_RELBRd, Bias::FALLTHRU, 1.07895),
-std::make_tuple (XED_IFORM_JZ_RELBRb, Bias::FALLTHRU, 1.07375),
-std::make_tuple (XED_IFORM_JNS_RELBRd, Bias::FALLTHRU, 1),
-std::make_tuple (XED_IFORM_JO_RELBRd, Bias::FALLTHRU, INFINITY),
-std::make_tuple (XED_IFORM_JO_RELBRb, Bias::FALLTHRU, INFINITY),
-};
+switch (iclass) {
+case XED_ICLASS_JS:
+  jcc = 0.228 >= thresh;
+  fallthru = 0.891 >= thresh;
+  break;
+case XED_ICLASS_JNL:
+  jcc = 0.500 >= thresh;
+  fallthru = 0.625 >= thresh;
+  break;
+case XED_ICLASS_JNZ:
+  jcc = 0.481 >= thresh;
+  fallthru = 0.756 >= thresh;
+  break;
+case XED_ICLASS_JNLE:
+  jcc = 0.597 >= thresh;
+  fallthru = 0.806 >= thresh;
+  break;
+case XED_ICLASS_JNB:
+  jcc = 0.509 >= thresh;
+  fallthru = 0.781 >= thresh;
+  break;
+case XED_ICLASS_JL:
+  jcc = 0.625 >= thresh;
+  fallthru = 0.750 >= thresh;
+  break;
+case XED_ICLASS_JZ:
+  jcc = 0.599 >= thresh;
+  fallthru = 0.641 >= thresh;
+  break;
+case XED_ICLASS_JLE:
+  jcc = 0.637 >= thresh;
+  fallthru = 0.637 >= thresh;
+  break;
+case XED_ICLASS_JO:
+  jcc = 0.000 >= thresh;
+  fallthru = 1.000 >= thresh;
+  break;
+case XED_ICLASS_JNBE:
+  jcc = 0.500 >= thresh;
+  fallthru = 0.871 >= thresh;
+  break;
+case XED_ICLASS_JB:
+  jcc = 0.660 >= thresh;
+  fallthru = 0.679 >= thresh;
+  break;
+case XED_ICLASS_JNS:
+  jcc = 0.759 >= thresh;
+  fallthru = 0.552 >= thresh;
+  break;
+case XED_ICLASS_JBE:
+  jcc = 0.783 >= thresh;
+  fallthru = 0.500 >= thresh;
+  break;
+default: break;
+}
