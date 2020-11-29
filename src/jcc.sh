@@ -55,6 +55,11 @@ if ! ./memcheck -j --prediction-mode=none -- "$@" > /dev/null 2> $MEMCHECK_STDER
     exit 1
 fi
 
+k_kind=1
+k_ptr=2
+k_iclass=3
+k_iform=4
+k_dir=5
 AWK_DEFS="-v k_kind=1 -v k_ptr=2 -v k_iclass=3 -v k_iform=4 -v k_dir=5"
 
 case "$mode" in
@@ -73,14 +78,14 @@ case "$mode" in
 	;;
 esac
 
-grep -E '^(JCC|FALLTHRU) ' < $MEMCHECK_STDERR | awk $AWK_DEFS -v k_key=$key '
+grep -E '^(JCC|FALLTHRU) ' < $MEMCHECK_STDERR | cut -d' ' -f$k_kind,$k_ptr,$key | awk '
 {
-      if ($k_ptr in arr) {
-      	 arr[$k_ptr] = "BOTH";
+      if ($2 in arr) {
+      	 arr[$2] = "BOTH";
       } else {
-      	arr[$k_ptr] = $k_kind;
+      	arr[$2] = $1;
       }
-      iclasses[$k_ptr] = $k_key;
+      iclasses[$2] = $3;
 }
 
 END {
