@@ -1,10 +1,55 @@
 #!/bin/bash
 
-FILE=memcheck.jcc
-CFILE=memcheck.jcc_inc
+usage() {
+    cat <<EOF
+usage: $0 [-hm]
+Options:
+ -h       print help dialog
+ -m<arg>  set mode; <arg> options: 'iclass', 'iform'
+ -o<path> output includable C code to <path>
+EOF
+}
 
-rm -f $FILE
-./memcheck -j -- "$@" 2>&1 | grep -E '^(JCC|FALLTHRU) ' | awk '
+MODE='iclass'
+CFILE=''
+
+FILE=`mktemp`
+trap "rm -f $FILE" EXIT
+
+while getopts 'hm:o:' OPTCHAR; do
+    case $OPTCHAR in
+	'h')
+	    usage
+	    exit 0
+	    ;;
+	'm')
+	    MODE="$OPTARG"
+	    ;;
+	'o')
+	    CFILE="$OPTARG"
+	    ;;
+	'?')
+	    usage >&2
+	    exit 1
+	    ;;
+    esac
+done
+
+if [[ -z "$MODE" ]]; then
+    echo "$0: specify mode with -m<mode>"
+    exit 1
+fi
+
+mode=$(echo "$MODE" | tr [A-Z] [a-z])
+MODE=$(echo "$MODE" | tr [a-z] [A-Z])
+if [[ "$mode" != 'iclass' ]] && [[ "$mode" != 'iform' ]]; then
+    echo "$0: -m$MODE: illegal mode value"
+    exit 1
+fi
+
+shift $((OPTIND-1))
+
+./memcheck -j"$mode" --prediction-mode=none -- "$@" 2>&1 | grep -E '^(JCC|FALLTHRU) ' | awk '
 {
       if ($3 in arr) {
       	 arr[$3] = "BOTH";
@@ -49,13 +94,18 @@ END {
 }
 
 ' | (echo 'CC JCC FALLTHRU'; cat) | column -t | tee $FILE
-tail -n+2 $FILE | awk '
+
+if [[ -z "$CFILE" ]]; then
+    exit 0
+fi
+
+tail -n+2 $FILE | awk -v MODE="$MODE" -v mode="$mode" '
 BEGIN {
-  printf "switch (iclass) {\n";
+  printf "switch (%s) {\n", mode;
 }
 
 {
-  printf "case XED_ICLASS_%s:\n", $1;
+  printf "case XED_%s_%s:\n", MODE, $1;
   printf "  jcc = %s >= thresh;\n", $2;
   printf "  fallthru = %s >= thresh;\n", $3;
   printf "  break;\n";

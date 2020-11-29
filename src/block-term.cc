@@ -63,13 +63,8 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 				   Tracee& tracee, const LookupBlock& lb):
   Terminator(block_pool, DIR_JMP_SIZE, jmp, tracee, lb)
 {
-  // assert(jmp.xed_iform() == XED_IFORM_JMP_RELBRd);
-
   uint8_t *orig_dst_addr = jmp.branch_dst();
   uint8_t *new_dst_addr = lookup_block(orig_dst_addr);
-
-  /* jmp <dst> */
-
   uint8_t *jmp_addr = addr();
   const auto jmp_inst = Instruction::jmp_relbrd(jmp_addr, new_dst_addr);
   write(jmp_inst);
@@ -97,27 +92,9 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   jcc_bkpt_addr = fallthru_addr + Instruction::jmp_relbrd_len;
 
   /* check for dst blocks */
-#if 0
-  const Bias bias = get_bias();
-
-  uint8_t *new_dst;
-  if (bias == Bias::JCC) {
-    new_dst = try_lookup_block(orig_dst);
-  } else {
-    new_dst = pb(orig_dst);
-  }
-
-  uint8_t *new_fallthru;
-  if (bias == Bias::FALLTHRU) {
-    new_fallthru = try_lookup_block(orig_fallthru);
-  } else {
-    new_fallthru = pb(orig_fallthru);
-  }
-#else
   const Prediction pred = get_prediction();
   uint8_t *new_dst = pred.jcc ? try_lookup_block(orig_dst) : pb(orig_dst);
   uint8_t *new_fallthru = pred.fallthru ? try_lookup_block(orig_fallthru) : pb(orig_fallthru);
-#endif
   
   /* create blobs */
   jcc_inst = jcc;
@@ -146,12 +123,30 @@ DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc
   flush();
 }
 
-DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
-  constexpr float thresh = 0.75f;
-  bool jcc;
-  bool fallthru;
-# include "memcheck.jcc_inc"
+DirJccTerminator::Prediction DirJccTerminator::get_prediction_iclass(void) const {
+  constexpr float thresh = 0.8f;
+  bool jcc, fallthru;
+# include "jcc_iclass.inc"
   return Prediction {jcc, fallthru};
+}
+
+DirJccTerminator::Prediction DirJccTerminator::get_prediction_iform(void) const {
+  constexpr float thresh = 0.8f;
+  bool jcc, fallthru;
+# include "jcc_iform.inc"
+  return Prediction {jcc, fallthru};
+}
+
+DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
+  switch (g_conf.prediction_mode) {
+  case Config::PredictionMode::NONE:
+    return get_prediction_none();
+  case Config::PredictionMode::ICLASS:
+    return get_prediction_iclass();
+  case Config::PredictionMode::IFORM:
+    return get_prediction_iform();
+  default: abort();
+  }
 }
 
 DirJccTerminator::Bias DirJccTerminator::get_bias_iclass(void) const {
@@ -180,58 +175,19 @@ DirJccTerminator::Bias DirJccTerminator::get_bias_iclass(void) const {
   }  
 }
 
-
-
-DirJccTerminator::Bias DirJccTerminator::get_bias_none(void) const { return Bias::NONE; }
-
-#if 0
-DirJccTerminator::Bias DirJccTerminator::get_bias_iform(void) const {
-  constexpr float thresh = 1.5;
-#include "memcheck.jcc_inc"
-  abort();
-}
-#endif
-
-DirJccTerminator::Bias DirJccTerminator::get_bias_dir(void) const {
-  switch (dir) {
-  case Direction::BACK: return Bias::JCC;
-  case Direction::FWD:  return Bias::FALLTHRU;
+void DirJccTerminator::log_bkpt(const char *kind) const {
+  if (g_conf.dump_jcc_info == Config::PredictionMode::NONE) { return; }
+  std::clog << kind << " ";
+  switch (g_conf.dump_jcc_info) {
+  case Config::PredictionMode::ICLASS:
+    std::clog << xed_iclass_enum_t2str(iclass);
+    break;
+  case Config::PredictionMode::IFORM:
+    std::clog << xed_iform_enum_t2str(iform);
+    break;
   default: abort();
-  }  
-}
-
-// bias def macro
-DirJccTerminator::Bias DirJccTerminator::get_bias(void) const {
-#if 0
-  /* iclass-based branch prediction */
-  return get_bias_iclass();
-#elif 0
-  /* no branch prediction */
-  return get_bias_none();
-#elif 0
-  return get_bias_iform();
-#elif 0
-  /* direction-based branch prediction */
-  return get_bias_dir();
-#elif 0
-  const Bias bias_dir = get_bias_dir();
-  const Bias bias_iclass = get_bias_iclass();
-  if (bias_dir == Bias::NONE) {
-    return bias_iclass;
-  } else if (bias_iclass == Bias::NONE) {
-    return bias_dir;
-  } else if (bias_dir == bias_iclass) {
-    return bias_dir;
-  } else {
-    return Bias::NONE;
   }
-#elif 1
-  constexpr float thresh = 2.f / 3.f;
-  bool jcc;
-  bool fallthru;
-# include "memcheck.jcc_inc"
-  return Bias::NONE; (void) jcc; (void) fallthru;
-#endif
+  std::clog << " " << (void *) orig_dst << std::endl;
 }
 
 void DirJccTerminator::handle_bkpt_fallthru() {
@@ -241,11 +197,7 @@ void DirJccTerminator::handle_bkpt_fallthru() {
   write(fallthru_inst);
   flush();
   tracee().set_pc(new_fallthru);
-
-  if (g_conf.dump_jcc_bkpts) {
-    std::clog << "FALLTHRU " << xed_iclass_enum_t2str(iclass) << " " << (void *) orig_dst
-	      << std::endl;
-  }
+  log_bkpt("FALLTHRU");
 }
 
 void DirJccTerminator::handle_bkpt_jcc() {
@@ -255,10 +207,7 @@ void DirJccTerminator::handle_bkpt_jcc() {
   write(jcc_inst);
   tracee().set_pc(new_dst);
   flush();
-
-  if (g_conf.dump_jcc_bkpts) {
-    std::clog << "JCC " << xed_iclass_enum_t2str(iclass) << " " << (void *) orig_dst << std::endl;
-  }
+  log_bkpt("JCC");
 }
 
 void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {

@@ -1,0 +1,58 @@
+switch (iclass) {
+case XED_ICLASS_JS:
+  jcc = 0.220 >= thresh;
+  fallthru = 0.890 >= thresh;
+  break;
+case XED_ICLASS_JNL:
+  jcc = 0.500 >= thresh;
+  fallthru = 0.625 >= thresh;
+  break;
+case XED_ICLASS_JNZ:
+  jcc = 0.482 >= thresh;
+  fallthru = 0.756 >= thresh;
+  break;
+case XED_ICLASS_JNLE:
+  jcc = 0.591 >= thresh;
+  fallthru = 0.803 >= thresh;
+  break;
+case XED_ICLASS_JNB:
+  jcc = 0.509 >= thresh;
+  fallthru = 0.781 >= thresh;
+  break;
+case XED_ICLASS_JL:
+  jcc = 0.667 >= thresh;
+  fallthru = 0.778 >= thresh;
+  break;
+case XED_ICLASS_JZ:
+  jcc = 0.599 >= thresh;
+  fallthru = 0.641 >= thresh;
+  break;
+case XED_ICLASS_JLE:
+  jcc = 0.637 >= thresh;
+  fallthru = 0.637 >= thresh;
+  break;
+case XED_ICLASS_JO:
+  jcc = 0.000 >= thresh;
+  fallthru = 1.000 >= thresh;
+  break;
+case XED_ICLASS_JNBE:
+  jcc = 0.500 >= thresh;
+  fallthru = 0.871 >= thresh;
+  break;
+case XED_ICLASS_JB:
+  jcc = 0.654 >= thresh;
+  fallthru = 0.682 >= thresh;
+  break;
+case XED_ICLASS_JNS:
+  jcc = 0.759 >= thresh;
+  fallthru = 0.552 >= thresh;
+  break;
+case XED_ICLASS_JBE:
+  jcc = 0.782 >= thresh;
+  fallthru = 0.502 >= thresh;
+  break;
+default:
+  jcc = false;
+  fallthru = false;
+  break;
+}
