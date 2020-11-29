@@ -112,12 +112,17 @@ private:
   
   void handle_bkpt_fallthru(void);
   void handle_bkpt_jcc(void);
+  void log_bkpt(const char *kind) const;
 
   struct Prediction {
     bool jcc;
     bool fallthru;
   };
+
   Prediction get_prediction(void) const;
+  Prediction get_prediction_none(void) const { return {false, false}; }
+  Prediction get_prediction_iclass(void) const;
+  Prediction get_prediction_iform(void) const;
 
   enum class Bias {NONE, JCC, FALLTHRU};
   

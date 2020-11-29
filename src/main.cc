@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <vector>
 #include <cstring>
+#include <getopt.h>
 #include <gperftools/profiler.h>
 
 #include "util.hh"
@@ -32,14 +33,24 @@ int main(int argc, char *argv[]) {
       " -x        print execution trace\n"			\
       " -b        dump single-step breakpoint info\n"		\
       " -j        dump conditional jump breakpoint info\n"	\
+      " --prediction-mode=<mode>\n"				\
+      "           branch prediction mode to use\n"		\
+      "           legal values: 'none', 'iclass', 'iform'\n"	\
       ""
       ;
     fprintf(f, usage, argv[0]);
   };
 
-  const char *optstring = "hgpsxbj";
+  const char *optstring = "hgpsxbj:";
+  enum Option {
+    PREDICTION_MODE = 256,
+  };
+  const struct option longopts[] =
+    {{"prediction-mode", 1, nullptr, PREDICTION_MODE},
+     {nullptr, 0, nullptr, 0},
+    };
   int optchar;
-  while ((optchar = getopt(argc, argv, optstring)) >= 0) {
+  while ((optchar = getopt_long(argc, argv, optstring, longopts, nullptr)) >= 0) {
     switch (optchar) {
     case 'h':
       usage(stdout);
@@ -66,7 +77,17 @@ int main(int argc, char *argv[]) {
       break;
 
     case 'j':
-      g_conf.dump_jcc_bkpts = true;
+      if (!g_conf.set_dump_jcc_info(optarg)) {
+	fprintf(stderr, "%s: -j: bad argument\n", argv[0]);
+	return 1;
+      }
+      break;
+
+    case PREDICTION_MODE:
+      if (!g_conf.set_prediction_mode(optarg)) {
+	fprintf(stderr, "%s: --prediction-mode: bad argument\n", argv[0]);
+	return 1;
+      }
       break;
       
     default:
