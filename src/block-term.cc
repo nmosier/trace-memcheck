@@ -8,11 +8,26 @@
 #include "util.hh"
 #include "debug.h"
 #include "config.hh"
+#include "block.hh"
+
+std::string DirJccTerminator::last_decision(last_decision_bits, 'x');
+xed_iclass_enum_t DirJccTerminator::last_iclass(void) const {
+  const auto it = block.insts().rbegin();
+  if (it == block.insts().rend()) {
+    return XED_ICLASS_INVALID;
+  } else {
+    return (**it).xed_iclass();
+  }
+}
+const char *DirJccTerminator::last_iclass_str(void) const {
+  return xed_iclass_enum_t2str(last_iclass());
+}
+
 
 Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
 			       const Instruction& branch, Tracee& tracee,
 			       const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
-			       const ReturnStackBuffer& rsb) {
+			       const ReturnStackBuffer& rsb, const Block& block) {
   switch (branch.xed_iclass()) {
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
@@ -35,7 +50,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
     return new RetTerminator(block_pool, branch, tracee, lb, rb, rsb);
 
   default: // XED_ICLASS_JCC
-    return new DirJccTerminator(block_pool, branch, tracee, lb, pb, rb);
+    return new DirJccTerminator(block_pool, branch, tracee, lb, pb, rb, block);
   }
 }
 
@@ -73,9 +88,9 @@ DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp
 
 DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc,
 				   Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
-				   const RegisterBkpt& rb):
+				   const RegisterBkpt& rb, const Block& block):
   Terminator(block_pool, DIR_JCC_SIZE, jcc, tracee, lb), orig_dst(jcc.branch_dst()),
-  orig_fallthru(jcc.after_pc()), iclass(jcc.xed_iclass()), iform(jcc.xed_iform()),
+  orig_fallthru(jcc.after_pc()), block(block), iclass(jcc.xed_iclass()), iform(jcc.xed_iform()),
   dir(jcc.branch_dst() >= jcc.after_pc() ? Direction::FWD : Direction::BACK)
 {
   static const std::unordered_set<int> jcc_iclasses = {XED_ICLASS_JB, XED_ICLASS_JBE, XED_ICLASS_JL, XED_ICLASS_JLE, XED_ICLASS_JNB, XED_ICLASS_JNBE, XED_ICLASS_JNL, XED_ICLASS_JNLE, XED_ICLASS_JNO, XED_ICLASS_JNP, XED_ICLASS_JNS, XED_ICLASS_JNZ, XED_ICLASS_JO, XED_ICLASS_JP, XED_ICLASS_JS, XED_ICLASS_JZ};
@@ -145,6 +160,22 @@ DirJccTerminator::Prediction DirJccTerminator::get_prediction_dir(void) const {
   }
 }
 
+DirJccTerminator::Prediction DirJccTerminator::get_prediction_last_iclass(void) const {
+  switch (last_iclass()) {
+  case XED_ICLASS_XOR: return {false, true};
+  case XED_ICLASS_SUB: return {true, true};
+  case XED_ICLASS_SAR: return {true, false};
+  case XED_ICLASS_ADD: return {false, true};
+  case XED_ICLASS_PUSH:return {false, true};
+  case XED_ICLASS_MOVZX:return {true, false};
+  case XED_ICLASS_DEC: return {true, false};
+  case XED_ICLASS_CMPXCHG: return {true, false};
+  case XED_ICLASS_MOV: return {false, true};
+  case XED_ICLASS_CMP: return {false, true};
+  default: return {false, false};
+  }
+}
+
 DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
   switch (g_conf.prediction_mode) {
   case Config::PredictionMode::NONE:
@@ -155,6 +186,8 @@ DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
     return get_prediction_iform();
   case Config::PredictionMode::DIR:
     return get_prediction_dir();
+  case Config::PredictionMode::LAST_ICLASS:
+    return get_prediction_last_iclass();
   default: abort();
   }
 }
@@ -188,8 +221,13 @@ DirJccTerminator::Bias DirJccTerminator::get_bias_iclass(void) const {
 void DirJccTerminator::log_bkpt(const char *kind) const {
   if (!g_conf.dump_jcc_info) { return; }
 
-  std::clog << kind << " " << (void *) orig_dst << " " << xed_iclass_enum_t2str(iclass) << " "
-	    << xed_iform_enum_t2str(iform) << " " << dir_str()
+  std::clog << kind << " "
+	    << (void *) orig_dst << " "
+	    << xed_iclass_enum_t2str(iclass) << " "
+	    << xed_iform_enum_t2str(iform) << " "
+	    << dir_str() << " "
+	    << last_decision << " "
+	    << last_iclass_str() << " "
 	    << std::endl;
 }
 
@@ -201,6 +239,20 @@ const char *DirJccTerminator::dir_str(void) const {
   }
 }
 
+const char *DirJccTerminator::bias_str(Bias bias) {
+  switch (bias) {
+  case Bias::NONE: return "NONE";
+  case Bias::JCC: return "JCC";
+  case Bias::FALLTHRU: return "FALLTHRU";
+  default: abort();
+  }
+}
+
+void DirJccTerminator::add_decision(char c) {
+  std::copy(last_decision.begin() + 1, last_decision.end(), last_decision.begin());
+  *last_decision.rbegin() = c;
+}
+
 void DirJccTerminator::handle_bkpt_fallthru() {
   /* replace fallthru bkpt with jump */
   uint8_t *new_fallthru = lookup_block(orig_fallthru);
@@ -209,6 +261,7 @@ void DirJccTerminator::handle_bkpt_fallthru() {
   flush();
   tracee().set_pc(new_fallthru);
   log_bkpt("FALLTHRU");
+  add_decision('f');
 }
 
 void DirJccTerminator::handle_bkpt_jcc() {
@@ -219,6 +272,7 @@ void DirJccTerminator::handle_bkpt_jcc() {
   tracee().set_pc(new_dst);
   flush();
   log_bkpt("JCC");
+  add_decision('j');
 }
 
 void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {

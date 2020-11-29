@@ -1,6 +1,7 @@
 #pragma once
 
 class Terminator;
+class Block;
 
 #include <memory>
 #include <list>
@@ -23,7 +24,8 @@ public:
   
   static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
 			    Tracee& trace, const LookupBlock& lb, const ProbeBlock& pb,
-			    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
+			    const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
+			    const Block& block);
   
   void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
   void handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc); // also return original PC after single-stepping
@@ -95,7 +97,7 @@ private:
 class DirJccTerminator: public Terminator {
 public:
   DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, Tracee& tracee,
-		   const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb);
+		   const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb, const Block& block);
 private:
   static constexpr size_t DIR_JCC_SIZE =
     Instruction::jcc_relbrd_len + Instruction::jmp_relbrd_len + Instruction::int3_len;
@@ -105,12 +107,21 @@ private:
   uint8_t *jcc_bkpt_addr;
   uint8_t *fallthru_addr;
 
+  enum class Bias {NONE, JCC, FALLTHRU};
+
   // branch prediction members
+  const Block& block;
   xed_iclass_enum_t iclass;
   xed_iform_enum_t iform;
   enum class Direction {FWD, BACK} dir;
-
+  static constexpr unsigned last_decision_bits = 1;
+  static std::string last_decision;
+  static void add_decision(char c);
+  xed_iclass_enum_t last_iclass(void) const;
+  const char *last_iclass_str(void) const;
+  
   const char *dir_str(void) const;
+  static const char *bias_str(Bias bias);
   void handle_bkpt_fallthru(void);
   void handle_bkpt_jcc(void);
   void log_bkpt(const char *kind) const;
@@ -119,14 +130,13 @@ private:
     bool jcc;
     bool fallthru;
   };
-
+  
   Prediction get_prediction(void) const;
   Prediction get_prediction_none(void) const { return {false, false}; }
   Prediction get_prediction_iclass(void) const;
   Prediction get_prediction_iform(void) const;
   Prediction get_prediction_dir(void) const;
-
-  enum class Bias {NONE, JCC, FALLTHRU};
+  Prediction get_prediction_last_iclass(void) const;
   
   Bias get_bias(void) const;
 

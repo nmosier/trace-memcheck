@@ -26,7 +26,7 @@ extern "C" {
 
 class Block {
 public:
-  using InstVec = std::list<std::unique_ptr<Blob>>;
+  using InstVec = std::list<std::unique_ptr<Instruction>>;
   using InstIt = InstVec::iterator;
   using LookupBlock = Terminator::LookupBlock;
   using ProbeBlock = Terminator::ProbeBlock;
