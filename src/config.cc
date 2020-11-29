@@ -10,6 +10,7 @@ bool Config::set_prediction_mode(const char *s, PredictionMode Config::*memb) {
      {"iclass", PredictionMode::ICLASS},
      {"iform", PredictionMode::IFORM},
      {"dir", PredictionMode::DIR},
+     {"last_iclass", PredictionMode::LAST_ICLASS},
     };
 
   const auto it = map.find(s);

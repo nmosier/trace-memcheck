@@ -54,7 +54,7 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   /* create terminator instructions */
   block->terminator_ =
     std::unique_ptr<Terminator>
-    (Terminator::Create(block_pool, ptr_pool, *inst, tracee, lb, pb, rb, rsb));
+    (Terminator::Create(block_pool, ptr_pool, *inst, tracee, lb, pb, rb, rsb, *block));
   
   return true;
 }

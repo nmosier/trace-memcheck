@@ -62,32 +62,55 @@ k_iform=4
 k_dir=5
 AWK_DEFS="-v k_kind=1 -v k_ptr=2 -v k_iclass=3 -v k_iform=4 -v k_dir=5"
 
-case "$mode" in
-    "iclass")
-	key=3
-	;;
-    "iform")
-	key=4
-	;;
-    "dir")
-	key=5
-	;;
-    *)
-	echo "$0: bad mode" >&2
-	exit 1
-	;;
-esac
+key=''
+
+for m in $(echo "$mode" | tr ',' ' '); do
+    if ! [[ -z "$key" ]]; then
+	key+=","
+    fi
+    case $m in
+	"iclass")
+	    key+=3
+	    ;;
+	"iform")
+	    key+=4
+	    ;;
+	"dir")
+	    key+=5
+	    ;;
+	"last_decision")
+	    key+=6
+	    ;;
+	"last_iclass")
+	    key+=7
+	    ;;
+	*)
+	    echo "$0: bad mode" >&2
+	    exit 1
+	    ;;
+    esac
+done
 
 grep -E '^(JCC|FALLTHRU) ' < $MEMCHECK_STDERR | cut -d' ' -f$k_kind,$k_ptr,$key | awk '
+BEGIN {
+      SUBSEP=","
+}
 {
       if ($2 in arr) {
       	 arr[$2] = "BOTH";
       } else {
       	arr[$2] = $1;
       }
-      iclasses[$2] = $3;
-}
 
+      idx="";
+      for (i = 3; i <= NF; ++i) {
+      	 if (idx != "") {
+	    idx = idx SUBSEP;
+	 }
+	 idx = idx $i;
+      }
+      iclasses[$2] = idx;
+}
 END {
     for (inst in arr) {
     	print iclasses[inst], arr[inst];    	
@@ -122,7 +145,7 @@ END {
   }
 }
 
-' | (echo 'CC JCC FALLTHRU'; cat) | column -t | tee $FILE
+' | (echo 'CC JCC FALLTHRU COUNT'; cat) | column -t | tee $FILE
 
 if [[ -z "$CFILE" ]]; then
     exit 0

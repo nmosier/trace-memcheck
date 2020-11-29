@@ -1,7 +1,7 @@
 #pragma once
 
 struct Config {
-  enum class PredictionMode {NONE, ICLASS, IFORM, DIR};
+  enum class PredictionMode {NONE, ICLASS, IFORM, DIR, LAST_ICLASS};
 
   bool gdb = false;
   bool profile = false;
