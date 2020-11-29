@@ -76,11 +76,13 @@ uint8_t *Instruction::modrm_ptr() {
 #endif
 }
 
-void Instruction::modrm_rm(uint8_t rm) {
+void Instruction::modrm_rm(uint8_t rm, bool decode_) {
   assert((rm & 0b111) == rm);
   uint8_t *ptr = modrm_ptr();
   *ptr = (*ptr & ~0b111) | rm;
-  decode(); // TODO: Maybe aprameterize this?
+  if (decode_) {
+    decode();
+  }
 }
 
 void Instruction::retarget(uint8_t *newdst) {
@@ -92,9 +94,7 @@ void Instruction::retarget(uint8_t *newdst) {
       retarget_call_relbr32(get_dst_ptr) ||
       retarget_mem(get_dst_ptr)
       ) {
-#if REDECODE
     decode();
-#endif
   }
 }
 
@@ -163,9 +163,11 @@ void Instruction::patch_relbr(Op get_dst_ptr) {
       abort();
     }
 
+#ifndef NASSERT
     decode(); // TODO: This is unecessary -- only makes following assert() work.
+#endif
     
-    int32_t found_disp = xed_decoded_inst_get_branch_displacement(&xedd_);
+    const int32_t found_disp = xed_decoded_inst_get_branch_displacement(&xedd_);
     assert(found_disp == new_disp); (void) found_disp;
 }
 
