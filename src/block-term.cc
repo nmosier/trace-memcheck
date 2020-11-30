@@ -384,8 +384,6 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   const auto bkpt = Instruction::int3(bkpt_addr);
   write(bkpt);
   rb(bkpt_addr, make_callback(this, &CallTerminator::handle_bkpt_ret));
-  
-  flush(); // TODO: duplicate flush with subclasses
 }
 
 void CallTerminator::handle_bkpt_ret(void) {
