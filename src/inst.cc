@@ -290,9 +290,11 @@ size_t Instruction::size(void) const {
   return size_;
 }
 
+#if 0
 Instruction::Instruction(uint8_t *pc, const Data& opcode): Blob(pc), data_(opcode) {
   decode();
 }
+#endif
 
 Instruction Instruction::jmp_relbrd(uint8_t *pc, uint8_t *dst) {
   /* calculate instruction length */
@@ -360,11 +362,11 @@ Instruction Instruction::add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm) {
 }
 
 Instruction Instruction::push_reg(uint8_t *pc, reg_t reg) {
-  return Instruction(pc, {static_cast<uint8_t>(0x50 | static_cast<uint8_t>(reg))});
+  return from_bytes(pc, static_cast<uint8_t>(0x50 | static_cast<uint8_t>(reg)));
 }
 
 Instruction Instruction::pop_reg(uint8_t *pc, reg_t reg) {
-  return Instruction(pc, {static_cast<uint8_t>(0x58 | static_cast<uint8_t>(reg))});
+  return from_bytes(pc, static_cast<uint8_t>(0x58 | static_cast<uint8_t>(reg)));
 }
 
 void Blob::relocate(uint8_t *newpc) {
@@ -473,10 +475,10 @@ Instruction Instruction::mov(uint8_t *pc, reg_t dst, reg_t src) {
   uint8_t modrm = 0xc0;
   modrm |= static_cast<uint8_t>(dst) << 3;
   modrm |= static_cast<uint8_t>(src) << 0;
-  return Instruction(pc, {0x48, 0x89, modrm});
+  return from_bytes(pc, 0x48, 0x89, modrm);
 }
 
 Instruction Instruction::je_b(uint8_t *pc, uint8_t *dst) {
   int8_t diff = dst - (pc + je_b_len);
-  return Instruction(pc, {0x74, static_cast<uint8_t>(diff)});
+  return from_bytes(pc, 0x74, static_cast<uint8_t>(diff));
 }

@@ -333,24 +333,24 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   
   /* create instructions */
   std::array<Instruction, NINSTS> insts;
-  insts[ 0] = Instruction(addrs[0], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
+  insts[ 0] = Instruction::from_bytes(addrs[0], 0x48, 0x87, 0x04, 0x24); // xchg qword [rsp], rax
   insts[ 1] = Instruction::pushf(addrs[1]); // pushf
-  insts[ 2] = Instruction(addrs[2], {0x51}); // push rcx
+  insts[ 2] = Instruction::from_bytes(addrs[2], 0x51); // push rcx
   insts[ 3] = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RCX, (uint8_t *) rsb.ptr());
   insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RCX, (uint8_t *) rsb.begin());
-  insts[ 5] = Instruction(addrs[5], {0x74, 0x18}); // je .mismatch
+  insts[ 5] = Instruction::from_bytes(addrs[5], 0x74, 0x18); // je .mismatch
   insts[ 6] = Instruction::add_mem64_imm8(addrs[6], (uint8_t *) rsb.ptr(), 16); // add qword [rel ptr], 16
-  insts[ 7] = Instruction(addrs[7], {0x48, 0x3b, 0x01}); // cmp rax, qword [rcx]
-  insts[ 8] = Instruction(addrs[8], {0x75, 0x0b}); // jne .mismatch
-  insts[ 9] = Instruction(addrs[9], {0x48, 0x8b, 0x41, 0x08}); // mov rax, qword [rcx + 8]
-  insts[10] = Instruction(addrs[10], {0x59}); // pop rcx
+  insts[ 7] = Instruction::from_bytes(addrs[7], 0x48, 0x3b, 0x01); // cmp rax, qword [rcx]
+  insts[ 8] = Instruction::from_bytes(addrs[8], 0x75, 0x0b); // jne .mismatch
+  insts[ 9] = Instruction::from_bytes(addrs[9], 0x48, 0x8b, 0x41, 0x08); // mov rax, qword [rcx + 8]
+  insts[10] = Instruction::from_bytes(addrs[10], 0x59); // pop rcx
   insts[11] = Instruction::popf(addrs[11]); // popf
-  insts[12] = Instruction(addrs[12], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
-  insts[13] = Instruction(addrs[13], {0xc3}); // ret
-  insts[14] = Instruction(addrs[14], {0x59}); // pop rcx
+  insts[12] = Instruction::from_bytes(addrs[12], 0x48, 0x87, 0x04, 0x24); // xchg qword [rsp], rax
+  insts[13] = Instruction::from_bytes(addrs[13], 0xc3); // ret
+  insts[14] = Instruction::from_bytes(addrs[14], 0x59); // pop rcx
   insts[15] = Instruction::popf(addrs[15]); // popf
-  insts[16] = Instruction(addrs[16], {0x48, 0x87, 0x04, 0x24}); // xchg qword [rsp], rax
-  insts[17] = Instruction(addrs[17], {0xcc}); // int3
+  insts[16] = Instruction::from_bytes(addrs[16], 0x48, 0x87, 0x04, 0x24); // xchg qword [rsp], rax
+  insts[17] = Instruction::from_bytes(addrs[17], 0xcc); // int3
 
   /* assertions */
   for (auto i = 0; i < NINSTS; ++i) {
@@ -399,16 +399,16 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   /* create pre instructions */
   std::array<Instruction, NINSTS> insts;
   insts[ 0] = Instruction::pushf(addrs[0]); // pushf
-  insts[ 1] = Instruction(addrs[1], {0x50}); // push rax
-  insts[ 2] = Instruction(addrs[2], {0x48, 0x89, 0xe0}); // mov rax, rsp
+  insts[ 1] = Instruction::from_bytes(addrs[1], 0x50); // push rax
+  insts[ 2] = Instruction::from_bytes(addrs[2], 0x48, 0x89, 0xe0); // mov rax, rsp
   insts[ 3] = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RSP, (uint8_t *) rsb.ptr());
   insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RSP, (uint8_t *) rsb.end());
-  insts[ 5] = Instruction(addrs[5], {0x74, 0x13}); // je 0x2d
+  insts[ 5] = Instruction::from_bytes(addrs[5], 0x74, 0x13); // je 0x2d
   insts[ 6] = Instruction::push_mem(addrs[6], (uint8_t *) new_ra_ptr); // push qword [rel new_ra]
   insts[ 7] = Instruction::push_mem(addrs[7], (uint8_t *) orig_ra_ptr); // push qword [rel orig_ra]
   insts[ 8] = Instruction::mov_mem64(addrs[8], (uint8_t *) rsb.ptr(), Instruction::reg_t::RSP);
-  insts[ 9] = Instruction(addrs[9], {0x48, 0x89, 0xc4}); // mov rsp, rax
-  insts[10] = Instruction(addrs[10], {0x58}); // pop rax
+  insts[ 9] = Instruction::from_bytes(addrs[9], 0x48, 0x89, 0xc4); // mov rsp, rax
+  insts[10] = Instruction::from_bytes(addrs[10], 0x58); // pop rax
   insts[11] = Instruction::popf(addrs[11]); // popf
   
   /* assertions */
@@ -501,7 +501,7 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
 
   const auto pushf = Instruction::pushf(it);
   it += pushf.size();
-  const auto push_rax = Instruction(it, {0x50});
+  const auto push_rax = Instruction::from_bytes(it, 0x50);
   it += push_rax.size();
 
   write(pushf);
@@ -522,7 +522,7 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
   }
 
   /* mismatch cleanup */
-  const auto pop_rax = Instruction(it, {0x58});
+  const auto pop_rax = Instruction::from_bytes(it, 0x58);
   it += pop_rax.size();
   const auto popf = Instruction::popf(it);
   it += popf.size();
@@ -554,7 +554,7 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
   
   /* matches */
   for (size_t i = 0; i < CACHELEN; ++i) {
-    const auto pop_rax = Instruction(it, {0x58});
+    const auto pop_rax = Instruction::from_bytes(it, 0x58);
     it += pop_rax.size();
     const auto popf = Instruction::popf(it);
     it += popf.size();
@@ -598,7 +598,7 @@ uint8_t *JmpIndTerminator<CACHELEN>::load_addr(const Instruction& jmp, PointerPo
     uint8_t **ptr = (uint8_t **) ptr_pool.add((uintptr_t) dst);
     const auto inst1 = Instruction::mov_mem64(addr, Instruction::reg_t::RAX, (uint8_t *) ptr);
     addr += inst1.size();
-    const Instruction inst2(addr, {0x48, 0x8b, 0x00});
+    const auto inst2 = Instruction::from_bytes(addr, 0x48, 0x8b, 0x00);
     addr += inst2.size();
 
     write(inst1);

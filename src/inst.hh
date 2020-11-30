@@ -84,18 +84,28 @@ public:
 class Instruction: public Blob {
 public:
   static constexpr unsigned max_inst_len = 16;
-  using Data = std::array<uint8_t, max_inst_len>;
+  template <size_t N> using DataN = std::array<uint8_t, N>;
+  using Data = DataN<max_inst_len>;
 
   Instruction(): good_(false) {}
-  Instruction(uint8_t *pc, const Data& opcode);
+  // Instruction(uint8_t *pc, const Data& data);
+  template <size_t N>
+  Instruction(uint8_t *pc, const DataN<N>& data): Blob(pc), size_(N) {
+    std::copy(data.begin(), data.end(), data_.begin());
+    decode();
+  }
   Instruction(uint8_t *pc, Tracee& tracee);
   Instruction(const Instruction& other, uint8_t *newpc);
+
+  template <typename... Args>
+  static Instruction from_bytes(uint8_t *pc, Args... args) {
+    return Instruction(pc, DataN<sizeof...(Args)> {static_cast<uint8_t>(args)...});
+  }
 
   uint8_t *data() override { return data_.data(); }
   const uint8_t *data() const override { return data_.data(); }
   void data(const uint8_t *newdata, size_t len);
-  template <size_t N>
-  void data(const uint8_t (&newdata)[N]) { data(newdata, N); }
+
   void data(const Data& newdata) { data(newdata.data(), newdata.size()); }
   
   const xed_decoded_inst_t& xedd() const { return xedd_; }
@@ -140,7 +150,7 @@ public:
   static constexpr size_t jmp_mem_len = 6;
   static Instruction push_mem(uint8_t *pc, uint8_t *mem);
   static constexpr size_t push_mem_len = 6;
-  static Instruction int3(uint8_t *pc) { return Instruction(pc, Data {0xcc}); }
+  static Instruction int3(uint8_t *pc) { return from_bytes(pc, 0xcc); }
   static constexpr size_t int3_len = 1;
   static constexpr size_t jcc_relbrd_len = 6;
   static Instruction mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem);
@@ -157,9 +167,9 @@ public:
   static constexpr size_t pop_reg_len = 1;
   static Instruction add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm);
   static constexpr size_t add_mem64_imm8_len = 8;
-  static Instruction pushf(uint8_t *pc) { return Instruction(pc, {0x9c}); }
+  static Instruction pushf(uint8_t *pc) { return from_bytes(pc, 0x9c); }
   static constexpr size_t pushf_len = 1;
-  static Instruction popf(uint8_t *pc) { return Instruction(pc, {0x9d}); }
+  static Instruction popf(uint8_t *pc) { return from_bytes(pc, 0x9d); }
   static constexpr size_t popf_len = 1;
   static Instruction mov(uint8_t *pc, reg_t dst, reg_t src);
   static Instruction mov(uint8_t *pc, reg_t dst, xreg_t src);
