@@ -21,4 +21,4 @@
 [ ] Optimize by not copying all instruction data
 [X] Support multiple jmp cache slots
 [ ] For-loop for large jmp cache
-[ ] Precompile insturction sequences.
+[X] Precompile insturction sequences.
