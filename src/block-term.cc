@@ -312,58 +312,33 @@ void Terminator::handle_bkpt_singlestep(void) {
   handle_bkpt_singlestep(orig_pc, new_pc);
 }
 
-
 RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
 			     const LookupBlock& lb, const RegisterBkpt& rb,
 			     const ReturnStackBuffer& rsb):
   Terminator(block_pool, RET_SIZE, ret, tracee, lb)
 {
-  constexpr auto NINSTS = 18;
-  static const std::array<uint8_t, NINSTS> lens
-    {4, 1, 1, 7, 7, 2, 8, 3, 2, 4, 1, 1, 4, 1, 1, 1, 4, 1};
+  uint8_t *bkpt_addr = addr() + 0x34;
 
-  /* assign addressees */
-  std::array<uint8_t *, NINSTS> addrs;
-  uint8_t *it = addr();
-  for (unsigned i = 0; i < NINSTS; ++i) {
-    addrs[i] = it;
-    it += lens[i];
-  }
-  uint8_t *bkpt_addr = addrs[17];
-  
-  /* create instructions */
-  std::array<Instruction, NINSTS> insts;
-  insts[ 0] = Instruction::from_bytes(addrs[0], 0x48, 0x87, 0x04, 0x24); // xchg qword [rsp], rax
-  insts[ 1] = Instruction::pushf(addrs[1]); // pushf
-  insts[ 2] = Instruction::from_bytes(addrs[2], 0x51); // push rcx
-  insts[ 3] = Instruction::mov_mem64(addrs[3], Instruction::reg_t::RCX, (uint8_t *) rsb.ptr());
-  insts[ 4] = Instruction::cmp_mem64(addrs[4], Instruction::reg_t::RCX, (uint8_t *) rsb.begin());
-  insts[ 5] = Instruction::from_bytes(addrs[5], 0x74, 0x18); // je .mismatch
-  insts[ 6] = Instruction::add_mem64_imm8(addrs[6], (uint8_t *) rsb.ptr(), 16); // add qword [rel ptr], 16
-  insts[ 7] = Instruction::from_bytes(addrs[7], 0x48, 0x3b, 0x01); // cmp rax, qword [rcx]
-  insts[ 8] = Instruction::from_bytes(addrs[8], 0x75, 0x0b); // jne .mismatch
-  insts[ 9] = Instruction::from_bytes(addrs[9], 0x48, 0x8b, 0x41, 0x08); // mov rax, qword [rcx + 8]
-  insts[10] = Instruction::from_bytes(addrs[10], 0x59); // pop rcx
-  insts[11] = Instruction::popf(addrs[11]); // popf
-  insts[12] = Instruction::from_bytes(addrs[12], 0x48, 0x87, 0x04, 0x24); // xchg qword [rsp], rax
-  insts[13] = Instruction::from_bytes(addrs[13], 0xc3); // ret
-  insts[14] = Instruction::from_bytes(addrs[14], 0x59); // pop rcx
-  insts[15] = Instruction::popf(addrs[15]); // popf
-  insts[16] = Instruction::from_bytes(addrs[16], 0x48, 0x87, 0x04, 0x24); // xchg qword [rsp], rax
-  insts[17] = Instruction::from_bytes(addrs[17], 0xcc); // int3
+  /* write base */
+  static const Data::Content bytes = {0x48, 0x87, 0x04, 0x24, 0x9c, 0x51, 0x48, 0x8b, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x3b, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x74, 0x18, 0x48, 0x83, 0x05, 0x00, 0x00, 0x00, 0x00, 0x10, 0x48, 0x3b, 0x01, 0x75, 0x0b, 0x48, 0x8b, 0x41, 0x08, 0x59, 0x9d, 0x48, 0x87, 0x04, 0x24, 0xc3, 0x59, 0x9d, 0x48, 0x87, 0x04, 0x24, 0xcc};
+  static Data data(nullptr, bytes);
+  assert(data.size() == RET_SIZE);
+  data.relocate(addr());
+  write(data);
 
-  /* assertions */
-  for (auto i = 0; i < NINSTS; ++i) {
-    assert(lens[i] == insts[i].size());
-  }
-  assert(RET_SIZE == std::accumulate(lens.begin(), lens.end(), 0));
-
-  for (const auto& inst : insts) {
-    write(inst);
-  }
+  /* create block-dependent instructions */
+  const auto inst0 = Instruction::mov_mem64(addr() + 0x06, Instruction::reg_t::RCX,
+					    (uint8_t *) rsb.ptr()); // mov rcx, [rel ptr]
+  const auto inst1 = Instruction::cmp_mem64(addr() + 0x0d, Instruction::reg_t::RCX,
+					    (uint8_t *) rsb.begin()); // cmp rcx, [rel begin]
+  const auto inst2 = Instruction::add_mem64_imm8(addr() + 0x16, (uint8_t *) rsb.ptr(),
+						 16); // add qword [rel ptr], 16
+  write(inst0);
+  write(inst1);
+  write(inst2);
   
   flush();
-
+  
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 
@@ -396,6 +371,9 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, siz
   uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val);
   new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) new_ra_val); // TODO: optimize -- check if TXed
 
+
+
+  
   /* create pre instructions */
   std::array<Instruction, NINSTS> insts;
   insts[ 0] = Instruction::pushf(addrs[0]); // pushf
