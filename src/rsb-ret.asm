@@ -3,7 +3,6 @@ SECTION .text
 EXTERN rsb_ptr
 EXTERN rsb_begin
 EXTERN rsb_end
-
 ret_:
 	xchg rax, [rsp]
 	pushf 			; NEW

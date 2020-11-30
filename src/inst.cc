@@ -290,12 +290,6 @@ size_t Instruction::size(void) const {
   return size_;
 }
 
-#if 0
-Instruction::Instruction(uint8_t *pc, const Data& opcode): Blob(pc), data_(opcode) {
-  decode();
-}
-#endif
-
 Instruction Instruction::jmp_relbrd(uint8_t *pc, uint8_t *dst) {
   /* calculate instruction length */
   constexpr unsigned instlen = 5;
