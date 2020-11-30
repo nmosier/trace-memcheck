@@ -101,15 +101,11 @@ void Instruction::retarget(uint8_t *newdst) {
 void Instruction::relocate(uint8_t *newpc) {
   
   const ptrdiff_t diff = pc() - newpc;
-  if (relocate_jmp_relbr8(diff) ||
-      relocate_jmp_relbr32(diff) ||
-      relocate_call_relbr32(diff) ||
-      relocate_mem(diff)
-      ) {
-#if REDECODE
-    decode();
-#endif
-  }
+  (void)
+    (relocate_jmp_relbr8(diff) ||
+     relocate_jmp_relbr32(diff) ||
+     relocate_call_relbr32(diff) ||
+     relocate_mem(diff));
 
   Blob::relocate(newpc);
 }
