@@ -39,7 +39,7 @@ protected:
   uint8_t *write(uint8_t *addr, uint8_t byte) { return write_i<uint8_t>(addr, byte); }
   uint8_t *write_bkpt(uint8_t *addr) { return write(addr, 0xcc); }
   
-  void flush() const;
+  void flush();
 
   template <typename... Args>
   uint8_t *try_lookup_block(Args&&... args) { return lb_(args...); }
@@ -73,6 +73,7 @@ private:
   uint8_t *addr_;
   size_t size_;
   Buf buf_;
+  bool dirty_ = false; // whether buf is dirty
   Tracee& tracee_;
   const LookupBlock lb_;
   uint8_t *orig_branch_addr_;

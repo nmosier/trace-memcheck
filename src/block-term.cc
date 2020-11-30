@@ -67,11 +67,15 @@ uint8_t *Terminator::write(uint8_t *addr, const uint8_t *data_in, size_t count) 
   auto data_out = buf_.begin() + offset;
   assert(buf_.begin() <= data_out && data_out + count <= buf_.end());
   std::copy_n(data_in, count, data_out);
+  dirty_ = true;
   return addr + count;
 }
 
-void Terminator::flush() const {
-  tracee_.write(buf_.data(), buf_.size(), addr());
+void Terminator::flush() {
+  if (dirty_) {
+    tracee_.write(buf_.data(), buf_.size(), addr());
+    dirty_ = false;
+  }
 }
 
 DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp,
