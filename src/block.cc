@@ -137,10 +137,10 @@ void Block::transform_riprel_push(uint8_t*& pc, AddInst add_inst, const Instruct
   uint8_t *mem_dst = push.mem_dst();
   uint8_t *ptr_addr = (uint8_t *) ptr_pool.add((uintptr_t) mem_dst);
   
-  add_inst(Instruction(pc, {0x50})); // push rax
+  add_inst(Instruction::from_bytes(pc, 0x50)); // push rax
   add_inst(Instruction::mov_mem64(pc, Instruction::reg_t::RAX, ptr_addr)); // mov rax, [rel ptr]
-  add_inst(Instruction(pc, {0x48, 0x8b, 0x00})); // mov rax, [rax]
-  add_inst(Instruction(pc, {0x48, 0x87, 0x04, 0x24})); // xchg rax, [rsp]
+  add_inst(Instruction::from_bytes(pc, 0x48, 0x8b, 0x00)); // mov rax, [rax]
+  add_inst(Instruction::from_bytes(pc, 0x48, 0x87, 0x04, 0x24)); // xchg rax, [rsp]
 }
 
 // returns true iff branch instruction
