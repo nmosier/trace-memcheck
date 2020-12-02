@@ -13,10 +13,11 @@ size_t Block::size(const InstVec& insts) {
 }
 
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
-		   PointerPool& ptr_pool, const LookupBlock& lb, const ProbeBlock& pb,
-		   const RegisterBkpt& rb, const ReturnStackBuffer& rsb, const InsertBlock& ib) {
+		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
+		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
+		   const InsertBlock& ib) {
   Block *block = new Block(tracee, orig_addr, block_pool);
-
+  
   uint8_t *it = orig_addr;
   uint8_t *newit = block_pool.peek();
   std::unique_ptr<Instruction> inst;
@@ -54,7 +55,7 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   /* create terminator instructions */
   block->terminator_ =
     std::unique_ptr<Terminator>
-    (Terminator::Create(block_pool, ptr_pool, *inst, tracee, lb, pb, rb, rsb, *block));
+    (Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst, tracee, lb, pb, rb, rsb, *block));
   
   return true;
 }

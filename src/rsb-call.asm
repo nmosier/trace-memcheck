@@ -6,8 +6,9 @@ EXTERN rsb_ptr
 EXTERN rsb_end
 EXTERN new_ra
 EXTERN orig_ra
-EXTERN dst
-	
+EXTERN tmp_rsp
+
+%if 0
 call_relbrd:
 	pushf
 	push rax
@@ -22,4 +23,19 @@ call_relbrd:
 	mov rsp, rax
 	pop rax
 	popf
+%else
 
+call:
+	xchg rsp, [rel tmp_rsp]
+	pushf
+	xchg rsp, [rel rsb_ptr]
+	cmp rsp, [rel rsb_end]
+	je .after
+	push qword [rel new_ra]
+	push qword [rel orig_ra]
+.after:
+	xchg rsp, [rel rsb_ptr]
+	popf
+	xchg rsp, [rel tmp_rsp]
+	
+%endif

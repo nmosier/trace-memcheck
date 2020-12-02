@@ -4,18 +4,16 @@ rsb-call.o:     file format elf64-x86-64
 
 Disassembly of section .text:
 
-0000000000000000 <call_relbrd>:
-   0:	9c                   	pushf  
-   1:	50                   	push   rax
-   2:	48 89 e0             	mov    rax,rsp
-   5:	48 8b 25 00 00 00 00 	mov    rsp,QWORD PTR [rip+0x0]        # c <call_relbrd+0xc>
-   c:	48 3b 25 00 00 00 00 	cmp    rsp,QWORD PTR [rip+0x0]        # 13 <call_relbrd+0x13>
-  13:	74 13                	je     28 <call_relbrd.after_entry>
-  15:	ff 35 00 00 00 00    	push   QWORD PTR [rip+0x0]        # 1b <call_relbrd+0x1b>
-  1b:	ff 35 00 00 00 00    	push   QWORD PTR [rip+0x0]        # 21 <call_relbrd+0x21>
-  21:	48 89 25 00 00 00 00 	mov    QWORD PTR [rip+0x0],rsp        # 28 <call_relbrd.after_entry>
+0000000000000000 <call>:
+   0:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # 7 <call+0x7>
+   7:	9c                   	pushf  
+   8:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # f <call+0xf>
+   f:	48 3b 25 00 00 00 00 	cmp    rsp,QWORD PTR [rip+0x0]        # 16 <call+0x16>
+  16:	74 0c                	je     24 <call.after>
+  18:	ff 35 00 00 00 00    	push   QWORD PTR [rip+0x0]        # 1e <call+0x1e>
+  1e:	ff 35 00 00 00 00    	push   QWORD PTR [rip+0x0]        # 24 <call.after>
 
-0000000000000028 <call_relbrd.after_entry>:
-  28:	48 89 c4             	mov    rsp,rax
-  2b:	58                   	pop    rax
-  2c:	9d                   	popf   
+0000000000000024 <call.after>:
+  24:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # 2b <call.after+0x7>
+  2b:	9d                   	popf   
+  2c:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # 33 <call.after+0xf>

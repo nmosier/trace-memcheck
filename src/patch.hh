@@ -9,6 +9,7 @@
 #include "block-pool.hh"
 #include "block-term.hh"
 #include "rsb.hh"
+#include "tmp-mem.hh"
 
 class Patcher {
 public:
@@ -28,6 +29,7 @@ private:
   static constexpr size_t block_pool_size = 0x100000;
   static constexpr size_t ptr_pool_size = 0x30000;
   static constexpr size_t rsb_size = 0x1000;
+  static constexpr size_t tmp_size = 0x1000;
   
   Tracee& tracee;
   BlockMap block_map;
@@ -35,6 +37,7 @@ private:
   BlockPool block_pool;
   PointerPool ptr_pool;
   ReturnStackBuffer rsb;
+  TmpMem tmp_mem;
 
   Block *lookup_block_patch(uint8_t *addr, bool can_fail);
   const BkptCallback& lookup_bkpt(uint8_t *addr) const;

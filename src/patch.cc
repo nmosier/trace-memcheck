@@ -3,7 +3,7 @@
 
 Patcher::Patcher(Tracee& tracee):
   tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size),
-  rsb(tracee, rsb_size) {}
+  rsb(tracee, rsb_size), tmp_mem(tracee, tmp_size) {}
 
 bool Patcher::patch(uint8_t *start_pc) {
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
@@ -32,7 +32,7 @@ bool Patcher::patch(uint8_t *start_pc) {
   };
 
   /* create block */
-  return Block::Create(start_pc, tracee, block_pool, ptr_pool, lb, pb, rb, rsb, ib);
+  return Block::Create(start_pc, tracee, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib);
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
