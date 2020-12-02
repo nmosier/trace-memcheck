@@ -24,7 +24,7 @@ const char *DirJccTerminator::last_iclass_str(void) const {
 }
 
 
-Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
+Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
 			       const Instruction& branch, Tracee& tracee,
 			       const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
 			       const ReturnStackBuffer& rsb, const Block& block) {
@@ -32,9 +32,9 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool,
   case XED_ICLASS_CALL_NEAR:
     switch (branch.xed_iform()) {
     case XED_IFORM_CALL_NEAR_RELBRd:
-      return new CallDirTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rb, rsb);
+      return new CallDirTerminator(block_pool, ptr_pool, tmp_mem, branch, tracee, lb, pb, rb, rsb);
     default:
-      return new CallIndTerminator(block_pool, ptr_pool, branch, tracee, lb, pb, rb, rsb);
+      return new CallIndTerminator(block_pool, ptr_pool, tmp_mem, branch, tracee, lb, pb, rb, rsb);
     }
 
   case XED_ICLASS_JMP:
@@ -346,9 +346,9 @@ RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Trac
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 
-CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size,
-			       const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-			       const ProbeBlock& pb, const RegisterBkpt& rb,
+CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
+			       size_t size, const Instruction& call, Tracee& tracee,
+			       const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
 			       const ReturnStackBuffer& rsb):
   Terminator(block_pool, size + CALL_SIZE, call, tracee, lb)
 {
@@ -397,11 +397,11 @@ void CallTerminator::handle_bkpt_ret(void) {
   tracee().set_pc(new_ra_val);
 }
 
-CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
+CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
 				     const Instruction& call, Tracee& tracee, const LookupBlock& lb,
 				     const ProbeBlock& pb, const RegisterBkpt& rb,
 				     const ReturnStackBuffer& rsb):
-  CallTerminator(block_pool, ptr_pool, CALL_DIR_SIZE, call, tracee, lb, pb, rb, rsb)
+  CallTerminator(block_pool, ptr_pool, tmp_mem, CALL_DIR_SIZE, call, tracee, lb, pb, rb, rsb)
 {
   /* push [rel orig_ra] 
    * jmp new_dst
@@ -421,17 +421,17 @@ CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_poo
   flush();
 }
 
-CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
+CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
 				     const Instruction& call, Tracee& tracee, const LookupBlock& lb,
 				     const ProbeBlock& pb, const RegisterBkpt& rb,
 				     const ReturnStackBuffer& rsb):
-  CallTerminator(block_pool, ptr_pool, CALL_IND_SIZE, call, tracee, lb, pb, rb, rsb)
+  CallTerminator(block_pool, ptr_pool, tmp_mem, CALL_IND_SIZE, call, tracee, lb, pb, rb, rsb)
 {
   uint8_t *bkpt_addr = subaddr();
   const auto bkpt_inst = Instruction::int3(bkpt_addr);
   write(bkpt_inst);
   flush();
-
+  
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 

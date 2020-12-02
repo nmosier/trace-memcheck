@@ -10,6 +10,7 @@ class Block;
 #include "block-pool.hh"
 #include "ptr-pool.hh"
 #include "rsb.hh"
+#include "tmp-mem.hh"
 
 class Terminator {
 public:
@@ -22,10 +23,10 @@ public:
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
-  static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& branch,
-			    Tracee& trace, const LookupBlock& lb, const ProbeBlock& pb,
-			    const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-			    const Block& block);
+  static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
+			    const Instruction& branch, Tracee& trace, const LookupBlock& lb,
+			    const ProbeBlock& pb, const RegisterBkpt& rb,
+			    const ReturnStackBuffer& rsb, const Block& block);
   
   void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
   void handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc); // also return original PC after single-stepping
@@ -161,9 +162,9 @@ private:
   uint8_t *load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr);
   static size_t load_addr_size(const Instruction& jmp);
   uint8_t *match_addr(size_t n, const Instruction& jmp) const;
-
+  
   void handle_bkpt(void);
-
+  
   std::array<uint8_t **, CACHELEN> origs;
   std::array<Instruction, CACHELEN> newjmps;
   unsigned eviction_index = 0; // next entry to evict. Always in range [0, CACHELEN).
@@ -180,9 +181,9 @@ private:
 
 class CallTerminator: public Terminator {
 public:
-  CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, size_t size, const Instruction& call,
-		 Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
-		 const ReturnStackBuffer& rsb);
+  CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem, size_t size,
+		 const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+		 const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
 protected:
   uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE_PRE; }
@@ -199,9 +200,9 @@ private:
 
 class CallDirTerminator: public CallTerminator {
 public:
-  CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
-		    Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
-		    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
+  CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
+		    const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+		    const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
 private:
   static constexpr size_t CALL_DIR_SIZE = 11;
@@ -209,9 +210,9 @@ private:
 
 class CallIndTerminator: public CallTerminator {
 public:
-  CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
-		    Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
-		    const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
+  CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
+		    const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+		    const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
 private:
   static constexpr size_t CALL_IND_SIZE = 1;

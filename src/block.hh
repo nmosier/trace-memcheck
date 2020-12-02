@@ -23,6 +23,7 @@ extern "C" {
 #include "block-pool-fwd.hh"
 #include "block-term.hh"
 #include "ptr-pool.hh"
+#include "tmp-mem.hh"
 
 class Block {
 public:
@@ -34,8 +35,9 @@ public:
   using InsertBlock = std::function<void (uint8_t *, Block *)>;
   
   static bool Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
-		     PointerPool& ptr_pool, const LookupBlock& lb, const ProbeBlock& pb,
-		     const RegisterBkpt& rb, const ReturnStackBuffer& rsb, const InsertBlock& ib);
+		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
+		     const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
+		     const InsertBlock& ib);
   
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }
