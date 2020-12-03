@@ -371,6 +371,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, Tmp
   data.relocate(addr());
   write(data);
 
+#if 1
   write(PCRelDisp(addr() + 0x00 + 3, addr() + 0x07, (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
   write(PCRelDisp(addr() + 0x08 + 3, addr() + 0x0f, (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsp_ptr]
   write(PCRelDisp(addr() + 0x0f + 3, addr() + 0x16, (uint8_t *) rsb.end())); // cmp rsp, [rel rsb_end]
@@ -378,6 +379,33 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, Tmp
   write(PCRelDisp(addr() + 0x1e + 2, addr() + 0x24, (uint8_t *) orig_ra_ptr)); // push qword [rel orig_ra]
   write(PCRelDisp(addr() + 0x24 + 3, addr() + 0x2b, (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsb_ptr]
   write(PCRelDisp(addr() + 0x2c + 3, addr() + 0x33, (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
+#elif 1
+  static const struct {
+    uint8_t pc;
+    uint8_t iend;
+  } disps[] = {{0x00 + 3, 0x07},
+	       {0x08 + 3, 0x0f},
+	       {0x0f + 3, 0x16},
+	       {0x18 + 2, 0x1e},
+	       {0x1e + 2, 0x24},
+	       {0x24 + 3, 0x2b},
+	       {0x2c + 3, 0x33},
+  };
+  uint8_t * const dsts [] = {
+    (uint8_t *) tmp_mem.rsp(),
+    (uint8_t *) rsb.ptr(),
+    (uint8_t *) rsb.end(),
+    (uint8_t *) new_ra_ptr,
+    (uint8_t *) orig_ra_ptr,
+    (uint8_t *) rsb.ptr(),
+    (uint8_t *) tmp_mem.rsp(),
+  };
+  static_assert(arrlen(disps) == arrlen(dsts), "lengths mismatch");
+
+  for (size_t i = 0; i < arrlen(disps); ++i) {
+    write(PCRelDisp(addr() + disps[i].pc, addr() + disps[i].iend, dsts[i]));
+  }
+#endif
 
   /* post instructions */
   const auto bkpt = Instruction::int3(bkpt_addr);
