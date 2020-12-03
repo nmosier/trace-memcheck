@@ -13,7 +13,7 @@
 
 class Patcher {
 public:
-  Patcher(Tracee& tracee);
+  Patcher(Tracee& tracee, const Block::InstTransformer& handler);
 
   bool patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);
@@ -38,6 +38,7 @@ private:
   PointerPool ptr_pool;
   ReturnStackBuffer rsb;
   TmpMem tmp_mem;
+  const Block::InstTransformer& handler;
 
   Block *lookup_block_patch(uint8_t *addr, bool can_fail);
   const BkptCallback& lookup_bkpt(uint8_t *addr) const;

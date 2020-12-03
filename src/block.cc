@@ -15,7 +15,7 @@ size_t Block::size(const InstVec& insts) {
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-		   const InsertBlock& ib) {
+		   const InsertBlock& ib, const InstTransformer& handler) {
   Block *block = new Block(tracee, orig_addr, block_pool);
   
   uint8_t *it = orig_addr;
@@ -23,6 +23,7 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   std::unique_ptr<Instruction> inst;
 
   /* get non-branch instructions */
+  auto inserter = std::inserter(block->insts_, block->insts_.end());
   while (true) {
     inst = std::make_unique<Instruction>(it, tracee);
     if (!*inst) {
@@ -39,10 +40,14 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
       newit = transform_riprel_inst(newit, *inst,
 				    std::inserter(block->insts_, block->insts_.end()), ptr_pool);
     } else {
+#if 1
       /* relocate instruction and add to list */
+      newit = handler(newit, std::move(inst), inserter);
+#else 
       inst->relocate(newit);
       newit += inst->size();
       block->insts_.push_back(std::move(inst));
+#endif
     }
   }
 

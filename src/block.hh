@@ -33,11 +33,13 @@ public:
   using ProbeBlock = Terminator::ProbeBlock;
   using RegisterBkpt = Terminator::RegisterBkpt;
   using InsertBlock = std::function<void (uint8_t *, Block *)>;
+  using InstInserter = std::insert_iterator<InstVec>;
+  using InstTransformer = std::function<uint8_t *(uint8_t *, std::unique_ptr<Instruction>, InstInserter)>;
   
   static bool Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
 		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		     const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-		     const InsertBlock& ib);
+		     const InsertBlock& ib, const InstTransformer& handler);
   
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }
@@ -54,6 +56,8 @@ private:
   InstVec insts_; // linear basic block instructions
   Instruction orig_branch_;
   std::unique_ptr<Terminator> terminator_;
+
+  //   std::vector<uint8_t> buf_;
 
   Block(Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
     tracee_(tracee), block_pool_(block_pool), orig_addr_(orig_addr) {}

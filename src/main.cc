@@ -118,7 +118,22 @@ int main(int argc, char *argv[]) {
 
   Tracee tracee(child, command[0]);
 
-  Patcher patcher(tracee);
+  const auto handler = [&] (uint8_t *addr, std::unique_ptr<Instruction> inst,
+			    Block::InstInserter out_it) {
+    inst->relocate(addr);
+    addr += inst->size();
+    out_it++ = std::move(inst);
+
+#if 0
+    const auto nop = Instruction::from_bytes(addr, 0x90);
+    addr += nop.size();
+    out_it++ = std::make_unique<Instruction>(nop);
+#endif
+    
+    return addr;
+  };  
+  
+  Patcher patcher(tracee, handler);
   patcher.start();
   
   uint8_t *bkpt_pc;
