@@ -151,12 +151,15 @@ private:
 template <size_t CACHELEN>
 class JmpIndTerminator: public Terminator {
 public:
-  JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& jmp,
-		   Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
+  JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
+		   const Instruction& jmp, Tracee& tracee, const LookupBlock& lb,
+		   const RegisterBkpt& rb);
 private:
-  static constexpr size_t JMP_IND_SIZE_base = 6;
+  static constexpr size_t JMP_IND_SIZE_pre = 7 + 1 + 1;
+  static constexpr size_t JMP_IND_SIZE_post = 1 + 1 + 7 + 1 + 1;
+  static constexpr size_t JMP_IND_SIZE_base = JMP_IND_SIZE_pre + JMP_IND_SIZE_post;
   static constexpr size_t JMP_IND_SIZE_cmp = 9;
-  static constexpr size_t JMP_IND_SIZE_match = 7;
+  static constexpr size_t JMP_IND_SIZE_match = 7 + 7;
   static constexpr size_t JMP_IND_SIZE_per = JMP_IND_SIZE_cmp + JMP_IND_SIZE_match;
   static size_t jmp_ind_size(const Instruction& jmp);
   uint8_t *load_addr(const Instruction& jmp, PointerPool& ptr_pool, uint8_t *addr);

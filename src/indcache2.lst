@@ -5,17 +5,24 @@ indcache2.o:     file format elf64-x86-64
 Disassembly of section .text:
 
 0000000000000000 <indcache>:
+# PRE
    0:	9c                   	pushf  
    1:	50                   	push   rax
+# LOAD ADDR -> RAX
+# COMPARE
    2:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 9 <indcache+0x9>
    9:	74 0b                	je     16 <indcache.match0>
    b:	48 3b 05 00 00 00 00 	cmp    rax,QWORD PTR [rip+0x0]        # 12 <indcache+0x12>
   12:	74 09                	je     1d <indcache.matchN>
+# POST
+				pop rax
+				popf
   14:	cc                   	int3   
 
 0000000000000015 <indcache.null>:
   15:	cc                   	int3   
 
+# MATCH
 0000000000000016 <indcache.match0>:
   16:	58                   	pop    rax
   17:	9d                   	popf   

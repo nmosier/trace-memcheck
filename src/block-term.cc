@@ -43,7 +43,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool, Tmp
     case XED_IFORM_JMP_RELBRb:
       return new DirJmpTerminator(block_pool, branch, tracee, lb);
     default:
-      return new JmpIndTerminator<4>(block_pool, ptr_pool, branch, tracee, lb, rb);
+      return new JmpIndTerminator<4>(block_pool, ptr_pool, tmp_mem, branch, tracee, lb, rb);
     }
 
   case XED_ICLASS_RET_NEAR:
@@ -470,8 +470,9 @@ size_t JmpIndTerminator<CACHELEN>::jmp_ind_size(const Instruction& jmp) {
 
 template <size_t CACHELEN>
 JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
-					     const Instruction& jmp, Tracee& tracee,
-					     const LookupBlock& lb, const RegisterBkpt& rb):
+					     TmpMem& tmp_mem, const Instruction& jmp,
+					     Tracee& tracee, const LookupBlock& lb,
+					     const RegisterBkpt& rb):
   Terminator(block_pool, jmp_ind_size(jmp), jmp, tracee, lb)
 {
   /* make orig pointers */
@@ -481,6 +482,10 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
   
   uint8_t *it = addr();
 
+  const auto xchg_pre = Instruction::xchg_rsp_mem(it, (uint8_t *) tmp_mem.rsp());
+  write(xchg_pre);
+  it += xchg_pre.size();
+  
   const auto pushf = Instruction::pushf(it);
   it += pushf.size();
   const auto push_rax = Instruction::from_bytes(it, 0x50);
@@ -505,11 +510,14 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
 
   /* mismatch cleanup */
   const auto pop_rax = Instruction::from_bytes(it, 0x58);
+  write(pop_rax);
   it += pop_rax.size();
   const auto popf = Instruction::popf(it);
-  it += popf.size();
-  write(pop_rax);
   write(popf);
+  it += popf.size();
+  const auto xchg_post = Instruction::xchg_rsp_mem(it, (uint8_t *) tmp_mem.rsp());
+  write(xchg_post);
+  it += xchg_post.size();
   
   /* mismatch breakpoint */
   const auto mismatch_bkpt = Instruction::int3(it);
@@ -537,15 +545,17 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
   /* matches */
   for (size_t i = 0; i < CACHELEN; ++i) {
     const auto pop_rax = Instruction::from_bytes(it, 0x58);
+    write(pop_rax);
     it += pop_rax.size();
     const auto popf = Instruction::popf(it);
-    it += popf.size();
-    newjmps[i] = Instruction::jmp_relbrd(it, null_bkpt.pc());
-    it += newjmps[i].size();
-    
-    write(pop_rax);
     write(popf);
+    it += popf.size();
+    const auto xchg_match = Instruction::xchg_rsp_mem(it, (uint8_t *) tmp_mem.rsp());
+    write(xchg_match);
+    it += xchg_match.size();
+    newjmps[i] = Instruction::jmp_relbrd(it, null_bkpt.pc());
     write(newjmps[i]);
+    it += newjmps[i].size();
   }
 
   flush();

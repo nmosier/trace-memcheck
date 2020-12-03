@@ -22,3 +22,4 @@
 [X] Support multiple jmp cache slots
 [ ] For-loop for large jmp cache
 [X] Precompile insturction sequences.
+[ ] Make JmpIndTerminator not touch stack

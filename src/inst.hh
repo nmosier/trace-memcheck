@@ -172,6 +172,8 @@ public:
   static constexpr size_t cmp_mem64_len = 7;
   static Instruction lea(uint8_t *pc, reg_t reg, uint8_t *mem);
   static constexpr size_t lea_len = 7;
+  static Instruction xchg_rsp_mem(uint8_t *pc, uint8_t *mem);
+  static constexpr size_t xchg_rsp_mem_len = 7;
   
   static Instruction push_reg(uint8_t *pc, reg_t reg);
   static constexpr size_t push_reg_len = 1;
