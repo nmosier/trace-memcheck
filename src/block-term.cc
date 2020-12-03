@@ -47,7 +47,7 @@ Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool, Tmp
     }
 
   case XED_ICLASS_RET_NEAR:
-    return new RetTerminator(block_pool, branch, tracee, lb, rb, rsb);
+    return new RetTerminator(block_pool, tmp_mem, branch, tracee, lb, rb, rsb);
 
   default: // XED_ICLASS_JCC
     return new DirJccTerminator(block_pool, branch, tracee, lb, pb, rb, block);
@@ -316,33 +316,32 @@ void Terminator::handle_bkpt_singlestep(void) {
   handle_bkpt_singlestep(orig_pc, new_pc);
 }
 
-RetTerminator::RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
-			     const LookupBlock& lb, const RegisterBkpt& rb,
+RetTerminator::RetTerminator(BlockPool& block_pool, TmpMem& tmp_mem, const Instruction& ret,
+			     Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb,
 			     const ReturnStackBuffer& rsb):
   Terminator(block_pool, RET_SIZE, ret, tracee, lb)
 {
-  uint8_t *bkpt_addr = addr() + 0x34;
-
   /* write base */
-  static const Data::Content bytes = {0x48, 0x87, 0x04, 0x24, 0x9c, 0x51, 0x48, 0x8b, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x3b, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x74, 0x18, 0x48, 0x83, 0x05, 0x00, 0x00, 0x00, 0x00, 0x10, 0x48, 0x3b, 0x01, 0x75, 0x0b, 0x48, 0x8b, 0x41, 0x08, 0x59, 0x9d, 0x48, 0x87, 0x04, 0x24, 0xc3, 0x59, 0x9d, 0x48, 0x87, 0x04, 0x24, 0xcc};
+  static const Data::Content bytes = {0x48, 0x87, 0x04, 0x24, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x51, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x3b, 0x25, 0x00, 0x00, 0x00, 0x00, 0x74, 0x0e, 0x59, 0x48, 0x39, 0xc8, 0x59, 0x74, 0x07, 0x48, 0x8d, 0x0d, 0x26, 0x00, 0x00, 0x00, 0x48, 0x89, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x59, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x04, 0x24, 0x48, 0x8d, 0x64, 0x24, 0x08, 0xff, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x64, 0x24, 0xf8, 0xcc};
+  
   static Data data(nullptr, bytes);
   assert(data.size() == RET_SIZE);
   data.relocate(addr());
   write(data);
 
   /* create block-dependent instructions */
-  const auto inst0 = Instruction::mov_mem64(addr() + 0x06, Instruction::reg_t::RCX,
-					    (uint8_t *) rsb.ptr()); // mov rcx, [rel ptr]
-  const auto inst1 = Instruction::cmp_mem64(addr() + 0x0d, Instruction::reg_t::RCX,
-					    (uint8_t *) rsb.begin()); // cmp rcx, [rel begin]
-  const auto inst2 = Instruction::add_mem64_imm8(addr() + 0x16, (uint8_t *) rsb.ptr(),
-						 16); // add qword [rel ptr], 16
-  write(inst0);
-  write(inst1);
-  write(inst2);
+  uint8_t *a = addr();
+  write(PCRelDisp(a + 0x04 + 3, a + 0x0b, (uint8_t *) tmp_mem.rsp()));   // xchg rsp, [rel tmp_rsp]
+  write(PCRelDisp(a + 0x0d + 3, a + 0x14, (uint8_t *) rsb.ptr()));       // xchg rsp, [rel rsb_ptr]
+  write(PCRelDisp(a + 0x14 + 3, a + 0x1b, (uint8_t *) rsb.begin()));     // cmp rsp, [rel rsp_begin]
+  write(PCRelDisp(a + 0x2b + 3, a + 0x32, (uint8_t *) tmp_mem.begin())); // mov [rel tmp_0], rcx
+  write(PCRelDisp(a + 0x32 + 3, a + 0x39, (uint8_t *) rsb.ptr()));       // xchg rsp, [rel rsb_ptr]
+  write(PCRelDisp(a + 0x3b + 3, a + 0x42, (uint8_t *) tmp_mem.rsp()));   // xchg rsp, [rel tmp_rsp]
+  write(PCRelDisp(a + 0x4b + 2, a + 0x51, (uint8_t *) tmp_mem.begin())); // jmp [rel tmp_0]
   
   flush();
-  
+
+  uint8_t *bkpt_addr = a + 0x56;
   rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
 }
 

@@ -4,25 +4,30 @@ rsb-ret.o:     file format elf64-x86-64
 
 Disassembly of section .text:
 
-0000000000000000 <ret_>:
+0000000000000000 <ret>:
    0:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
-   4:	9c                   	pushf  
-   5:	51                   	push   rcx
-   6:	48 8b 0d 00 00 00 00 	mov    rcx,QWORD PTR [rip+0x0]        # d <ret_+0xd>
-   d:	48 3b 0d 00 00 00 00 	cmp    rcx,QWORD PTR [rip+0x0]        # 14 <ret_+0x14>
-  14:	74 18                	je     2e <ret_.mismatch>
-  16:	48 83 05 00 00 00 00 	add    QWORD PTR [rip+0x0],0x10        # 1e <ret_+0x1e>
-  1d:	10 
-  1e:	48 3b 01             	cmp    rax,QWORD PTR [rcx]
-  21:	75 0b                	jne    2e <ret_.mismatch>
-  23:	48 8b 41 08          	mov    rax,QWORD PTR [rcx+0x8]
-  27:	59                   	pop    rcx
-  28:	9d                   	popf   
-  29:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
-  2d:	c3                   	ret    
+   4:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # b <ret+0xb>
+   b:	9c                   	pushf  
+   c:	51                   	push   rcx
+   d:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # 14 <ret+0x14>
+  14:	48 3b 25 00 00 00 00 	cmp    rsp,QWORD PTR [rip+0x0]        # 1b <ret+0x1b>
+  1b:	74 0e                	je     2b <ret.cleanup>
+  1d:	59                   	pop    rcx
+  1e:	48 39 c8             	cmp    rax,rcx
+  21:	59                   	pop    rcx
+  22:	74 07                	je     2b <ret.cleanup>
+  24:	48 8d 0d 26 00 00 00 	lea    rcx,[rip+0x26]        # 51 <ret.bkpt>
 
-000000000000002e <ret_.mismatch>:
-  2e:	59                   	pop    rcx
-  2f:	9d                   	popf   
-  30:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
-  34:	cc                   	int3   
+000000000000002b <ret.cleanup>:
+  2b:	48 89 0d 00 00 00 00 	mov    QWORD PTR [rip+0x0],rcx        # 32 <ret.cleanup+0x7>
+  32:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # 39 <ret.cleanup+0xe>
+  39:	59                   	pop    rcx
+  3a:	9d                   	popf   
+  3b:	48 87 25 00 00 00 00 	xchg   QWORD PTR [rip+0x0],rsp        # 42 <ret.cleanup+0x17>
+  42:	48 87 04 24          	xchg   QWORD PTR [rsp],rax
+  46:	48 8d 64 24 08       	lea    rsp,[rsp+0x8]
+  4b:	ff 25 00 00 00 00    	jmp    QWORD PTR [rip+0x0]        # 51 <ret.bkpt>
+
+0000000000000051 <ret.bkpt>:
+  51:	48 8d 64 24 f8       	lea    rsp,[rsp-0x8]
+  56:	cc                   	int3   

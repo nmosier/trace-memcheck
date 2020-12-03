@@ -172,11 +172,11 @@ private:
 
 class RetTerminator: public Terminator {
 public:
-  RetTerminator(BlockPool& block_pool, const Instruction& ret, Tracee& tracee,
+  RetTerminator(BlockPool& block_pool, TmpMem& tmp_mem, const Instruction& ret, Tracee& tracee,
 		const LookupBlock& lb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
 private:
-  static constexpr size_t RET_SIZE = 0x35; // from rsb-ret.asm.
+  static constexpr size_t RET_SIZE = 0x57; // from rsb-ret.asm.
 };
 
 class CallTerminator: public Terminator {
