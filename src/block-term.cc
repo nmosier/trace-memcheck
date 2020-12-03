@@ -365,24 +365,19 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, Tmp
   uint8_t **orig_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) orig_ra_val);
   new_ra_ptr = (uint8_t **) ptr_pool.add((uintptr_t) new_ra_val); // TODO: optimize -- check if TXed
 
-  static const Data::Content bytes = {0x9c, 0x50, 0x48, 0x89, 0xe0, 0x48, 0x8b, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x3b, 0x25, 0x00, 0x00, 0x00, 0x00, 0x74, 0x13, 0xff, 0x35, 0x00, 0x00, 0x00, 0x00, 0xff, 0x35, 0x00, 0x00, 0x00, 0x00, 0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x89, 0xc4, 0x58, 0x9d,};
+  static const Data::Content bytes = {0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x3b, 0x25, 0x00, 0x00, 0x00, 0x00, 0x74, 0x0c, 0xff, 0x35, 0x00, 0x00, 0x00, 0x00, 0xff, 0x35, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00};
+  
   static Data data(nullptr, bytes);
   data.relocate(addr());
   write(data);
 
-  const auto inst0 = Instruction::mov_mem64(addr() + 0x05, Instruction::reg_t::RSP,
-					    (uint8_t *) rsb.ptr());
-  const auto inst1 = Instruction::cmp_mem64(addr() + 0x0c, Instruction::reg_t::RSP,
-					    (uint8_t *) rsb.end());
-  const auto inst2 = Instruction::push_mem(addr() + 0x15, (uint8_t *) new_ra_ptr);
-  const auto inst3 = Instruction::push_mem(addr() + 0x1b, (uint8_t *) orig_ra_ptr);
-  const auto inst4 = Instruction::mov_mem64(addr() + 0x21, (uint8_t *) rsb.ptr(),
-					    Instruction::reg_t::RSP);
-  write(inst0);
-  write(inst1);
-  write(inst2);
-  write(inst3);
-  write(inst4);
+  write(PCRelDisp(addr() + 0x00 + 3, addr() + 0x07, (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
+  write(PCRelDisp(addr() + 0x08 + 3, addr() + 0x0f, (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsp_ptr]
+  write(PCRelDisp(addr() + 0x0f + 3, addr() + 0x16, (uint8_t *) rsb.end())); // cmp rsp, [rel rsb_end]
+  write(PCRelDisp(addr() + 0x18 + 2, addr() + 0x1e, (uint8_t *) new_ra_ptr)); // push qword [rel new_ra]
+  write(PCRelDisp(addr() + 0x1e + 2, addr() + 0x24, (uint8_t *) orig_ra_ptr)); // push qword [rel orig_ra]
+  write(PCRelDisp(addr() + 0x24 + 3, addr() + 0x2b, (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsb_ptr]
+  write(PCRelDisp(addr() + 0x2c + 3, addr() + 0x33, (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
 
   /* post instructions */
   const auto bkpt = Instruction::int3(bkpt_addr);

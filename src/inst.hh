@@ -70,6 +70,11 @@ public:
   size_t size(void) const override { return data_.size(); }
 
   virtual std::ostream& print(std::ostream& os) const override;
+
+protected:
+  void data(const Content& data) { data_ = data; }
+  template <typename... Args>
+  void emplace_data(Args&&... args) { data_ = Content(args...); }
   
 private:
   Content data_;
@@ -80,6 +85,13 @@ public:
   Pointer(uint8_t *pc, uint8_t *ptr): Data(pc, reinterpret_cast<uint8_t *>(&ptr),
 					   reinterpret_cast<uint8_t *>(&ptr + 1)) {}
 };
+
+/* 32-bit PC-relative disparity */
+class PCRelDisp: public Data {
+public:
+  PCRelDisp(uint8_t *pc, uint8_t *iend, uint8_t *dst);
+};
+
 
 class Instruction: public Blob {
 public:
@@ -185,7 +197,7 @@ public:
   bool call_to_jmp(void);
 
   bool is_conditional_branch(void) const;
-  
+
 private:
   bool good_;
   Data data_;
