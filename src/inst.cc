@@ -472,3 +472,9 @@ Instruction Instruction::je_b(uint8_t *pc, uint8_t *dst) {
   int8_t diff = dst - (pc + je_b_len);
   return from_bytes(pc, 0x74, static_cast<uint8_t>(diff));
 }
+
+PCRelDisp::PCRelDisp(uint8_t *pc, uint8_t *iend, uint8_t *dst): Data(pc) {
+  int32_t diff = dst - iend;
+  emplace_data(reinterpret_cast<const uint8_t *>(&diff),
+	       reinterpret_cast<const uint8_t *>(&diff + 1));
+}

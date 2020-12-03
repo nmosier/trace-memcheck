@@ -189,7 +189,7 @@ protected:
   uint8_t *subaddr() const { return Terminator::addr() + CALL_SIZE_PRE; }
   
 private:
-  static constexpr size_t CALL_SIZE_PRE = 0x2D; // from rsb-call.asm
+  static constexpr size_t CALL_SIZE_PRE = 0x33; // from rsb-call.asm
   static constexpr size_t CALL_SIZE_POST = 1; // one breakpoint
   static constexpr size_t CALL_SIZE = CALL_SIZE_PRE + CALL_SIZE_POST;
   uint8_t *orig_ra_val;
