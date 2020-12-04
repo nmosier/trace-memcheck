@@ -27,3 +27,4 @@
 [ ] Allow user breakpoints
 [ ] Split block-term.cc into multiple files
 [ ] Optimize lambda functions
+[ ] Move running logic memcheck -> patcher
