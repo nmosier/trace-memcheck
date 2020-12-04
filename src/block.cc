@@ -11,54 +11,6 @@ size_t Block::size(const InstVec& insts) {
 			   return acc + inst->size();
 			 });
 }
-
-#if 0
-bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
-		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
-		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-		   const InsertBlock& ib, const InstTransformer& handler) {
-  Block *block = new Block(tracee, orig_addr, block_pool);
-  
-  uint8_t *it = orig_addr;
-  uint8_t *newit = block_pool.peek();
-  std::unique_ptr<Instruction> inst;
-
-  /* get non-branch instructions */
-  auto inserter = std::inserter(block->insts_, block->insts_.end());
-  while (true) {
-    inst = std::make_unique<Instruction>(it, tracee);
-    if (!*inst) {
-      return false;
-    }
-
-    it += inst->size(); // update original PC
-    
-    if (classify_inst(*inst)) {
-      break;
-    }
-
-    if (inst->xed_nmemops() > 0 && inst->xed_base_reg() == XED_REG_RIP) {
-      newit = transform_riprel_inst(newit, *inst,
-				    std::inserter(block->insts_, block->insts_.end()), ptr_pool,
-				    tmp_mem);
-    } else {
-      newit = handler(newit, std::move(inst), inserter);
-    }
-  }
-
-  block->pool_addr_ = block_pool.alloc(size(block->insts_));
-  block_pool.write_insts(block->pool_addr_, block->insts_);
-
-  ib(orig_addr, block);
-  
-  /* create terminator instructions */
-  block->terminator_ =
-    std::unique_ptr<Terminator>
-    (Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst, tracee, lb, pb, rb, rsb, *block));
-  
-  return true;
-}
-#else
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
@@ -137,7 +89,6 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 
   return true;
 }
-#endif
 
 template <typename Append>
 void Block::transform_riprel_inst(uint8_t *& pc, const Append& append, const Instruction& inst,
