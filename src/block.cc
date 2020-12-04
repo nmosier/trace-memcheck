@@ -38,7 +38,8 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 
     if (inst->xed_nmemops() > 0 && inst->xed_base_reg() == XED_REG_RIP) {
       newit = transform_riprel_inst(newit, *inst,
-				    std::inserter(block->insts_, block->insts_.end()), ptr_pool);
+				    std::inserter(block->insts_, block->insts_.end()), ptr_pool,
+				    tmp_mem);
     } else {
 #if 1
       /* relocate instruction and add to list */
@@ -67,7 +68,7 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 
 template <typename OutputIt>
 uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
-				      PointerPool& ptr_pool) {
+				      PointerPool& ptr_pool, TmpMem& tmp_mem) {
   auto add_inst = [&] (const auto& arg) {
     auto inst = std::make_unique<Instruction>(arg);
 
@@ -117,16 +118,16 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
   std::clog << "orig inst: " << inst << std::endl;
 #endif
   
-  /* push rax
+  /* mov [rel tmp_0], rax
    * mov rax, [rel ptr]
    * OP dst, [rax] | OP [rax] | OP [rax], src
-   * pop rax
+   * mov rax, [rel tmp_0]
    */
 
-  add_inst(Instruction::push_reg(pc, scrap_reg));
+  add_inst(Instruction::mov_mem64(pc, (uint8_t *) tmp_mem[0], scrap_reg));
   add_inst(Instruction::mov_mem64(pc, scrap_reg, ptr_addr));
   new_inst.relocate(pc); add_inst(new_inst); // OP
-  add_inst(Instruction::pop_reg(pc, scrap_reg));
+  add_inst(Instruction::mov_mem64(pc, scrap_reg, (uint8_t *) tmp_mem[0]));
 
   return pc;
 }

@@ -71,7 +71,7 @@ private:
 
   template <typename OutputIt>
   static uint8_t *transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
-					PointerPool& ptr_pool);
+					PointerPool& ptr_pool, TmpMem& tmp_mem);
 
   template <typename AddInst>
   static void transform_riprel_push(uint8_t*& pc, AddInst add_inst, const Instruction& push,
