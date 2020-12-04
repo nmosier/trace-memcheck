@@ -118,26 +118,26 @@ int main(int argc, char *argv[]) {
 
   Tracee tracee(child, command[0]);
 
-  const auto handler = [&] (uint8_t *addr, Instruction& inst, const Block::Writer& writer) {
+  const auto handler = [&] (uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info)
+  {
     (void) addr;
 #if 0
-    if (inst->xed_iclass() == XED_ICLASS_XCHG) {
-      const auto bkpt = Instruction::int3(addr);
-      addr += bkpt.size();
-      *info.it++ = std::make_unique<Instruction>(bkpt);
-      info.rb(bkpt.pc(), [] (auto addr) {
-	std::clog << "xchg @ " << (const void *) addr << std::endl;
+    auto nop = Instruction::from_bytes(addr, 0x90); // NOP
+    addr = info.writer(nop);
+#endif
+
+#if 1
+    if (inst.xed_iclass() == XED_ICLASS_XCHG) {
+      auto bkpt = Instruction::int3(addr);
+      addr = info.writer(bkpt);
+      info.rb(bkpt.pc(), [inst] (auto addr) {
+	std::clog << "xchg @ " << (const void *) addr << ": " << inst << std::endl;
       });
     }
 #endif
 
-    addr = writer(inst);
+    addr = info.writer(inst);
 
-#if 0
-    const auto nop = Instruction::from_bytes(addr, 0x90);
-    addr += nop.size();
-    *info.it++ = std::make_unique<Instruction>(nop);
-#endif
   };  
   
   Patcher patcher(tracee, handler);

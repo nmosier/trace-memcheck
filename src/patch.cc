@@ -31,9 +31,13 @@ bool Patcher::patch(uint8_t *start_pc) {
     assert(it.second); (void) it;
   };
 
+  const auto block_transformer = [&] (uint8_t *addr, Instruction& inst, const Writer& writer) {
+    return transformer(addr, inst, TransformerInfo {writer, rb});
+  };
+
   /* create block */
   return Block::Create(start_pc, tracee, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
-		       transformer);
+		       block_transformer);
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {

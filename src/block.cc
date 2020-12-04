@@ -33,7 +33,7 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
     block_pool.alloc(buf.size());
   };
   
-  const auto writer = [&] (Blob& blob) -> uint8_t * {
+  const Writer writer = [&] (Blob& blob) -> uint8_t * {
     // TODO: Refactor, esp. return statements.
     
     const auto inst = dynamic_cast<Instruction *>(&blob);

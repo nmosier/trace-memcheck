@@ -14,13 +14,12 @@
 class Patcher {
 public:
   using RegisterBkpt = Block::RegisterBkpt;
-#if 0
+  using Writer = Block::Writer;
   struct TransformerInfo {
-    InstInserter it;
+    Writer writer;
     RegisterBkpt rb;
   };
-#endif
-  using Transformer = Block::Transformer;
+  using Transformer = std::function<void (uint8_t *, Instruction&, const TransformerInfo&)>;
   
   Patcher(Tracee& tracee, const Transformer& transformer);
 

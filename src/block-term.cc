@@ -22,6 +22,7 @@ xed_iclass_enum_t DirJccTerminator::last_iclass(void) const {
   }
 #endif
 }
+
 const char *DirJccTerminator::last_iclass_str(void) const {
   return xed_iclass_enum_t2str(last_iclass());
 }

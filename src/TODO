@@ -26,3 +26,4 @@
 [X] Allow instruction transformer to see instructions before riprel transformation
 [ ] Allow user breakpoints
 [ ] Split block-term.cc into multiple files
+[ ] Optimize lambda functions
