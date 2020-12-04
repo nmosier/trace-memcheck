@@ -71,41 +71,57 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 
   bool stop = false;
 
+  std::vector<uint8_t> buf;
+  uint8_t *newit = block_pool.peek();
+  const auto append = [&] (const Blob& blob) {
+    assert(newit == blob.pc());
+    const auto data = blob.data();
+    const auto size = blob.size();
+    buf.insert(buf.end(), data, data + size);
+    newit += size;
+  };
+
+  const auto flush = [&] (void) {
+    assert(buf.size() == static_cast<size_t>(newit - block->pool_addr_));
+    tracee.write(buf.data(), buf.size(), block->pool_addr_);
+    block_pool.alloc(buf.size());
+  };
+  
   const auto writer = [&] (Blob& blob) -> uint8_t * {
     // TODO: Refactor, esp. return statements.
     
     const auto inst = dynamic_cast<Instruction *>(&blob);
 
     if (inst == nullptr) {
-      blob.relocate(block_pool.alloc(blob.size()));
-      tracee.write(blob);
-      return block_pool.peek();
+      blob.relocate(newit);
+      append(blob);
+      return newit;
     }
 
     /* check if branch */
     stop = classify_inst(*inst);
     if (stop) {
       /* branch stuff */
+      flush();
       ib(orig_addr, block);
       block->terminator_ = std::unique_ptr<Terminator>
 	(Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst, tracee, lb, pb, rb, rsb, *block));
-      return block_pool.peek();
+      return nullptr; // rv shouldn't matter
     }    
 
     /* relocate */
-    if (inst->pc() != block_pool.peek()) {
+    if (inst->pc() != newit) {
       if (inst->xed_nmemops() > 0 && inst->xed_base_reg() == XED_REG_RIP) {
-	block->transform_riprel_inst(*inst, ptr_pool, tmp_mem);
-	return block_pool.peek();
+	block->transform_riprel_inst(newit, append, *inst, ptr_pool, tmp_mem);
+	return newit;
       }
       
-      inst->relocate(block_pool.peek());
+      inst->relocate(newit);
     }
     
     /* write instruction */
-    block_pool.alloc(inst->size());
-    tracee.write(*inst);
-    return block_pool.peek();
+    append(*inst);
+    return newit;
   };
   
   while (!stop) {
@@ -116,29 +132,18 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 
     it += inst.size(); // update original PC
 
-    transformer(block_pool.peek(), inst, writer);
+    transformer(newit, inst, writer);
   }
 
   return true;
 }
 #endif
 
-void Block::transform_riprel_inst(const Instruction& inst, PointerPool& ptr_pool, TmpMem& tmp_mem) {
-  uint8_t *pc = block_pool_.peek();
-  auto add_inst = [&] (const auto& inst) {
-
-#if PRINT_RIPREL_TRANSLATIONS
-    std::clog << "new inst:  " << *inst << std::endl;
-#endif
-
-    assert(inst.pc() == pc);
-    tracee_.write(inst);
-    pc += inst.size();
-    block_pool_.alloc(inst.size());
-  };
-
+template <typename Append>
+void Block::transform_riprel_inst(uint8_t *& pc, const Append& append, const Instruction& inst,
+				  PointerPool& ptr_pool, TmpMem& tmp_mem) {
   if (inst.xed_iclass() == XED_ICLASS_PUSH) {
-    transform_riprel_push(pc, add_inst, inst, ptr_pool);
+    transform_riprel_push(pc, append, inst, ptr_pool);
     return;
   }
 
@@ -181,14 +186,14 @@ void Block::transform_riprel_inst(const Instruction& inst, PointerPool& ptr_pool
    * mov rax, [rel tmp_0]
    */
 
-  add_inst(Instruction::mov_mem64(pc, (uint8_t *) tmp_mem[0], scrap_reg));
-  add_inst(Instruction::mov_mem64(pc, scrap_reg, ptr_addr));
-  new_inst.relocate(pc); add_inst(new_inst); // OP
-  add_inst(Instruction::mov_mem64(pc, scrap_reg, (uint8_t *) tmp_mem[0]));
+  append(Instruction::mov_mem64(pc, (uint8_t *) tmp_mem[0], scrap_reg));
+  append(Instruction::mov_mem64(pc, scrap_reg, ptr_addr));
+  new_inst.relocate(pc); append(new_inst); // OP
+  append(Instruction::mov_mem64(pc, scrap_reg, (uint8_t *) tmp_mem[0]));
 }
 
-template <typename AddInst>
-void Block::transform_riprel_push(uint8_t *& pc, AddInst add_inst, const Instruction& push,
+template <typename Append>
+void Block::transform_riprel_push(uint8_t *& pc, const Append& append, const Instruction& push,
 				  PointerPool& ptr_pool) {
   /* push rax
    * mov rax, [rel ptr]
@@ -199,10 +204,10 @@ void Block::transform_riprel_push(uint8_t *& pc, AddInst add_inst, const Instruc
   uint8_t *mem_dst = push.mem_dst();
   uint8_t *ptr_addr = (uint8_t *) ptr_pool.add((uintptr_t) mem_dst);
   
-  add_inst(Instruction::from_bytes(pc, 0x50)); // push rax
-  add_inst(Instruction::mov_mem64(pc, Instruction::reg_t::RAX, ptr_addr)); // mov rax, [rel ptr]
-  add_inst(Instruction::from_bytes(pc, 0x48, 0x8b, 0x00)); // mov rax, [rax]
-  add_inst(Instruction::from_bytes(pc, 0x48, 0x87, 0x04, 0x24)); // xchg rax, [rsp]
+  append(Instruction::from_bytes(pc, 0x50)); // push rax
+  append(Instruction::mov_mem64(pc, Instruction::reg_t::RAX, ptr_addr)); // mov rax, [rel ptr]
+  append(Instruction::from_bytes(pc, 0x48, 0x8b, 0x00)); // mov rax, [rax]
+  append(Instruction::from_bytes(pc, 0x48, 0x87, 0x04, 0x24)); // xchg rax, [rsp]
 }
 
 // returns true iff branch instruction

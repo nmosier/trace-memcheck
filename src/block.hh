@@ -70,10 +70,12 @@ private:
 
   static size_t size(const InstVec& insts);
 
-  void transform_riprel_inst(const Instruction& inst, PointerPool& ptr_pool, TmpMem& tmp_mem);
+  template <typename Append>
+  static void transform_riprel_inst(uint8_t *& pc, const Append& append, const Instruction& inst,
+				    PointerPool& ptr_pool, TmpMem& tmp_mem);
   
-  template <typename AddInst>
-  void transform_riprel_push(uint8_t *& pc, AddInst add_inst, const Instruction& push,
-			     PointerPool& ptr_pool);
+  template <typename Append>
+  static void transform_riprel_push(uint8_t *& pc, const Append& append, const Instruction& push,
+				    PointerPool& ptr_pool);
 };
 
