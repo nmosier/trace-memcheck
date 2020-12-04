@@ -20,7 +20,7 @@ public:
     RegisterBkpt rb;
   };
   using Transformer = std::function<void (uint8_t *, Instruction&, const TransformerInfo&)>;
-  
+
   Patcher(Tracee& tracee, const Transformer& transformer);
 
   bool patch(uint8_t *root);

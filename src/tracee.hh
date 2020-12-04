@@ -72,7 +72,7 @@ public:
   
 private:
   pid_t pid_;
-  int    fd_;
+  int fd_;
   const char *command;
   bool regs_good_ = false;
   user_regs_struct regs_;

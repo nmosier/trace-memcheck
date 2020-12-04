@@ -34,3 +34,52 @@ template <typename T, typename... Args>
 constexpr std::array<T, sizeof...(Args)> make_array(Args... args) {
   return std::array<T, sizeof...(Args)> {static_cast<T>(args)...};
 }
+
+namespace util {
+  struct nullopt_t {};
+  constexpr nullopt_t nullopt;
+  
+  template <typename T>
+  class optional {
+  public:
+    optional() noexcept {}
+    optional(nullopt_t nullopt) noexcept {}
+    optional(const optional& other): ptr(other ? std::make_unique(*other) : nullptr) {}
+    optional(optional&& other) noexcept: ptr(other.ptr) {}
+    
+    explicit operator bool() const noexcept { return has_value(); }
+    bool has_value() const noexcept { return ptr; }
+
+    T& value() { return *ptr; }
+    const T& value() const { return *ptr; }
+
+    template <class U>
+    T value_or(U&& default_value) const {
+      return bool(*this) ? **this : static_cast<T>(std::forward<U>(default_value));
+    }
+
+    const T *operator->() const { return ptr.get(); }
+    T *operator->() { return ptr.get(); }
+    const T& operator*() const { return value(); }
+    T& operator*() { return value(); }
+    void reset() noexcept { ptr.reset(); }
+    
+    template <class... Args>
+    T& emplace(Args&&... args) {
+      ptr = std::make_unique<T>(args...);
+      return **this;
+    }
+
+    optional& operator=(nullopt_t nullopt) { ptr = nullptr; return *this; }
+    optional& operator=(const optional& other) {
+      ptr = other ? std::make_unique(*other) : nullptr;
+      return *this;
+    }
+    template <class U>
+    optional& operator=(U&& value) { ptr = std::make_unique<T>(value); return *this; }
+    
+  private:
+    std::unique_ptr<T> ptr;
+  };
+  
+}
