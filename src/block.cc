@@ -5,12 +5,6 @@
 #include "block-pool.hh"
 #include "debug.h"
 
-size_t Block::size(const InstVec& insts) {
-  return std::accumulate(insts.begin(), insts.end(), 0,
-			 [] (size_t acc, const auto& inst) {
-			   return acc + inst->size();
-			 });
-}
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,

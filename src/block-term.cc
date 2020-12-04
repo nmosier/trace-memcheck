@@ -12,12 +12,15 @@
 
 std::string DirJccTerminator::last_decision(last_decision_bits, 'x');
 xed_iclass_enum_t DirJccTerminator::last_iclass(void) const {
+  abort(); // TODO: Broken because block instructions were removed.
+#if 0
   const auto it = block.insts().rbegin();
   if (it == block.insts().rend()) {
     return XED_ICLASS_INVALID;
   } else {
     return (**it).xed_iclass();
   }
+#endif
 }
 const char *DirJccTerminator::last_iclass_str(void) const {
   return xed_iclass_enum_t2str(last_iclass());

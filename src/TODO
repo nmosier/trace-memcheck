@@ -22,6 +22,7 @@
 [ ] For-loop for large jmp cache
 [X] Precompile insturction sequences.
 [X] Make JmpIndTerminator not touch stack
-[ ] Optimize block creation -- instvec inefficient
-[ ] Allow instruction transformer to see instructions before riprel transformation
+[X] Optimize block creation -- instvec inefficient
+[X] Allow instruction transformer to see instructions before riprel transformation
 [ ] Allow user breakpoints
+[ ] Split block-term.cc into multiple files

@@ -35,9 +35,6 @@ public:
   using InsertBlock = std::function<void (uint8_t *, Block *)>;
   using Writer = std::function<uint8_t *(Blob&)>;
   using Transformer = std::function<void (uint8_t *, Instruction& inst, const Writer&)>;
-  using InstInserter = std::insert_iterator<InstVec>;
-  using InstTransformer = std::function<uint8_t *(uint8_t *, std::unique_ptr<Instruction>, InstInserter)>;
-  
 
   static bool Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
@@ -46,7 +43,6 @@ public:
     
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }
-  const InstVec& insts() const { return insts_; }
 
   void jump_to(void) const;
 
@@ -55,10 +51,7 @@ private:
   BlockPool& block_pool_;
   uint8_t *orig_addr_;
   uint8_t *pool_addr_;
-  InstVec insts_; // linear basic block instructions
   std::unique_ptr<Terminator> terminator_;
-
-  //   std::vector<uint8_t> buf_;
 
   Block(Tracee& tracee, uint8_t *orig_addr, BlockPool& block_pool):
     tracee_(tracee), block_pool_(block_pool), orig_addr_(orig_addr) {}
@@ -67,8 +60,6 @@ private:
     return classify_inst(inst.xed_iclass());
   }
   static bool classify_inst(xed_iclass_enum_t iclass);
-
-  static size_t size(const InstVec& insts);
 
   template <typename Append>
   static void transform_riprel_inst(uint8_t *& pc, const Append& append, const Instruction& inst,
