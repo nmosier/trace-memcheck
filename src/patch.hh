@@ -13,7 +13,14 @@
 
 class Patcher {
 public:
-  Patcher(Tracee& tracee, const Block::InstTransformer& handler);
+  using RegisterBkpt = Block::RegisterBkpt;
+  using InstInserter = Block::InstInserter;
+  struct TransformerInfo {
+    InstInserter it;
+    RegisterBkpt rb;
+  };
+  using InstTransformer = std::function<uint8_t *(uint8_t *, std::unique_ptr<Instruction>, TransformerInfo&&)>;
+  Patcher(Tracee& tracee, const InstTransformer& handler);
 
   bool patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);
@@ -38,7 +45,7 @@ private:
   PointerPool ptr_pool;
   ReturnStackBuffer rsb;
   TmpMem tmp_mem;
-  const Block::InstTransformer& handler;
+  const InstTransformer& handler;
 
   Block *lookup_block_patch(uint8_t *addr, bool can_fail);
   const BkptCallback& lookup_bkpt(uint8_t *addr) const;

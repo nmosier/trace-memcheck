@@ -119,15 +119,26 @@ int main(int argc, char *argv[]) {
   Tracee tracee(child, command[0]);
 
   const auto handler = [&] (uint8_t *addr, std::unique_ptr<Instruction> inst,
-			    Block::InstInserter out_it) {
+			    Patcher::TransformerInfo&& info) {
+#if 0
+    if (inst->xed_iclass() == XED_ICLASS_XCHG) {
+      const auto bkpt = Instruction::int3(addr);
+      addr += bkpt.size();
+      *info.it++ = std::make_unique<Instruction>(bkpt);
+      info.rb(bkpt.pc(), [] (auto addr) {
+	std::clog << "xchg @ " << (const void *) addr << std::endl;
+      });
+    }
+#endif
+
     inst->relocate(addr);
     addr += inst->size();
-    out_it++ = std::move(inst);
+    *info.it++ = std::move(inst);
 
 #if 0
     const auto nop = Instruction::from_bytes(addr, 0x90);
     addr += nop.size();
-    out_it++ = std::make_unique<Instruction>(nop);
+    *info.it++ = std::make_unique<Instruction>(nop);
 #endif
     
     return addr;

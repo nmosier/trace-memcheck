@@ -1,7 +1,7 @@
 #include <unordered_set>
 #include "patch.hh"
 
-Patcher::Patcher(Tracee& tracee, const Block::InstTransformer& handler):
+Patcher::Patcher(Tracee& tracee, const InstTransformer& handler):
   tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size),
   rsb(tracee, rsb_size), tmp_mem(tracee, tmp_size), handler(handler) {}
 
@@ -32,8 +32,12 @@ bool Patcher::patch(uint8_t *start_pc) {
   };
 
   /* create block */
+  const auto block_handler = [&] (auto addr, auto inst, auto it) {
+    return handler(addr, std::move(inst), TransformerInfo {it, rb});
+  };
+  
   return Block::Create(start_pc, tracee, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
-		       handler);
+		       block_handler);
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
