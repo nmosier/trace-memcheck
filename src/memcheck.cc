@@ -126,6 +126,13 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
     return;
   }
 #endif
+
+#if 1
+  if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
+    addr = syscall_tracker.add(addr, inst, info);
+    return;
+  }
+#endif
     
   addr = info.writer(inst);
 }
@@ -173,4 +180,18 @@ StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
   std::stringstream ss;
   ss << inst;
   inst_str = ss.str();
+}
+
+uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst,
+			     const Patcher::TransformerInfo& info) {
+  const auto bkpt_addr = addr;
+  auto bkpt_inst = Instruction::int3(addr);
+  addr = info.writer(bkpt_inst);
+  addr = info.writer(inst);
+
+  info.rb(bkpt_addr, [this] (auto addr) {
+    std::clog << "syscall " << tracee.get_regs().rax << std::endl;
+  });
+
+  return addr;
 }

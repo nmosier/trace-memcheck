@@ -36,9 +36,19 @@ private:
   void post_handler(uint8_t *addr);
 };
 
+class SyscallTracker {
+public:
+  SyscallTracker(Tracee& tracee): tracee(tracee) {}
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+  
+private:
+  Tracee& tracee;
+};
+
 class Memcheck {
 public:
-  Memcheck(void): tracee(), stack_tracker(tracee) {}
+  Memcheck(void): tracee(), stack_tracker(tracee), syscall_tracker(tracee) {}
 
   bool open(const char *file, char * const argv[]);
   bool open(char * const argv[]) { return open(argv[0], argv); }
@@ -48,9 +58,11 @@ private:
   Tracee tracee;
   util::optional<Patcher> patcher;
   StackTracker stack_tracker;
+  SyscallTracker syscall_tracker;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 
   static bool stopped_trace(int status);
   static bool is_sp_dec(const Instruction& inst);
 };
+

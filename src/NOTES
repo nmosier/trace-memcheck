@@ -174,3 +174,7 @@ The blob is relocated using a special rule that translates RIP-relative instruct
 Furthermore, if the blob is a branch instruction, the loop terminates and the terminator is created.
 
 The instruction writer for now should just directly write to memory. In the future, it should use a buffer.
+
+--------
+
+Able to detect when stack changes occur. How about when system calls occur?
