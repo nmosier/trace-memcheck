@@ -127,6 +127,8 @@ public:
   const char *xed_iform_str() const { return xed_iform_enum_t2str(xed_iform()); }
   const char *xed_iclass_str() const { return xed_iclass_enum_t2str(xed_iclass()); }
   xed_reg_enum_t xed_reg() const { return xed_decoded_inst_get_reg(&xedd(), XED_OPERAND_REG0); }
+  xed_reg_enum_t xed_reg0() const { return xed_decoded_inst_get_reg(&xedd(), XED_OPERAND_REG0); }
+  xed_reg_enum_t xed_reg1() const { return xed_decoded_inst_get_reg(&xedd(), XED_OPERAND_REG1); }
   unsigned xed_nmemops() const { return xed_decoded_inst_number_of_memory_operands(&xedd()); }
   xed_reg_enum_t xed_base_reg() const { return xed_decoded_inst_get_base_reg(&xedd(), 0); }
 

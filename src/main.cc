@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "patch.hh"
 #include "config.hh"
+#include "memcheck.hh"
 
 static inline bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
@@ -117,34 +118,12 @@ int main(int argc, char *argv[]) {
   assert(stopped_trace(status));
 
   Tracee tracee(child, command[0]);
-
-  const auto handler = [&] (uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info)
-  {
-    (void) addr;
-#if 0
-    auto nop = Instruction::from_bytes(addr, 0x90); // NOP
-    addr = info.writer(nop);
-#endif
-
-#if 1
-    if (inst.xed_iclass() == XED_ICLASS_XCHG) {
-      auto bkpt = Instruction::int3(addr);
-      addr = info.writer(bkpt);
-      info.rb(bkpt.pc(), [inst] (auto addr) {
-	std::clog << "xchg @ " << (const void *) addr << ": " << inst << std::endl;
-      });
-    }
-#endif
-
-    addr = info.writer(inst);
-
-  };  
   
-  Patcher patcher(tracee, handler);
+  Patcher patcher(tracee, memchk::transformer);
   patcher.start();
   
   uint8_t *bkpt_pc;
-
+  
   if (g_conf.profile) {
     ProfilerStart("memcheck.prof");
   }
@@ -189,7 +168,6 @@ int main(int argc, char *argv[]) {
 	uint8_t pc_byte;
 	tracee.read(&pc_byte, 1, tracee.get_pc());
 	while (pc_byte == 0xcc) {
-	  // printf("bkpt pc = %p\n", get_pc(child));
 	  bkpt_pc = tracee.get_pc();
 	  tracee.set_pc(bkpt_pc);
 	  patcher.handle_bkpt(bkpt_pc);
@@ -222,7 +200,6 @@ int main(int argc, char *argv[]) {
 #endif
 
   assert(WIFEXITED(status));
-  // cleanup();
 
   fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));
 
