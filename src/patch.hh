@@ -14,13 +14,15 @@
 class Patcher {
 public:
   using RegisterBkpt = Block::RegisterBkpt;
-  using InstInserter = Block::InstInserter;
+#if 0
   struct TransformerInfo {
     InstInserter it;
     RegisterBkpt rb;
   };
-  using InstTransformer = std::function<uint8_t *(uint8_t *, std::unique_ptr<Instruction>, TransformerInfo&&)>;
-  Patcher(Tracee& tracee, const InstTransformer& handler);
+#endif
+  using Transformer = Block::Transformer;
+  
+  Patcher(Tracee& tracee, const Transformer& transformer);
 
   bool patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);
@@ -28,7 +30,6 @@ public:
   void start(void);
 
 private:
-  //  using BlockMap = std::unordered_map<uint8_t *, Block *>;
   using BlockMap = std::unordered_map<uint8_t *, Block *>;
   using BkptCallback = Terminator::BkptCallback;
   using BkptMap = std::unordered_map<uint8_t *, BkptCallback>;
@@ -45,7 +46,7 @@ private:
   PointerPool ptr_pool;
   ReturnStackBuffer rsb;
   TmpMem tmp_mem;
-  const InstTransformer& handler;
+  const Transformer& transformer;
 
   Block *lookup_block_patch(uint8_t *addr, bool can_fail);
   const BkptCallback& lookup_bkpt(uint8_t *addr) const;

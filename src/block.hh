@@ -33,14 +33,17 @@ public:
   using ProbeBlock = Terminator::ProbeBlock;
   using RegisterBkpt = Terminator::RegisterBkpt;
   using InsertBlock = std::function<void (uint8_t *, Block *)>;
+  using Writer = std::function<uint8_t *(Blob&)>;
+  using Transformer = std::function<void (uint8_t *, Instruction& inst, const Writer&)>;
   using InstInserter = std::insert_iterator<InstVec>;
   using InstTransformer = std::function<uint8_t *(uint8_t *, std::unique_ptr<Instruction>, InstInserter)>;
   
-  static bool Create(uint8_t *pc, Tracee& tracee, BlockPool& block_pool,
+
+  static bool Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		     const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-		     const InsertBlock& ib, const InstTransformer& handler);
-  
+		     const InsertBlock& ib, const Transformer& transformer);
+    
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }
   const InstVec& insts() const { return insts_; }
@@ -67,12 +70,10 @@ private:
 
   static size_t size(const InstVec& insts);
 
-  template <typename OutputIt>
-  static uint8_t *transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
-					PointerPool& ptr_pool, TmpMem& tmp_mem);
-
+  void transform_riprel_inst(const Instruction& inst, PointerPool& ptr_pool, TmpMem& tmp_mem);
+  
   template <typename AddInst>
-  static void transform_riprel_push(uint8_t*& pc, AddInst add_inst, const Instruction& push,
-				    PointerPool& ptr_pool);
+  void transform_riprel_push(uint8_t *& pc, AddInst add_inst, const Instruction& push,
+			     PointerPool& ptr_pool);
 };
 

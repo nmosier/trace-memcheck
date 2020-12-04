@@ -12,6 +12,7 @@ size_t Block::size(const InstVec& insts) {
 			 });
 }
 
+#if 0
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
@@ -57,24 +58,88 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   
   return true;
 }
+#else
+bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
+		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
+		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
+		   const InsertBlock& ib, const Transformer& transformer)
+{
+  Block *block = new Block(tracee, orig_addr, block_pool);
+  uint8_t *it = orig_addr;
+  
+  block->pool_addr_ = block_pool.peek();
 
-template <typename OutputIt>
-uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, OutputIt out_it,
-				      PointerPool& ptr_pool, TmpMem& tmp_mem) {
-  auto add_inst = [&] (const auto& arg) {
-    auto inst = std::make_unique<Instruction>(arg);
+  bool stop = false;
+
+  const auto writer = [&] (Blob& blob) -> uint8_t * {
+    // TODO: Refactor, esp. return statements.
+    
+    const auto inst = dynamic_cast<Instruction *>(&blob);
+
+    if (inst == nullptr) {
+      blob.relocate(block_pool.alloc(blob.size()));
+      tracee.write(blob);
+      return block_pool.peek();
+    }
+
+    /* check if branch */
+    stop = classify_inst(*inst);
+    if (stop) {
+      /* branch stuff */
+      ib(orig_addr, block);
+      block->terminator_ = std::unique_ptr<Terminator>
+	(Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst, tracee, lb, pb, rb, rsb, *block));
+      return block_pool.peek();
+    }    
+
+    /* relocate */
+    if (inst->pc() != block_pool.peek()) {
+      if (inst->xed_nmemops() > 0 && inst->xed_base_reg() == XED_REG_RIP) {
+	block->transform_riprel_inst(*inst, ptr_pool, tmp_mem);
+	return block_pool.peek();
+      }
+      
+      inst->relocate(block_pool.peek());
+    }
+    
+    /* write instruction */
+    block_pool.alloc(inst->size());
+    tracee.write(*inst);
+    return block_pool.peek();
+  };
+  
+  while (!stop) {
+    Instruction inst(it, tracee);
+    if (!inst) {
+      return false;
+    }
+
+    it += inst.size(); // update original PC
+
+    transformer(block_pool.peek(), inst, writer);
+  }
+
+  return true;
+}
+#endif
+
+void Block::transform_riprel_inst(const Instruction& inst, PointerPool& ptr_pool, TmpMem& tmp_mem) {
+  uint8_t *pc = block_pool_.peek();
+  auto add_inst = [&] (const auto& inst) {
 
 #if PRINT_RIPREL_TRANSLATIONS
     std::clog << "new inst:  " << *inst << std::endl;
 #endif
-    
-    pc += inst->size();
-    *out_it++ = std::move(inst);
+
+    assert(inst.pc() == pc);
+    tracee_.write(inst);
+    pc += inst.size();
+    block_pool_.alloc(inst.size());
   };
 
   if (inst.xed_iclass() == XED_ICLASS_PUSH) {
     transform_riprel_push(pc, add_inst, inst, ptr_pool);
-    return pc;
+    return;
   }
 
   Instruction::reg_t scrap_reg;
@@ -120,12 +185,10 @@ uint8_t *Block::transform_riprel_inst(uint8_t *pc, const Instruction& inst, Outp
   add_inst(Instruction::mov_mem64(pc, scrap_reg, ptr_addr));
   new_inst.relocate(pc); add_inst(new_inst); // OP
   add_inst(Instruction::mov_mem64(pc, scrap_reg, (uint8_t *) tmp_mem[0]));
-
-  return pc;
 }
 
 template <typename AddInst>
-void Block::transform_riprel_push(uint8_t*& pc, AddInst add_inst, const Instruction& push,
+void Block::transform_riprel_push(uint8_t *& pc, AddInst add_inst, const Instruction& push,
 				  PointerPool& ptr_pool) {
   /* push rax
    * mov rax, [rel ptr]

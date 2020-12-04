@@ -118,8 +118,8 @@ int main(int argc, char *argv[]) {
 
   Tracee tracee(child, command[0]);
 
-  const auto handler = [&] (uint8_t *addr, std::unique_ptr<Instruction> inst,
-			    Patcher::TransformerInfo&& info) {
+  const auto handler = [&] (uint8_t *addr, Instruction& inst, const Block::Writer& writer) {
+    (void) addr;
 #if 0
     if (inst->xed_iclass() == XED_ICLASS_XCHG) {
       const auto bkpt = Instruction::int3(addr);
@@ -131,17 +131,13 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    inst->relocate(addr);
-    addr += inst->size();
-    *info.it++ = std::move(inst);
+    addr = writer(inst);
 
 #if 0
     const auto nop = Instruction::from_bytes(addr, 0x90);
     addr += nop.size();
     *info.it++ = std::make_unique<Instruction>(nop);
 #endif
-    
-    return addr;
   };  
   
   Patcher patcher(tracee, handler);
