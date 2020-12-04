@@ -19,7 +19,7 @@ public:
   using LookupBlock = std::function<uint8_t *(uint8_t *)>;
   using TryLookupBlock = std::function<uint8_t *(uint8_t *)>;
   using ProbeBlock = std::function<uint8_t *(uint8_t *)>; // returns nullptr if block not present
-  using BkptCallback = std::function<void(void)>;
+  using BkptCallback = std::function<void(uint8_t *)>;
   using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
   using UnregisterBkpt = std::function<void(uint8_t *)>;
   
@@ -57,7 +57,7 @@ protected:
   template <typename Derived>
   static BkptCallback make_callback(Derived *term,
 				    void (Derived::*fn)(void)) {
-    return [=] (void) {
+    return [=] (uint8_t *bkpt_addr) {
       (term->*fn)();
     };
   }

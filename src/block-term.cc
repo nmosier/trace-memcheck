@@ -529,7 +529,7 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
   const auto null_bkpt = Instruction::int3(it);
   it += null_bkpt.size();
   write(null_bkpt);
-  rb(null_bkpt.pc(), [&] () {
+  rb(null_bkpt.pc(), [&] (uint8_t *bkpt_addr) {
     std::clog << "jumped to NULL" << std::endl;
     std::clog << "pc: " << (void *) tracee.get_pc() << std::endl;
     const auto begin = addr();

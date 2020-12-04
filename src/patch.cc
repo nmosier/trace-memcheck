@@ -38,7 +38,7 @@ bool Patcher::patch(uint8_t *start_pc) {
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
   const BkptCallback& callback = lookup_bkpt(bkpt_addr);
-  callback();
+  callback(bkpt_addr);
 }
 
 void Patcher::jump_to_block(uint8_t *orig_addr) {

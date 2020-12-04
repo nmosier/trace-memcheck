@@ -1,5 +1,4 @@
 [~] Don't patch branches eagerly. Single-step both direct & indirect branches to determine outcome.
-[ ] Separate data from code
 [X] classify_inst() should return bool, not enum
 [X] elimintate Block::Kind enum class
 [ ] unify ptr pool and block pool to avoid 2 system calls
@@ -15,11 +14,14 @@
 [X] Rewrite Tracee::write (iterator version) to use buffer
 [X] CallTerminator needs to check if RA already translated.
 [X] Fix potential bug -- CALL/RET modifies flags
-[ ] Fix duplicate flush with subclasses in Terminator
+[X] Fix duplicate flush with subclasses in Terminator
 [ ] Make JmpMemTerminator more general and accept subclasses
-[ ] Don't mess w/ stack -- use 'xchg rsp, [rel memcheck_stack]'
+[X] Don't mess w/ stack -- use 'xchg rsp, [rel memcheck_stack]'
 [ ] Optimize by not copying all instruction data
 [X] Support multiple jmp cache slots
 [ ] For-loop for large jmp cache
 [X] Precompile insturction sequences.
-[ ] Make JmpIndTerminator not touch stack
+[X] Make JmpIndTerminator not touch stack
+[ ] Optimize block creation -- instvec inefficient
+[ ] Allow instruction transformer to see instructions before riprel transformation
+[ ] Allow user breakpoints
