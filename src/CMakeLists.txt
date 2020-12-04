@@ -18,13 +18,13 @@ add_library(core_objs STATIC
   block-term.cc
   rsb.cc
   config.cc
-  memcheck.cc
   )
 add_dependencies(core_objs xed)
 
 add_executable(memcheck
   main.cc
   maps.cc
+  memcheck.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)

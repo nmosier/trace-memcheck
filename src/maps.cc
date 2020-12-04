@@ -7,19 +7,26 @@
 #include <sys/stat.h>
 #include "maps.hh"
 
-Maps::Maps(pid_t pid): pid(pid) {
+void Maps::open(pid_t pid) {
   std::stringstream path;
   path << "/proc/" << pid << "/maps";
-  if ((fd = open(path.str().c_str(), O_RDONLY)) < 0) {
+  if ((fd = ::open(path.str().c_str(), O_RDONLY)) < 0) {
     std::perror("open");
     abort();
   }
 }
 
-Maps::~Maps() {
-  if (close(fd) < 0) {
+void Maps::close() {
+  if (::close(fd) < 0) {
     std::perror("close");
     abort();
+  }
+  fd = -1;
+}
+
+Maps::~Maps() {
+  if (fd < 0) {
+    close();
   }
 }
 

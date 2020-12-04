@@ -7,6 +7,7 @@ class StackTracker;
 #include "inst.hh"
 #include "util.hh"
 #include "patch.hh"
+#include "maps.hh"
 
 class StackTracker {
 public:
@@ -59,6 +60,7 @@ private:
   util::optional<Patcher> patcher;
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
+  Maps maps;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 

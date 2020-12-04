@@ -22,6 +22,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
 
   tracee.open(child, file);
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
+  maps.open(child);
 
   return true;
 }

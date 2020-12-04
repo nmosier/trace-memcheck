@@ -18,8 +18,12 @@ struct Map {
 
 class Maps {
 public:
-  Maps(pid_t pid);
+  Maps(): fd(-1) {}
+  Maps(pid_t pid) { open(pid); }
   ~Maps();
+
+  void open(pid_t pid);
+  void close();
   
   template <typename OutputIt>
   OutputIt get_maps(OutputIt out_it) {
@@ -51,7 +55,6 @@ public:
   }
 
 private:
-  pid_t pid;
   int fd;
 
   Map get_map();
