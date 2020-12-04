@@ -11,9 +11,12 @@ class Tracee;
 
 class Tracee {
 public:
-  Tracee(void) {}
-  Tracee(pid_t pid, const char *command);
+  Tracee(void): fd_(-1) {}
+  Tracee(pid_t pid, const char *command) { open(pid, command); }
   ~Tracee(void);
+
+  void open(pid_t pid, const char *command);
+  void close(void);
   
   pid_t pid() const { return pid_; }
   int fd() const { return fd_; }

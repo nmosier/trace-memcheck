@@ -13,14 +13,17 @@
 #include "util.hh"
 #include "decoder.hh"
 
-Tracee::Tracee(pid_t pid_, const char *command): pid_(pid_), command(command) {
+void Tracee::open(pid_t pid, const char *command) {
+  pid_ = pid;
+  command = command;
+  
   char *path;
   if (asprintf(&path, "/proc/%d/mem", pid_) < 0) {
     std::perror("asprintf");
     throw std::bad_alloc();
   }
-
-  fd_ = open(path, O_RDWR);
+  
+  fd_ = ::open(path, O_RDWR);
 
   free(path);
 
@@ -31,10 +34,17 @@ Tracee::Tracee(pid_t pid_, const char *command): pid_(pid_), command(command) {
 }
 
 Tracee::~Tracee(void) {
-  if (close(fd_) < 0) {
+  if (fd_ < 0) {
+    close();
+  }
+}
+
+void Tracee::close(void) {
+  if (::close(fd_) < 0) {
     std::perror("close");
     throw std::invalid_argument(strerror(errno));
   }
+  fd_ = -1;
 }
 
 void Tracee::read(void *to, size_t count, const void *from) {

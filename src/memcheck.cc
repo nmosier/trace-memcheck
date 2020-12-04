@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <gperftools/profiler.h>
+#include <sstream>
 #include "memcheck.hh"
 #include "config.hh"
 
@@ -19,8 +20,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   wait(&status);
   assert(stopped_trace(status));
 
-  tracee = Tracee(child, file);
-  patcher = Patcher(tracee, memchk::transformer);
+  tracee.open(child, file);
+  patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
 
   return true;
 }
@@ -32,13 +33,13 @@ void Memcheck::run(void) {
     ProfilerStart("memcheck.prof");
   }
 
+  int status;
   while (true) {    
     auto regs = tracee.get_regs();
     if (regs.rbp == (regs.rsp & ((1ULL << 32) - 1))) {
       printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
     }
 
-    int status;
     uint8_t *bkpt_pc;
 
     if (g_conf.singlestep) {
@@ -94,6 +95,7 @@ void Memcheck::run(void) {
 	patcher->handle_bkpt(bkpt_pc);
       }
     } else {
+      assert(WIFEXITED(status));
       break;
     }
   }
@@ -101,6 +103,8 @@ void Memcheck::run(void) {
   if (g_conf.profile) {
     ProfilerStop();
   }
+
+  fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));  
 }
 
 bool Memcheck::stopped_trace(int status) {
@@ -108,43 +112,65 @@ bool Memcheck::stopped_trace(int status) {
 }
 
 
-namespace memchk {
+bool Memcheck::is_sp_dec(const Instruction& inst) {
+  return inst.xed_reg0() == XED_REG_RSP;
+}
 
-  static bool is_sp_dec(const Instruction& inst) {
-#if 0
-    switch (inst.xed_iclass()) {
-    case XED_ICLASS_SUB:
-    case XED_ICLASS_ADD:
-    case XED_ICLASS_XOR:
-    case XED_ICLASS_OR:
-    case XED_ICLASS_AND:
-    case XED_ICLASS_DEC:
-      if (inst.xed_reg0() == XED_REG_RSP) {
-	return true;
-      } else {
-	return false;
-      }
+void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+  (void) addr;
 
-    default:
-      return false;
-    }
-#else
-    return inst.xed_reg0() == XED_REG_RSP;
+#if 1
+  const bool sp_dec = is_sp_dec(inst);
+  if (sp_dec) {
+    addr = stack_tracker.add(addr, inst, info);
+    return;
+  }
 #endif
-  }
-
-  static void *stack_begin;
-  static void *stack_end;
-  
-  void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
-    (void) addr;
-
-    const bool sp_dec = is_sp_dec(inst);
-    (void) sp_dec;
-    (void) stack_begin;
-    (void) stack_end;
     
-    addr = info.writer(inst);
+  addr = info.writer(inst);
+}
+
+void StackTracker::pre_handler(uint8_t *addr) {
+  const auto it = map.find(addr);
+  assert(it != map.end());
+  it->second->sp = tracee.get_sp();
+}
+
+void StackTracker::post_handler(uint8_t *addr) {
+  const auto it = map.find(addr);
+  assert(it != map.end());
+  const auto post_sp = tracee.get_sp();
+  const auto& pre_sp = it->second->sp;
+
+  if (post_sp < pre_sp) {
+    std::clog << "sp dec @ " << (const void *) it->second->orig_addr << ": " << it->second->inst_str
+	      << std::endl;
   }
+}
+
+uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+  auto elem = std::make_shared<Elem>(inst);
   
+  const auto pre_addr = addr;
+  auto pre_bkpt = Instruction::int3(addr);
+  addr = info.writer(pre_bkpt);
+  addr = info.writer(inst);
+  const auto post_addr = addr;
+  auto post_bkpt = Instruction::int3(addr);
+  addr = info.writer(post_bkpt);
+
+  info.rb(pre_addr, pre_callback);
+  info.rb(post_addr, post_callback);
+
+  map.emplace(pre_addr, elem);
+  map.emplace(post_addr, elem);
+  
+  return addr;
+}
+
+StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
+{
+  std::stringstream ss;
+  ss << inst;
+  inst_str = ss.str();
 }
