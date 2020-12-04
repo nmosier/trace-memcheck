@@ -163,3 +163,14 @@ Indirect jmps/calls also need cache.
 1.6 0.425
 1.7 0.425
 1.8 0.430
+
+-------
+
+Block::Create:
+
+For each instruction, call the handler on the original instruction.
+The handler is provided with a writer that accepts blobs.
+The blob is relocated using a special rule that translates RIP-relative instructions.
+Furthermore, if the blob is a branch instruction, the loop terminates and the terminator is created.
+
+The instruction writer for now should just directly write to memory. In the future, it should use a buffer.

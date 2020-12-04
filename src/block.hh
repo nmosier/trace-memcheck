@@ -44,7 +44,6 @@ public:
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }
   const InstVec& insts() const { return insts_; }
-  const Instruction& orig_branch() const { return orig_branch_; }
 
   void jump_to(void) const;
 
@@ -54,7 +53,6 @@ private:
   uint8_t *orig_addr_;
   uint8_t *pool_addr_;
   InstVec insts_; // linear basic block instructions
-  Instruction orig_branch_;
   std::unique_ptr<Terminator> terminator_;
 
   //   std::vector<uint8_t> buf_;

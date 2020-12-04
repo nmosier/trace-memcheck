@@ -41,18 +41,10 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 				    std::inserter(block->insts_, block->insts_.end()), ptr_pool,
 				    tmp_mem);
     } else {
-#if 1
-      /* relocate instruction and add to list */
       newit = handler(newit, std::move(inst), inserter);
-#else 
-      inst->relocate(newit);
-      newit += inst->size();
-      block->insts_.push_back(std::move(inst));
-#endif
     }
   }
 
-  block->orig_branch_ = *inst;
   block->pool_addr_ = block_pool.alloc(size(block->insts_));
   block_pool.write_insts(block->pool_addr_, block->insts_);
 
