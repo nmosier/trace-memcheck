@@ -178,3 +178,10 @@ The instruction writer for now should just directly write to memory. In the futu
 --------
 
 Able to detect when stack changes occur. How about when system calls occur?
+
+-----
+
+Need to save all memory somehow.
+
+Use mprotect to make memory read-only.
+On write, save page.

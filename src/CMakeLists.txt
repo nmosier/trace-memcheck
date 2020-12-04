@@ -24,6 +24,7 @@ add_dependencies(core_objs xed)
 
 add_executable(memcheck
   main.cc
+  maps.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)
@@ -33,3 +34,8 @@ add_executable(ss
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(ss xed)
+
+add_executable(maps-test
+  maps-test.cc
+  maps.cc
+  )
