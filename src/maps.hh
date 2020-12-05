@@ -14,6 +14,8 @@ struct Map {
   int prot; // see mmap(2) or mprotect(2)
 
   Map(char *s);
+
+  size_t size() const { return (char *) end - (char *) begin; }
 };
 
 class Maps {

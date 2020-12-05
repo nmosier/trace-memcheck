@@ -23,10 +23,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
   maps.open(child);
 
-  patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
+  // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
 
-  clear_access();
-  
   return true;
 }
 
@@ -143,3 +141,4 @@ void Memcheck::clear_access() {
     }
   }
 }
+
