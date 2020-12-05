@@ -3,3 +3,4 @@ memcheck
 memcheck.prof
 memcheck.txt
 *.bak
+maps-test
