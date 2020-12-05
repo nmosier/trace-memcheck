@@ -26,6 +26,7 @@ add_executable(memcheck
   maps.cc
   memcheck.cc
   snapshot.cc
+  syscall.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)

@@ -139,7 +139,7 @@ void Memcheck::clear_access() {
 
   for (const Map& map : map_list) {
     if ((map.prot & PROT_WRITE)) {
-      tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, (char *) map.end - (char *) map.begin, map.prot & ~PROT_WRITE);
+      tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, map.size(), map.prot & ~PROT_WRITE);
     }
   }
 }
