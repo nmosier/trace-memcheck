@@ -69,5 +69,14 @@ private:
   static bool is_sp_dec(const Instruction& inst);
 
   void segfault_handler(int signum);
+  static constexpr size_t mprotect_bits = 12;
+  static_assert(mprotect_bits >= 12, "bits must be greater than page size");
+  static constexpr size_t mprotect_size = 1 << mprotect_bits;
+  static constexpr void *mprotect_ptr(void *ptr) {
+    return (void *) (((uintptr_t) ptr) & ~(mprotect_size - 1));
+  }
+
+  void clear_access();
+  static constexpr unsigned SYS_MPROTECT = 10;
 };
 

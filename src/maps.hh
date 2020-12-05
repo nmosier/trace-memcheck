@@ -47,10 +47,9 @@ public:
     char *s = buf.data();
     char *line;
     while ((line = strsep(&s, "\n")) != nullptr && *line != '\0') {
-      std::clog << line << std::endl;
       *out_it++ = Map(line);
     }
-
+    
     return out_it;
   }
 

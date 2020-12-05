@@ -19,9 +19,14 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   assert(stopped_trace(status));
 
   tracee.open(child, file);
+  // TODO: open patcher
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
   maps.open(child);
 
+  patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
+
+  clear_access();
+  
   return true;
 }
 
@@ -120,5 +125,21 @@ void Memcheck::run() {
 }
 
 void Memcheck::segfault_handler(int signum) {
-  // ptrace(PTRACE_GETSIGINFO, 
+  const siginfo_t siginfo = tracee.get_siginfo();
+
+  void *fault_addr = siginfo.si_addr;
+  std::clog << "segfault @ " << fault_addr << std::endl;
+
+  tracee.syscall(SYS_MPROTECT, (uintptr_t) mprotect_ptr(fault_addr), mprotect_size, PROT_READ | PROT_WRITE);
+}
+
+void Memcheck::clear_access() {
+  std::vector<Map> map_list;
+  maps.get_maps(std::back_inserter(map_list));
+
+  for (const Map& map : map_list) {
+    if ((map.prot & PROT_WRITE)) {
+      tracee.syscall(SYS_MPROTECT, (uintptr_t) map.begin, (char *) map.end - (char *) map.begin, map.prot & ~PROT_WRITE);
+    }
+  }
 }

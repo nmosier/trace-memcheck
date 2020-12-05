@@ -252,3 +252,16 @@ void Tracee::disas(std::ostream& os, uint8_t *begin, uint8_t *end) {
     std::clog << inst << std::endl;
   }
 }
+
+void Tracee::get_siginfo(siginfo_t& siginfo) {
+  if (ptrace(PTRACE_GETSIGINFO, pid(), nullptr, &siginfo) < 0) {
+    std::perror("ptrace");
+    abort();
+  }
+}
+
+siginfo_t Tracee::get_siginfo() {
+  siginfo_t siginfo;
+  get_siginfo(siginfo);
+  return siginfo;
+}

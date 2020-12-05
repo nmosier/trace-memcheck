@@ -6,6 +6,7 @@ class Tracee;
 #include <array>
 #include <unistd.h>
 #include <sys/user.h>
+#include <signal.h>
 
 #include "inst.hh"
 
@@ -55,7 +56,9 @@ public:
   void set_pc(void *pc);
   void *get_sp(void);
   void set_sp(void *sp);
-
+  void get_siginfo(siginfo_t& siginfo);
+  siginfo_t get_siginfo();
+  
   int singlestep(void);
   int cont(void);
 
@@ -72,7 +75,7 @@ public:
   std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
 
   void disas(std::ostream& os, uint8_t *begin, uint8_t *end);
-  
+
 private:
   pid_t pid_;
   int fd_;
