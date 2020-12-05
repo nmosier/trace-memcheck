@@ -7,7 +7,7 @@
 #include "util.hh"
 
 UserMemory::UserMemory(Tracee& tracee, size_t size, int prot): tracee(tracee), size_(size) {
-  user_map = (user_ptr_t<char>) tracee.syscall(9 /* mmap */,
+  user_map = (user_ptr_t<char>) tracee.syscall(Syscall::MMAP,
 					       0 /* void *addr */,
 					       size_ /* size_t length */,
 					       prot /* int prot */,

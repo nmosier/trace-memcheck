@@ -24,6 +24,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   maps.open(child);
 
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
+  snapshot.create(tracee, maps);
+  std::clog << "snapshot " << snapshot.size() << " bytes" << std::endl;
 
   return true;
 }
@@ -128,7 +130,7 @@ void Memcheck::segfault_handler(int signum) {
   void *fault_addr = siginfo.si_addr;
   std::clog << "segfault @ " << fault_addr << std::endl;
 
-  tracee.syscall(SYS_MPROTECT, (uintptr_t) mprotect_ptr(fault_addr), mprotect_size, PROT_READ | PROT_WRITE);
+  tracee.syscall(Syscall::MPROTECT, (uintptr_t) mprotect_ptr(fault_addr), mprotect_size, PROT_READ | PROT_WRITE);
 }
 
 void Memcheck::clear_access() {
@@ -137,7 +139,7 @@ void Memcheck::clear_access() {
 
   for (const Map& map : map_list) {
     if ((map.prot & PROT_WRITE)) {
-      tracee.syscall(SYS_MPROTECT, (uintptr_t) map.begin, (char *) map.end - (char *) map.begin, map.prot & ~PROT_WRITE);
+      tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, (char *) map.end - (char *) map.begin, map.prot & ~PROT_WRITE);
     }
   }
 }

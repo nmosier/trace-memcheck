@@ -9,6 +9,7 @@ class Tracee;
 #include <signal.h>
 
 #include "inst.hh"
+#include "syscall.hh"
 
 class Tracee {
 public:
@@ -65,7 +66,7 @@ public:
   void syscall(user_regs_struct& regs);
 
   // TODO: Replace uintptr with decltype of regs.rip, e.g.
-  uintptr_t syscall(uintptr_t syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
+  uintptr_t syscall(Syscall syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
 		    uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
 
   void perror(void) const;

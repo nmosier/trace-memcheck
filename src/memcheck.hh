@@ -8,6 +8,7 @@ class StackTracker;
 #include "util.hh"
 #include "patch.hh"
 #include "maps.hh"
+#include "snapshot.hh"
 
 class StackTracker {
 public:
@@ -62,6 +63,7 @@ private:
   SyscallTracker syscall_tracker;
   
   Maps maps;
+  Snapshot snapshot;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 
@@ -77,7 +79,6 @@ private:
   }
 
   void clear_access();
-  static constexpr unsigned SYS_MPROTECT = 10;
 };
 
 

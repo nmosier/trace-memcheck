@@ -170,10 +170,10 @@ void Tracee::syscall(user_regs_struct& regs) {
   set_regs(saved_regs);
 }
 
-uintptr_t Tracee::syscall(uintptr_t syscallno, uintptr_t a0, uintptr_t a1, uintptr_t a2,
+uintptr_t Tracee::syscall(Syscall syscallno, uintptr_t a0, uintptr_t a1, uintptr_t a2,
 			  uintptr_t a3, uintptr_t a4, uintptr_t a5) {
   user_regs_struct regs = get_regs();
-  regs.rax = syscallno;
+  regs.rax = static_cast<unsigned>(syscallno);
   regs.rdi = a0;
   regs.rsi = a1;
   regs.rdx = a2;
