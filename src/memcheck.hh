@@ -60,11 +60,14 @@ private:
   util::optional<Patcher> patcher;
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
+  
   Maps maps;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 
   static bool stopped_trace(int status);
   static bool is_sp_dec(const Instruction& inst);
+
+  void segfault_handler(int signum);
 };
 

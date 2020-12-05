@@ -101,8 +101,8 @@ StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
   inst_str = ss.str();
 }
 
-uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst,
-			     const Patcher::TransformerInfo& info) {
+uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info)
+{
   const auto bkpt_addr = addr;
   auto bkpt_inst = Instruction::int3(addr);
   addr = info.writer(bkpt_inst);
@@ -117,4 +117,8 @@ uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst,
 
 void Memcheck::run() {
   patcher->run();
+}
+
+void Memcheck::segfault_handler(int signum) {
+  // ptrace(PTRACE_GETSIGINFO, 
 }

@@ -131,41 +131,32 @@ void Patcher::run(void) {
 
     if (WIFSTOPPED(status)) {
       const int stopsig = WSTOPSIG(status);
-      if (stopsig != SIGTRAP) {
-	fprintf(stderr, "unexpected signal %d\n", stopsig);
-	fprintf(stderr, "pc = %p\n", tracee.get_pc());
-	uint8_t *stop_pc = tracee.get_pc();
-	Instruction inst(stop_pc, tracee);
-	fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
-	
-	if (g_conf.gdb) {
-	  tracee.gdb();
-	} else {
-	  abort();
-	}
-      }
 
-      if (g_conf.singlestep) {
-	uint8_t pc_byte;
-	tracee.read(&pc_byte, 1, tracee.get_pc());
-	while (pc_byte == 0xcc) {
-	  bkpt_pc = tracee.get_pc();
-	  tracee.set_pc(bkpt_pc);
-	  handle_bkpt(bkpt_pc);
-
-	  if (g_conf.execution_trace) {
-	    std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
-	    Instruction cur_inst(tracee.get_pc(), tracee);
-	    std::clog << cur_inst << std::endl;
-	  }
+      if (stopsig == SIGTRAP) {
+	if (g_conf.singlestep) {
+	  uint8_t pc_byte;
 	  tracee.read(&pc_byte, 1, tracee.get_pc());
+	  while (pc_byte == 0xcc) {
+	    bkpt_pc = tracee.get_pc();
+	    tracee.set_pc(bkpt_pc);
+	    handle_bkpt(bkpt_pc);
+	  
+	    if (g_conf.execution_trace) {
+	      std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	      Instruction cur_inst(tracee.get_pc(), tracee);
+	      std::clog << cur_inst << std::endl;
+	    }
+	    tracee.read(&pc_byte, 1, tracee.get_pc());
+	  }
+	} else {
+	  bkpt_pc = tracee.get_pc() - 1;
+	  uint8_t pc_byte;
+	  tracee.read(&pc_byte, 1, bkpt_pc);
+	  assert(pc_byte == 0xcc);
+	  handle_bkpt(bkpt_pc);
 	}
       } else {
-	bkpt_pc = tracee.get_pc() - 1;
-	uint8_t pc_byte;
-	tracee.read(&pc_byte, 1, bkpt_pc);
-	assert(pc_byte == 0xcc);
-	handle_bkpt(bkpt_pc);
+	handle_signal(stopsig);
       }
     } else {
       assert(WIFEXITED(status));
@@ -178,4 +169,23 @@ void Patcher::run(void) {
   }
 
   fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));  
+}
+
+void Patcher::handle_signal(int signum) {
+  const auto it = sighandlers.find(signum);
+  if (it == sighandlers.end()) {
+    fprintf(stderr, "unexpected signal %d\n", signum);
+    fprintf(stderr, "pc = %p\n", tracee.get_pc());
+    uint8_t *stop_pc = tracee.get_pc();
+    Instruction inst(stop_pc, tracee);
+    fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
+    
+    if (g_conf.gdb) {
+      tracee.gdb();
+    } else {
+      abort();
+    }
+  } else {
+    it->second(signum);
+  }
 }

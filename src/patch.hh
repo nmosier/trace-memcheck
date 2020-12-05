@@ -57,5 +57,6 @@ private:
   void start(void);
 
   bool patch(uint8_t *root);
-  void handle_bkpt(uint8_t *bkpt_addr);  
+  void handle_bkpt(uint8_t *bkpt_addr);
+  void handle_signal(int signum);
 };
