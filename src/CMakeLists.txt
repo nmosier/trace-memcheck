@@ -27,6 +27,7 @@ add_executable(memcheck
   memcheck.cc
   snapshot.cc
   syscall.cc
+  state.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)

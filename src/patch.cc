@@ -100,7 +100,7 @@ void Patcher::signal(int signum, const sighandler_t& handler) {
 }
 
 void Patcher::run(void) {
-  start();
+  //  start();
 
   if (g_conf.profile) {
     ProfilerStart("memcheck.prof");
@@ -121,7 +121,7 @@ void Patcher::run(void) {
       status = tracee.cont();
     }
 
-    if (g_conf.execution_trace) { 
+    if (g_conf.execution_trace && !g_conf.singlestep) { 
       if (WIFSTOPPED(status)) {
 	std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
 	Instruction cur_inst(tracee.get_pc(), tracee);
@@ -135,18 +135,22 @@ void Patcher::run(void) {
       if (stopsig == SIGTRAP) {
 	if (g_conf.singlestep) {
 	  uint8_t pc_byte;
-	  tracee.read(&pc_byte, 1, tracee.get_pc());
-	  while (pc_byte == 0xcc) {
-	    bkpt_pc = tracee.get_pc();
-	    tracee.set_pc(bkpt_pc);
-	    handle_bkpt(bkpt_pc);
-	  
+	  while (true) {
 	    if (g_conf.execution_trace) {
 	      std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
 	      Instruction cur_inst(tracee.get_pc(), tracee);
 	      std::clog << cur_inst << std::endl;
 	    }
-	    tracee.read(&pc_byte, 1, tracee.get_pc());
+
+	    bkpt_pc = tracee.get_pc();
+	    tracee.read(&pc_byte, 1, bkpt_pc);
+
+	    if (pc_byte != 0xcc) {
+	      break;
+	    }
+
+	    tracee.set_pc(bkpt_pc + 1);
+	    handle_bkpt(bkpt_pc);
 	  }
 	} else {
 	  bkpt_pc = tracee.get_pc() - 1;

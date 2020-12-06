@@ -3,20 +3,6 @@
 #include <algorithm>
 #include "snapshot.hh"
 
-void Snapshot::create(Tracee& tracee, Maps& maps) {
-  std::vector<Map> map_list;
-  maps.get_maps(std::back_inserter(map_list));
-
-  for (const Map& map : map_list) {
-    if ((map.prot & PROT_WRITE)) {
-      Entry entry;
-      entry.data.resize(map.size());
-      tracee.read(entry.data.data(), entry.data.size(), map.begin);
-      entries.push_back(entry);
-    }
-  }
-}
-
 bool Snapshot::Entry::operator==(const Entry& other) const {
   return addr == other.addr && data == other.data;
 }
@@ -44,6 +30,7 @@ size_t Snapshot::size() const {
 Snapshot::Entry Snapshot::Entry::operator^(const Entry& other) const {
   assert(similar(other));
   Entry res;
+  res.addr = addr;
   res.data.resize(data.size());
   std::transform(data.begin(), data.end(), other.data.begin(), res.data.begin(),
 		 std::bit_xor<Data::value_type>());
@@ -89,4 +76,20 @@ bool Snapshot::similar(const Snapshot& other) const {
   }
 
   return true;
+}
+
+void Snapshot::restore(Tracee& tracee) const {
+  for (const Entry& entry : entries) {
+    entry.restore(tracee);
+  }
+}
+
+void Snapshot::Entry::restore(Tracee& tracee) const {
+  tracee.write(data.data(), data.size(), addr);
+}
+
+void Snapshot::Entry::save(const Map& map, Tracee& tracee) {
+  addr = map.begin;
+  data.resize(map.size());
+  tracee.read(data.data(), map.size(), map.begin);
 }

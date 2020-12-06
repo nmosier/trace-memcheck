@@ -26,6 +26,7 @@ public:
   using sighandler_t = std::function<void (int)>;
   void signal(int signum, const sighandler_t& handler);
 
+  void start();
   void run();
 
 private:
@@ -54,7 +55,6 @@ private:
   bool is_pool_addr(uint8_t *addr) const;
 
   void start(uint8_t *root);
-  void start(void);
 
   bool patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);

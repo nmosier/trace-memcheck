@@ -185,3 +185,14 @@ Need to save all memory somehow.
 
 Use mprotect to make memory read-only.
 On write, save page.
+
+
+----
+
+Critical event?
+SYSCALL.
+
+When a syscall occurs:
+1. Rewind to previous state.
+2. Handle system call if mmap/etc.
+3. 

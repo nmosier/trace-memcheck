@@ -81,5 +81,43 @@ namespace util {
   private:
     std::unique_ptr<T> ptr;
   };
+
+
+  template <class Container, typename Cond>
+  class conditional_insert_iterator {
+  public:
+    using It = std::insert_iterator<Container>;
+    conditional_insert_iterator(const It& it, const Cond& cond): it(it), cond(cond) {}
+
+    template <typename T>
+    conditional_insert_iterator& operator=(T val) {
+      if (cond(val)) {
+	*it++ = val;
+      }
+      return *this;
+    }
+
+    conditional_insert_iterator& operator*() { return *this; }
+    conditional_insert_iterator& operator++() { return *this; }
+    conditional_insert_iterator& operator++(int i) { return *this; }
+    
+  private:
+    It it;
+    Cond cond;
+  };
+
+  template <class Container, typename Cond>
+  conditional_insert_iterator<Container, Cond> conditional_inserter
+  (const typename conditional_insert_iterator<Container, Cond>::It& it, const Cond& cond) {
+    return conditional_insert_iterator<Container, Cond>(it, cond);
+  }
+
+  template <typename Class, typename Ret, typename... Args>
+  std::function<Ret (Args...)> method_callback(Class& obj, Ret (Class::*method)(Args...)) {
+    Class *ptr = &obj;
+    return [ptr, method] (Args... args) -> Ret {
+      return (ptr->*method)(args...);
+    };
+  }
   
 }

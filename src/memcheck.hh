@@ -9,6 +9,7 @@ class StackTracker;
 #include "patch.hh"
 #include "maps.hh"
 #include "snapshot.hh"
+#include "state.hh"
 
 class StackTracker {
 public:
@@ -38,20 +39,77 @@ private:
   void post_handler(uint8_t *addr);
 };
 
+class SyscallArgs {
+public:
+  SyscallArgs() {}
+  
+  template <typename... Ts>
+  SyscallArgs(Ts&&... ts) { add_args(ts...); }
+
+  static constexpr unsigned MAX_ARGS = 6;
+
+  Syscall no() const { return static_cast<Syscall>(regs_.rax); }
+  
+  template <unsigned N, typename Arg>
+  Arg arg() const {
+    constexpr unsigned long long user_regs_struct::* map[MAX_ARGS] =
+      {&user_regs_struct::rdi,
+       &user_regs_struct::rsi,
+       &user_regs_struct::rdx,
+       &user_regs_struct::r10,
+       &user_regs_struct::r8,
+       &user_regs_struct::r9,
+      };
+    return static_cast<Arg>(regs_.*map[N]);
+  }
+
+  template <typename RV>
+  RV rv() const { return static_cast<RV>(rv_); }
+
+  void add_call(const user_regs_struct& regs) { regs_ = regs; }
+  void add_call(Tracee& tracee) { add_call(tracee.get_regs()); }
+  
+  void add_ret(unsigned long long rv) { rv_ = rv; }
+  void add_ret(Tracee& tracee) { add_ret(tracee.get_regs().rax); }
+  
+private:
+  user_regs_struct regs_;
+  unsigned long long rv_;
+};
+
 class SyscallTracker {
 public:
-  SyscallTracker(Tracee& tracee): tracee(tracee) {}
+  using RegenerateMaps = std::function<void (void)>;
+
+  // TODO: Lift handlers up into Memcheck class.
+  SyscallTracker(Tracee& tracee, const RegenerateMaps& regen_maps, Memcheck& memcheck):
+    tracee(tracee), regen_maps(regen_maps), memcheck(memcheck) {}
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
   
 private:
   Tracee& tracee;
+  const RegenerateMaps regen_maps;
+  Memcheck& memcheck;
+  
+  /* Temporary Storage */
+  SyscallArgs syscall;
+  
+  void pre_handler(uint8_t *addr);
+  void post_handler(uint8_t *addr);
 };
 
 class Memcheck {
 public:
-  Memcheck(void): tracee(), stack_tracker(tracee), syscall_tracker(tracee) {}
-
+  Memcheck(void):
+    tracee(),
+    stack_tracker(tracee),
+    syscall_tracker(tracee, [this] () {
+      std::clog << "regenerating maps..." << std::endl;
+      get_maps();
+    }, *this)
+  {}
+  
   bool open(const char *file, char * const argv[]);
   bool open(char * const argv[]) { return open(argv[0], argv); }
   void run(void);
@@ -62,8 +120,10 @@ private:
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
   
-  Maps maps;
-  Snapshot snapshot;
+  Maps maps_gen;
+  using MapList = std::list<Map>;
+  MapList maps;
+  State state;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 
@@ -79,6 +139,9 @@ private:
   }
 
   void clear_access();
+  void get_maps();
+
+  friend class SyscallTracker;
 };
 
 
