@@ -229,7 +229,7 @@ DirJccTerminator::Bias DirJccTerminator::get_bias_iclass(void) const {
 void DirJccTerminator::log_bkpt(const char *kind) const {
   if (!g_conf.dump_jcc_info) { return; }
 
-  std::clog << kind << " "
+  std::cerr << kind << " "
 	    << (void *) orig_dst << " "
 	    << xed_iclass_enum_t2str(iclass) << " "
 	    << xed_iform_enum_t2str(iform) << " "
@@ -309,7 +309,7 @@ void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
 
   if (g_conf.dump_ss_bkpts) {
     fprintf(stderr, "bkpt %016lx ", (intptr_t) orig_branch_addr());
-    std::clog << "bkpt " << (void *) orig_branch_addr() << " -> "
+    std::cerr << "bkpt " << (void *) orig_branch_addr() << " -> "
 	      << (void *) orig_pc << ": " << Instruction(orig_branch_addr(), tracee()) << std::endl;
   }
 }
@@ -346,7 +346,10 @@ RetTerminator::RetTerminator(BlockPool& block_pool, TmpMem& tmp_mem, const Instr
   flush();
 
   uint8_t *bkpt_addr = a + 0x56;
-  rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
+  rb(bkpt_addr, [this] (auto addr) {
+    std::cerr << "ret mismatch\n";
+    this->handle_bkpt_singlestep();
+  });
 }
 
 CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
@@ -417,7 +420,7 @@ CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, Tmp
 }
 
 void CallTerminator::handle_bkpt_ret(void) {
-  std::clog << "warning: return address misprediction" << std::endl;
+  std::cerr << "warning: return address misprediction" << std::endl;
   uint8_t *new_ra_val = lookup_block(orig_ra_val);
   tracee().write(&new_ra_val, sizeof(new_ra_val), new_ra_ptr);
   tracee().set_pc(new_ra_val);
@@ -534,11 +537,11 @@ JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool&
   it += null_bkpt.size();
   write(null_bkpt);
   rb(null_bkpt.pc(), [&] (uint8_t *bkpt_addr) {
-    std::clog << "jumped to NULL" << std::endl;
-    std::clog << "pc: " << (void *) tracee.get_pc() << std::endl;
+    std::cerr << "jumped to NULL" << std::endl;
+    std::cerr << "pc: " << (void *) tracee.get_pc() << std::endl;
     const auto begin = addr();
     const auto end = begin + jmp_ind_size(jmp);
-    tracee.disas(std::clog, begin, end);
+    tracee.disas(std::cerr, begin, end);
     
     abort();
   });

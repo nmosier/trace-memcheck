@@ -4,6 +4,7 @@
 
 #include "tracee.hh"
 #include "snapshot.hh"
+#include "config.hh"
 
 class State {
 public:
@@ -37,3 +38,10 @@ user_regs_struct operator^(const user_regs_struct& lhs, const user_regs_struct& 
 user_regs_struct& operator^=(user_regs_struct& acc, const user_regs_struct& other);
 bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs);
 bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs);
+
+#if STATE_MISMATCH_INFO
+# define STATE_MISMATCH_PRED(pred)		\
+  ((pred) ? true : ((std::clog << "state mismatch: " #pred "\n"), false))
+#else
+# define STATE_MISMATCH_PRED(pred) (pred)
+#endif

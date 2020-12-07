@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <vector>
 #include <cstring>
+#include <sstream>
+#include <fstream>
 #include <cstdio>
 #include <fcntl.h>
 #include <cstdlib>
@@ -249,7 +251,7 @@ void Tracee::disas(std::ostream& os, uint8_t *begin, uint8_t *end) {
   Instruction inst;
   for (uint8_t *it = begin; it < end; it += inst.size()) {
     inst = Instruction(it, *this);
-    std::clog << inst << std::endl;
+    std::cerr << inst << std::endl;
   }
 }
 
@@ -264,4 +266,16 @@ siginfo_t Tracee::get_siginfo() {
   siginfo_t siginfo;
   get_siginfo(siginfo);
   return siginfo;
+}
+
+std::ostream& Tracee::cat_maps(std::ostream& os) const {
+  std::stringstream ss;
+  ss << "/proc/" << pid() << "/maps";
+  std::ifstream ifs;
+  ifs.open(ss.str());
+  std::string line;
+  while (std::getline(ifs, line)) {
+    os << line << std::endl;
+  }
+  return os;
 }

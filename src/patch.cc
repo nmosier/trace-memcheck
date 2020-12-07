@@ -71,7 +71,7 @@ Block *Patcher::lookup_block_patch(uint8_t *addr, bool can_fail) {
       if (can_fail) {
 	return nullptr;
       } else {
-	std::clog << "failed to translate block" << std::endl;
+	std::cerr << "failed to translate block\n";
 	abort();
       }
     }
@@ -108,11 +108,6 @@ void Patcher::run(void) {
 
   int status;
   while (true) {    
-    auto regs = tracee.get_regs();
-    if (regs.rbp == (regs.rsp & ((1ULL << 32) - 1))) {
-      printf("rbp = %p, rsp = %p\n", (void *) regs.rbp, (void *) regs.rsp);
-    }
-
     uint8_t *bkpt_pc;
 
     if (g_conf.singlestep) {
@@ -123,9 +118,9 @@ void Patcher::run(void) {
 
     if (g_conf.execution_trace && !g_conf.singlestep) { 
       if (WIFSTOPPED(status)) {
-	std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	std::cerr << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
 	Instruction cur_inst(tracee.get_pc(), tracee);
-	std::clog << cur_inst << std::endl;
+	std::cerr << cur_inst << '\n';
       }
     }
 
@@ -137,9 +132,9 @@ void Patcher::run(void) {
 	  uint8_t pc_byte;
 	  while (true) {
 	    if (g_conf.execution_trace) {
-	      std::clog << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	      std::cerr << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
 	      Instruction cur_inst(tracee.get_pc(), tracee);
-	      std::clog << cur_inst << std::endl;
+	      std::cerr << cur_inst << '\n';
 	    }
 
 	    bkpt_pc = tracee.get_pc();
@@ -178,11 +173,11 @@ void Patcher::run(void) {
 void Patcher::handle_signal(int signum) {
   const auto it = sighandlers.find(signum);
   if (it == sighandlers.end()) {
-    fprintf(stderr, "unexpected signal %d\n", signum);
-    fprintf(stderr, "pc = %p\n", tracee.get_pc());
+    std::cerr << "unexpected signal " << signum << '\n';
+    std::cerr << "pc = " << (void *) tracee.get_pc() << '\n';
     uint8_t *stop_pc = tracee.get_pc();
     Instruction inst(stop_pc, tracee);
-    fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
+    std::cerr << "stopped at inst: " << Decoder::disas(inst).c_str() << '\n';
     
     if (g_conf.gdb) {
       tracee.gdb();

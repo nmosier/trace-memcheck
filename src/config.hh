@@ -19,3 +19,6 @@ private:
 };
 
 extern Config g_conf;
+
+#define STATE_MISMATCH_INFO 1
+

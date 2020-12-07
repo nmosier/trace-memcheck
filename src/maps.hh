@@ -9,20 +9,31 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 
 struct Map {
   void *begin;
   void *end;
   int prot; // see mmap(2) or mprotect(2)
 
-  Map(char *s);
+  Map(char *s) { init(s); }
+  Map(const char *s) { init(s); }
+  Map(const std::string& s) { init(s.c_str()); }
 
   size_t size() const { return (char *) end - (char *) begin; }
+  bool has_addr(const void *addr) const { return begin <= addr && addr < end; }
+
+private:
+  Map() {}
+  void init(char *s);
+  void init(const char *s);
 };
+
+std::ostream& operator<<(std::ostream& os, const Map& map);
 
 class Maps {
 public:
-  Maps(): fd(-1) {}
+  Maps() {}
   Maps(pid_t pid) { open(pid); }
   ~Maps();
 
@@ -31,26 +42,11 @@ public:
   
   template <typename OutputIt>
   OutputIt get_maps(OutputIt out_it) {
-    std::vector<char> buf;
-    size_t bufsize = 0x1000;
-    ssize_t bytes;
-    while (true) {
-      buf.resize(bufsize);
-      bytes = pread(fd, buf.data(), bufsize, 0);
-      if (bytes < 0) {
-	perror("pread");
-	abort();
-      } else if (bufsize == (size_t) bytes) {
-	continue;
-      } else {
-	break;
-      }
-    }
+    std::ifstream ifs;
+    ifs.open(path);
 
-    buf[bytes] = '\0';
-    char *s = buf.data();
-    char *line;
-    while ((line = strsep(&s, "\n")) != nullptr && *line != '\0') {
+    std::string line;
+    while (std::getline(ifs, line, '\n')) {
       *out_it++ = Map(line);
     }
     
@@ -58,7 +54,7 @@ public:
   }
 
 private:
-  int fd;
+  std::string path;
 
   Map get_map();
 };

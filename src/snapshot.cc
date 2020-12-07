@@ -2,9 +2,10 @@
 #include <cassert>
 #include <algorithm>
 #include "snapshot.hh"
+#include "state.hh"
 
 bool Snapshot::Entry::operator==(const Entry& other) const {
-  return addr == other.addr && data == other.data;
+  return STATE_MISMATCH_PRED(addr == other.addr) && STATE_MISMATCH_PRED(data == other.data);
 }
 
 bool Snapshot::operator==(const Snapshot& other) const {

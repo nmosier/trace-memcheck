@@ -77,6 +77,8 @@ public:
 
   void disas(std::ostream& os, uint8_t *begin, uint8_t *end);
 
+  std::ostream& cat_maps(std::ostream& os) const;
+
 private:
   pid_t pid_;
   int fd_;

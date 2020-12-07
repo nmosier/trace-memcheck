@@ -5,32 +5,20 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <array>
 #include "maps.hh"
 
 void Maps::open(pid_t pid) {
   std::stringstream path;
   path << "/proc/" << pid << "/maps";
-  if ((fd = ::open(path.str().c_str(), O_RDONLY)) < 0) {
-    std::perror("open");
-    abort();
-  }
+  this->path = path.str();
 }
 
-void Maps::close() {
-  if (::close(fd) < 0) {
-    std::perror("close");
-    abort();
-  }
-  fd = -1;
-}
+void Maps::close() {}
 
-Maps::~Maps() {
-  if (fd < 0) {
-    close();
-  }
-}
+Maps::~Maps() {}
 
-Map::Map(char *s) {
+void Map::init(char *s) {
   const char *begin_s = strsep(&s, "-");
   const char *end_s = strsep(&s, " \t");
   const char *prot_s = strsep(&s, " \t");
@@ -51,4 +39,24 @@ Map::Map(char *s) {
   if (*prot_s++ == 'x') {
     prot |= PROT_EXEC;
   }
+}
+
+void Map::init(const char *s) {
+  char *s_ = strdup(s);
+  if (s_ == nullptr) {
+    throw std::string("strdup: ") + std::strerror(errno); 
+  }
+  init(s_);
+  free(s_);
+}
+
+std::ostream& operator<<(std::ostream& os, const Map& map) {
+  os << map.begin << "-" << map.end << " ";
+  static const std::pair<int, char> prot[3] = {{PROT_READ, 'r'},
+					       {PROT_WRITE, 'w'},
+					       {PROT_EXEC, 'x'}};
+  for (auto p : prot) {
+    os << ((map.prot & p.first) ? p.second : '-');
+  }
+  return os;
 }

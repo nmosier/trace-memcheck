@@ -28,7 +28,6 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
   state.save(tracee, maps.begin(), maps.end());
-  std::clog << "created state" << std::endl;
 
   return true;
 }
@@ -78,7 +77,7 @@ void StackTracker::post_handler(uint8_t *addr) {
 
   if (post_sp < pre_sp) {
 #if 0
-    std::clog << "sp dec @ " << (const void *) it->second->orig_addr << ": " << it->second->inst_str
+    std::cerr << "sp dec @ " << (const void *) it->second->orig_addr << ": " << it->second->inst_str
 	      << std::endl;
 #endif
   }
@@ -134,7 +133,7 @@ void Memcheck::segfault_handler(int signum) {
   const siginfo_t siginfo = tracee.get_siginfo();
 
   void *fault_addr = siginfo.si_addr;
-  std::clog << "segfault @ " << fault_addr << std::endl;
+  std::cerr << "segfault @ " << fault_addr << std::endl;
 
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) mprotect_ptr(fault_addr), mprotect_size, PROT_READ | PROT_WRITE);
 }
@@ -156,31 +155,50 @@ void Memcheck::get_maps() {
 							[] (auto map) {
 							  return (map.prot & PROT_WRITE) != 0;
 							}));
+  assert(maps_has_addr(tracee.get_sp()));
 }
 
 void SyscallTracker::pre_handler(uint8_t *addr) {
   syscall.add_call(tracee);
 
-  const char *syscall_str = to_string(syscall.no());
-  std::clog << "syscall ";
-  if (syscall_str == nullptr) {
-    std::clog << syscall.no();
-  } else {
-    std::clog << syscall_str;
-  }
-  std::clog << std::endl;
+  std::cerr << "syscall " << syscall.no() << '\n';
+  
+  State new_syscall_state(tracee, memcheck.maps.begin(), memcheck.maps.end());
 
   static bool counter = false;
+  static Syscall last_syscall;
+  static user_regs_struct last_regs;
+
   if (!counter) {
+    syscall_state = new_syscall_state;
+    last_syscall = syscall.no();
+    last_regs = tracee.get_regs();
+    
     memcheck.state.restore(tracee);
-    std::clog << "rewound execution" << std::endl;
+    std::cerr << "rewound execution" << std::endl;
 
     State new_state(tracee, memcheck.maps.begin(), memcheck.maps.end());
     assert(new_state == memcheck.state);
-    
+  } else {
+    assert(last_regs == tracee.get_regs());
+    assert(syscall.no() == last_syscall);
+    if (syscall_state != new_syscall_state) {
+      std::cerr << "state mismatch syscall\n";
+    }
   }
-
+  
   counter = !counter;
+}
+
+void SyscallTracker::dump_stack() {
+  /* dump stack */
+  const auto sp = tracee.get_sp();
+  std::array<uint64_t, 16> buf;
+  tracee.read(buf.data(), buf.size() * sizeof(uint64_t), sp);
+  std::clog << std::hex;
+  for (uint64_t v : buf) {
+    fprintf(stderr, "%016lx\n", v);
+  }  
 }
 
 void SyscallTracker::post_handler(uint8_t *addr) {
@@ -199,4 +217,18 @@ void SyscallTracker::post_handler(uint8_t *addr) {
   }
 
   memcheck.state.save(tracee, memcheck.maps.begin(), memcheck.maps.end());
+  assert(memcheck.maps_has_addr(tracee.get_sp()));
+}
+
+bool Memcheck::maps_has_addr(const void *addr) const {
+  return std::any_of(maps.begin(), maps.end(), [addr] (const auto& map) {
+    return map.has_addr(addr);
+  });
+}
+
+std::ostream& Memcheck::print_maps(std::ostream& os) const {
+  for (const auto& map : maps) {
+    os << map << "\n";
+  }
+  return os;
 }

@@ -42,5 +42,10 @@ enum class Syscall {
 const char *to_string(Syscall syscall);
 
 inline std::ostream& operator<<(std::ostream& os, Syscall syscall) {
-  return os << to_string(syscall);
+  const char *s = to_string(syscall);
+  if (s == nullptr) {
+    return os << static_cast<int>(syscall);
+  } else {
+    return os << s;
+  }
 }

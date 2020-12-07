@@ -71,6 +71,8 @@ public:
   
   void add_ret(unsigned long long rv) { rv_ = rv; }
   void add_ret(Tracee& tracee) { add_ret(tracee.get_regs().rax); }
+
+  const user_regs_struct& regs() const { return regs_; }
   
 private:
   user_regs_struct regs_;
@@ -91,12 +93,15 @@ private:
   Tracee& tracee;
   const RegenerateMaps regen_maps;
   Memcheck& memcheck;
+  State syscall_state;
   
   /* Temporary Storage */
   SyscallArgs syscall;
   
   void pre_handler(uint8_t *addr);
   void post_handler(uint8_t *addr);
+
+  void dump_stack();
 };
 
 class Memcheck {
@@ -105,7 +110,7 @@ public:
     tracee(),
     stack_tracker(tracee),
     syscall_tracker(tracee, [this] () {
-      std::clog << "regenerating maps..." << std::endl;
+      std::cerr << "regenerating maps..." << std::endl;
       get_maps();
     }, *this)
   {}
@@ -140,6 +145,8 @@ private:
 
   void clear_access();
   void get_maps();
+  bool maps_has_addr(const void *addr) const; // TODO: should be member of maps class.
+  std::ostream& print_maps(std::ostream& os) const;
 
   friend class SyscallTracker;
 };

@@ -36,7 +36,7 @@ void State::restore(Tracee& tracee) const {
 }
 
 bool State::operator==(const State& other) const {
-  return regs == other.regs && snapshot == other.snapshot;
+  return STATE_MISMATCH_PRED(regs == other.regs) && STATE_MISMATCH_PRED(snapshot == other.snapshot);
 }
 
 bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs) {

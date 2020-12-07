@@ -122,7 +122,7 @@ void Block::transform_riprel_inst(uint8_t *& pc, const Append& append, const Ins
   new_inst.modrm_rm(static_cast<uint8_t>(scrap_reg), true);
 
 #if PRINT_RIPREL_TRANSLATIONS
-  std::clog << "orig inst: " << inst << std::endl;
+  std::cerr << "orig inst: " << inst << std::endl;
 #endif
   
   /* mov [rel tmp_0], rax
