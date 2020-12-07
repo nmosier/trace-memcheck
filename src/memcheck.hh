@@ -81,27 +81,15 @@ private:
 
 class SyscallTracker {
 public:
-  using RegenerateMaps = std::function<void (void)>;
+  using BkptCallback = Terminator::BkptCallback;
+  
+  SyscallTracker(Tracee& tracee): tracee(tracee) {}
 
-  // TODO: Lift handlers up into Memcheck class.
-  SyscallTracker(Tracee& tracee, const RegenerateMaps& regen_maps, Memcheck& memcheck):
-    tracee(tracee), regen_maps(regen_maps), memcheck(memcheck) {}
-
-  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
+	       const BkptCallback& pre_handler, const BkptCallback& post_handler);
   
 private:
   Tracee& tracee;
-  const RegenerateMaps regen_maps;
-  Memcheck& memcheck;
-  State syscall_state;
-  
-  /* Temporary Storage */
-  SyscallArgs syscall;
-  
-  void pre_handler(uint8_t *addr);
-  void post_handler(uint8_t *addr);
-
-  void dump_stack();
 };
 
 class Memcheck {
@@ -109,11 +97,7 @@ public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee),
-    syscall_tracker(tracee, [this] () {
-      std::cerr << "regenerating maps..." << std::endl;
-      get_maps();
-    }, *this)
-  {}
+    syscall_tracker(tracee) {}
   
   bool open(const char *file, char * const argv[]);
   bool open(char * const argv[]) { return open(argv[0], argv); }
@@ -128,7 +112,6 @@ private:
   Maps maps_gen;
   using MapList = std::list<Map>;
   MapList maps;
-  State state;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 
@@ -148,7 +131,22 @@ private:
   bool maps_has_addr(const void *addr) const; // TODO: should be member of maps class.
   std::ostream& print_maps(std::ostream& os) const;
 
-  friend class SyscallTracker;
+  void syscall_handler_pre(uint8_t *addr);
+  void syscall_handler_post(uint8_t *addr);
+
+  void save_state(State& state);
+  State save_state();
+
+  template <typename InputIt>
+  void get_taint_state(InputIt begin, InputIt end, State& taint_state);
+  void check_round();
+
+  SyscallArgs syscall_args;
+
+  bool subround_counter = false;
+  State pre_state;
+  std::array<State, 2> post_states;
+  State taint_state;
 };
 
 

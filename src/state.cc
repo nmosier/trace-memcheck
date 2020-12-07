@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 
 #include "state.hh"
 
@@ -45,4 +46,20 @@ bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs) {
 
 bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs) {
   return !(lhs == rhs);
+}
+
+void State::zero() {
+  std::fill(regs_begin(), regs_end(), 0);
+  snapshot.zero();
+}
+
+State& State::operator|=(const State& other) {
+  assert(similar(other));
+  std::transform(regs_begin(), regs_end(), other.regs_begin(), regs_begin(), std::bit_or<reg_t>());
+  snapshot |= other.snapshot;
+  return *this;
+}
+
+bool State::similar(const State& other) const {
+  return snapshot.similar(other.snapshot);
 }

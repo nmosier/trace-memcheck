@@ -195,4 +195,18 @@ SYSCALL.
 When a syscall occurs:
 1. Rewind to previous state.
 2. Handle system call if mmap/etc.
-3. 
+3.
+
+
+-----
+
+Need mask of tainted memory.
+Then need to interpret system call.
+
+Taint state variable represents mask of current tainted bits.
+
+Before each subround, invert tainted bits.
+Two subrounds per round.
+xor states together to get tainted state.
+Interpret system call to update tainted memory.
+

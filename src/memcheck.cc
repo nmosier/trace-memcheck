@@ -27,7 +27,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   get_maps();
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
-  state.save(tracee, maps.begin(), maps.end());
+  pre_state.save(tracee, maps.begin(), maps.end());
 
   return true;
 }
@@ -55,7 +55,9 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
 
 #if 1
   if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
-    addr = syscall_tracker.add(addr, inst, info);
+    addr = syscall_tracker.add(addr, inst, info,
+			       util::method_callback(this, &Memcheck::syscall_handler_pre),
+			       util::method_callback(this, &Memcheck::syscall_handler_post));
     return;
   }
 #endif
@@ -110,7 +112,8 @@ StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
   inst_str = ss.str();
 }
 
-uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info)
+uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
+			     const BkptCallback& pre_handler, const BkptCallback& post_handler)
 {
   const auto pre_bkpt_addr = addr;
   auto pre_bkpt_inst = Instruction::int3(addr);
@@ -120,8 +123,9 @@ uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Tr
   auto post_bkpt_inst = Instruction::int3(addr);
   addr = info.writer(post_bkpt_inst);
 
-  info.rb(pre_bkpt_addr, util::method_callback(*this, &SyscallTracker::pre_handler));
-  info.rb(post_bkpt_addr, util::method_callback(*this, &SyscallTracker::post_handler));
+  info.rb(pre_bkpt_addr, pre_handler);
+  info.rb(post_bkpt_addr, post_handler);
+  
   return addr;
 }
 
@@ -158,66 +162,71 @@ void Memcheck::get_maps() {
   assert(maps_has_addr(tracee.get_sp()));
 }
 
-void SyscallTracker::pre_handler(uint8_t *addr) {
-  syscall.add_call(tracee);
+void Memcheck::save_state(State& state) {
+  state.save(tracee, maps.begin(), maps.end());
+}
 
-  std::cerr << "syscall " << syscall.no() << '\n';
+State Memcheck::save_state() {
+  return State(tracee, maps.begin(), maps.end());
+}
+
+void Memcheck::syscall_handler_pre(uint8_t *addr) {
+  syscall_args.add_call(tracee);
+  std::cerr << "syscall " << syscall_args.no() << '\n';
   
-  State new_syscall_state(tracee, memcheck.maps.begin(), memcheck.maps.end());
+  save_state(post_states[subround_counter]);
 
-  static bool counter = false;
-  static Syscall last_syscall;
-  static user_regs_struct last_regs;
-
-  if (!counter) {
-    syscall_state = new_syscall_state;
-    last_syscall = syscall.no();
-    last_regs = tracee.get_regs();
-    
-    memcheck.state.restore(tracee);
-    std::cerr << "rewound execution" << std::endl;
-
-    State new_state(tracee, memcheck.maps.begin(), memcheck.maps.end());
-    assert(new_state == memcheck.state);
+  if (!subround_counter) {
+    pre_state.restore(tracee);
+    // std::cerr << "rewound execution" << std::endl;
+    assert(save_state() == pre_state);
   } else {
-    assert(last_regs == tracee.get_regs());
-    assert(syscall.no() == last_syscall);
-    if (syscall_state != new_syscall_state) {
-      std::cerr << "state mismatch syscall\n";
-    }
+    // check_round();
   }
   
-  counter = !counter;
+  subround_counter = !subround_counter;
 }
 
-void SyscallTracker::dump_stack() {
-  /* dump stack */
-  const auto sp = tracee.get_sp();
-  std::array<uint64_t, 16> buf;
-  tracee.read(buf.data(), buf.size() * sizeof(uint64_t), sp);
-  std::clog << std::hex;
-  for (uint64_t v : buf) {
-    fprintf(stderr, "%016lx\n", v);
-  }  
+template <typename InputIt>
+void Memcheck::get_taint_state(InputIt begin, InputIt end, State& taint_state) {
+  assert(std::distance(begin, end) >= 2);
+
+  auto first = begin++;
+
+  assert(std::all_of(begin, end, std::bind(&State::similar, first, std::placeholders::_1)));
+
+  taint_state = *first;
+  taint_state.zero(); // TODO: Could be optimized.
+  for (auto it = begin; it != end; ++it) {
+    taint_state |= *first ^ *begin; // TODO: could be optimized.
+  }
 }
 
-void SyscallTracker::post_handler(uint8_t *addr) {
-  syscall.add_ret(tracee);
+void Memcheck::check_round() {
+  /* make sure args to syscall aren't tainted */
+  
+  /* get taint mask */
+  get_taint_state(post_states.begin(), post_states.end(), taint_state);
+}
 
-  switch (syscall.no()) {
+
+void Memcheck::syscall_handler_post(uint8_t *addr) {
+  syscall_args.add_ret(tracee);
+
+  switch (syscall_args.no()) {
   case Syscall::MMAP:
   case Syscall::MUNMAP:
   case Syscall::MREMAP:
   case Syscall::BRK:
     // TODO: Faster to just add/remove particular instance.
-    if (syscall.rv<long long>() != -1) {
-      regen_maps();
+    if (syscall_args.rv<long long>() != -1) {
+      get_maps();
     }
     break;
   }
-
-  memcheck.state.save(tracee, memcheck.maps.begin(), memcheck.maps.end());
-  assert(memcheck.maps_has_addr(tracee.get_sp()));
+  
+  pre_state.save(tracee, maps.begin(), maps.end());
+  assert(maps_has_addr(tracee.get_sp()));
 }
 
 bool Memcheck::maps_has_addr(const void *addr) const {

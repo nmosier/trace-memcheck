@@ -119,5 +119,10 @@ namespace util {
       return (ptr->*method)(args...);
     };
   }
+
+  template <typename Class, typename Ret, typename... Args>
+  std::function<Ret (Args...)> method_callback(Class *obj, Ret (Class::*method)(Args...)) {
+    return method_callback(*obj, method);
+  }
   
 }

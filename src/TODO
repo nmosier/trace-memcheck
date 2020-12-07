@@ -30,3 +30,4 @@
 [ ] Move running logic memcheck -> patcher
 [ ] Write alternative of 'writer' function that accepts rvalue reference
 [ ] Improve maps
+[ ] Use valarray?
