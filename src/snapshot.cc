@@ -70,3 +70,36 @@ void Snapshot::zero() {
 void Snapshot::Entry::zero() {
   std::fill(data.begin(), data.end(), 0);
 }
+
+bool Snapshot::is_zero(const void *begin, const void *end) const {
+  return std::all_of(entries.begin(), entries.end(),
+		     std::bind(&Entry::is_zero, std::placeholders::_1, begin, end));
+}
+
+size_t Snapshot::Entry::offset(const void *ptr) const {
+  return std::min<size_t>
+    (std::max<ptrdiff_t>(static_cast<const char *>(ptr) - static_cast<const char *>(addr), 0),
+     size());
+}
+
+Snapshot::Entry::Data::const_iterator Snapshot::Entry::iter(const void *ptr) const {
+  return std::next(data.begin(), offset(ptr));
+}
+
+Snapshot::Entry::Data::iterator Snapshot::Entry::iter(void *ptr) {
+  return std::next(data.begin(), offset(ptr));
+}
+
+bool Snapshot::Entry::is_zero(const void *begin, const void *end) const {
+  return std::all_of(iter(begin), iter(end),
+		     std::bind(std::equal_to<char>(), std::placeholders::_1, 0));
+}
+
+void Snapshot::Entry::fill(void *begin, void *end, char val) {
+  return std::fill(iter(begin), iter(end), val);
+}
+
+void Snapshot::fill(void *begin, void *end, char val) {
+  std::for_each(entries.begin(), entries.end(), std::bind(&Entry::fill, std::placeholders::_1,
+							  begin, end, val));
+}

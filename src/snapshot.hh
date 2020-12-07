@@ -39,7 +39,10 @@ public:
   void zero();
 
   bool similar(const Snapshot& other) const; // ensure entries are at same addresses
-  
+
+  bool is_zero(const void *begin, const void *end) const;
+  void fill(void *begin, void *end, char val);
+
 private:
   struct Entry {
     using Elem = uint8_t;
@@ -52,12 +55,11 @@ private:
     Entry(const Map& map, Tracee& tracee) { save(map, tracee); }
 
     size_t size() const { return data.size(); }
-    
-
     void save(const Map& map, Tracee& tracee);
     void restore(Tracee& tracee) const;
     void zero();
     bool similar(const Entry& other) const;
+    bool is_zero(const void *begin, const void *end) const;
 
     bool operator==(const Entry& other) const;
     bool operator!=(const Entry& other) const { return !(*this == other); }
@@ -80,6 +82,13 @@ private:
       std::transform(data.begin(), data.end(), other.data.begin(), data.begin(), op);
       return *this;
     }
+
+    void fill(void *begin, void *end, char val);
+
+  private:
+    size_t offset(const void *ptr) const;
+    Data::const_iterator iter(const void *ptr) const;
+    Data::iterator iter(void *ptr);
   };
 
   using Entries = std::vector<Entry>;

@@ -28,6 +28,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
   pre_state.save(tracee, maps.begin(), maps.end());
+  init_taint(taint_state);
 
   return true;
 }
@@ -241,4 +242,19 @@ std::ostream& Memcheck::print_maps(std::ostream& os) const {
     os << map << "\n";
   }
   return os;
+}
+
+const Map& Memcheck::stack_map() {
+  auto it = std::find_if(maps.begin(), maps.end(),
+			 std::bind(&Map::has_addr, std::placeholders::_1, tracee.get_sp()));
+  assert(it != maps.end());
+  return *it;
+}
+
+void Memcheck::init_taint(State& taint_state) {
+  /* taint memory below stack */
+  const Map& stack = stack_map();
+  save_state(taint_state);
+  taint_state.zero();
+  taint_state.fill(stack.begin, tracee.get_sp(), -1);
 }

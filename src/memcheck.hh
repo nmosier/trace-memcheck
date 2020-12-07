@@ -141,6 +141,9 @@ private:
   void get_taint_state(InputIt begin, InputIt end, State& taint_state);
   void check_round();
 
+  void init_taint(State& taint_state);
+  const Map& stack_map();
+
   SyscallArgs syscall_args;
 
   bool subround_counter = false;

@@ -21,8 +21,8 @@ user_regs_struct& operator^=(user_regs_struct& acc, const user_regs_struct& othe
 }
 
 State& State::operator^=(const State& other) {
-  regs ^= other.regs;
-  snapshot ^= other.snapshot;
+  regs_ ^= other.regs_;
+  snapshot_ ^= other.snapshot_;
   return *this;
 }
 
@@ -32,12 +32,12 @@ State State::operator^(const State& other) const {
 }
 
 void State::restore(Tracee& tracee) const {
-  tracee.set_regs(regs);
-  snapshot.restore(tracee);
+  tracee.set_regs(regs_);
+  snapshot_.restore(tracee);
 }
 
 bool State::operator==(const State& other) const {
-  return STATE_MISMATCH_PRED(regs == other.regs) && STATE_MISMATCH_PRED(snapshot == other.snapshot);
+  return STATE_MISMATCH_PRED(regs_ == other.regs_) && STATE_MISMATCH_PRED(snapshot_ == other.snapshot_);
 }
 
 bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs) {
@@ -50,16 +50,16 @@ bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs) {
 
 void State::zero() {
   std::fill(regs_begin(), regs_end(), 0);
-  snapshot.zero();
+  snapshot_.zero();
 }
 
 State& State::operator|=(const State& other) {
   assert(similar(other));
   std::transform(regs_begin(), regs_end(), other.regs_begin(), regs_begin(), std::bit_or<reg_t>());
-  snapshot |= other.snapshot;
+  snapshot_ |= other.snapshot_;
   return *this;
 }
 
 bool State::similar(const State& other) const {
-  return snapshot.similar(other.snapshot);
+  return snapshot_.similar(other.snapshot_);
 }
