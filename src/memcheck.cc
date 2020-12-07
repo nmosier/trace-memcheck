@@ -181,7 +181,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
     // std::cerr << "rewound execution" << std::endl;
     assert(save_state() == pre_state);
   } else {
-    // check_round();
+    check_round();
   }
   
   subround_counter = !subround_counter;
@@ -204,6 +204,7 @@ void Memcheck::get_taint_state(InputIt begin, InputIt end, State& taint_state) {
 
 void Memcheck::check_round() {
   /* make sure args to syscall aren't tainted */
+  // TODO
   
   /* get taint mask */
   get_taint_state(post_states.begin(), post_states.end(), taint_state);

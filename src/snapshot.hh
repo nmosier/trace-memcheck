@@ -70,6 +70,7 @@ private:
 
     template <class BinOp> Entry binop(const Entry& other, BinOp op) const {
       Entry res;
+      res.addr = addr;
       res.data.resize(other.size());
       std::transform(data.begin(), data.end(), other.data.begin(), res.data.begin(), op);
       return res;

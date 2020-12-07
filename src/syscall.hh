@@ -22,7 +22,10 @@
   e(EXIT_GROUP, 231)				\
   e(GETDENTS, 78)				\
   e(GETEUID, 107)				\
-  e(MREMAP, 25)
+  e(MREMAP, 25)					\
+  e(SOCKET, 41)					\
+  e(CONNECT, 42)				\
+  e(SENDTO, 44)
 
 #ifndef STR
 # define STR(x) #x
