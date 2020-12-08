@@ -208,8 +208,8 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   subround_counter = !subround_counter;
 
   /* check syscall */
-  SyscallChecker syscall_checker(taint_state, AddrRange(stack_begin(), tracee.get_sp()));
-  if (!syscall_checker.run(syscall_args)) {
+  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()));
+  if (!syscall_checker.pre(syscall_args)) {
     abort();
   }
 }
@@ -221,11 +221,10 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   auto first = begin++;
 
   assert(std::all_of(begin, end, std::bind(&State::similar, first, std::placeholders::_1)));
-
-#if 0
-  taint_state = *first;
-  taint_state.zero(); // TODO: Could be optimized.
-#endif
+  
+  /* taint stack */
+  init_taint(taint_state); // TODO: Could be optimized.
+  
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *begin; // TODO: could be optimized.
   }
@@ -323,7 +322,7 @@ void Memcheck::init_taint(State& taint_state) {
        tracked_pages.find(stackpage) != tracked_pages.end();
        stackpage = pageidx(stackpage, -1)) {}
 
-  taint_state.snapshot().fill(stackpage, stackend, -1);
+  taint_state.fill(stackpage, stackend, -1);
 }
 
 void Memcheck::track_range(void *begin, void *end) {

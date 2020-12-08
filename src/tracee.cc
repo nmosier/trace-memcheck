@@ -279,3 +279,19 @@ std::ostream& Tracee::cat_maps(std::ostream& os) const {
   }
   return os;
 }
+
+size_t Tracee::strlen(const char *begin) {
+  std::vector<char> buf;
+  const char *end = pagealign_up(begin);
+  while (true) {
+    // TODO: Could optimize for multi-page strings, since it looks for '\0' in first page many times
+    buf.resize(end - begin);
+    read(static_cast<void *>(buf.data()), end - begin, static_cast<const void *>(begin));
+    const auto it = std::find(buf.begin(), buf.end(), '\0');
+    if (it != buf.end()) {
+      return std::distance(buf.begin(), it);
+    }
+    end = pageidx(end, 1); // add a page
+  }
+
+}

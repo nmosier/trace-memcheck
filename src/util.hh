@@ -204,8 +204,9 @@ const void *nextpage(const T *pageaddr) {
   return reinterpret_cast<const T *>(reinterpret_cast<const char *>(pageaddr) + PAGESIZE);
 }
 
-inline void *pageidx(void *pageaddr, size_t idx) {
-  return reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(pageaddr) + idx * PAGESIZE);
+template <typename T>
+inline T *pageidx(T *pageaddr, size_t idx) {
+  return reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(pageaddr) + idx * PAGESIZE);
 }
 
 template <typename T>

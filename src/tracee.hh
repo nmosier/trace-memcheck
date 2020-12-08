@@ -7,6 +7,7 @@ class Tracee;
 #include <unistd.h>
 #include <sys/user.h>
 #include <signal.h>
+#include <string>
 
 #include "inst.hh"
 #include "syscall.hh"
@@ -42,15 +43,9 @@ public:
     write(from.data(), from.size() * sizeof(T), to);
   }
   
-#if 0
-  template <typename InputIt>
-  void write(InputIt begin, InputIt end, void *to) const { // TODO: Rewrite this
-    static_assert(false, "stub");
-    write(&*begin, end - begin, to);
-  }
-#endif
-
   void write(const Blob& inst) const;
+
+  size_t strlen(const char *addr);
 
   void dump(std::ostream& os, const void *ptr, size_t count);
 

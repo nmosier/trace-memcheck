@@ -8,15 +8,16 @@
 // checks and propogates taint
 class SyscallChecker {
 public:
-  SyscallChecker(State& taint_state, const AddrRange& stack_range):
-    taint_state(taint_state), stack_range(stack_range) {}
+  SyscallChecker(Tracee& tracee, State& taint_state, const AddrRange& stack_range):
+    tracee(tracee), taint_state(taint_state), stack_range(stack_range) {}
 
-  bool run(const SyscallArgs& args);
+  bool pre(const SyscallArgs& args);
   
   template <typename... Args>
   bool operator()(Args&&... args) { return run(args...); }
   
 private:
+  Tracee& tracee;
   State& taint_state;
   AddrRange stack_range;
 
@@ -38,8 +39,25 @@ private:
     const SyscallArgs& args;
   };
 
+  bool tainted(const void *begin, const void *end) const;
+  bool tainted(const void *begin, size_t size) const {
+    return tainted(begin, static_cast<const char *>(begin) + size);
+  }
+  bool tainted(const char *s);
+
   using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);
 
-  bool run_read(const SyscallArgs& args);
-  bool run_write(const SyscallArgs& args);
+  bool pre_read(const SyscallArgs& args);
+  bool pre_write(const SyscallArgs& args);
+  bool pre_brk(const SyscallArgs& args);
+  bool pre_access(const SyscallArgs& args);
+  bool pre_open(const SyscallArgs& args);
+  bool pre_fstat(const SyscallArgs& args);
+  bool pre_mmap(const SyscallArgs& args);
+  bool pre_close(const SyscallArgs& args);
+  bool pre_mprotect(const SyscallArgs& args);
+  bool pre_arch_prctl(const SyscallArgs& args);
+  bool pre_munmap(const SyscallArgs& args);
+  bool pre_futex(const SyscallArgs& args);
+  bool pre_exit_group(const SyscallArgs& args);
 };
