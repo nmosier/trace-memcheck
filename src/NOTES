@@ -210,3 +210,13 @@ Two subrounds per round.
 xor states together to get tainted state.
 Interpret system call to update tainted memory.
 
+------
+
+Have master memory hierarchy representation.
+
+
+-----
+
+Just do freaking page table. Freaking duh.
+Snapshot will have an unordered map of page addresses to page data.
+

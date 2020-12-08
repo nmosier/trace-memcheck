@@ -25,7 +25,14 @@
   e(MREMAP, 25)					\
   e(SOCKET, 41)					\
   e(CONNECT, 42)				\
-  e(SENDTO, 44)
+  e(SENDTO, 44)					\
+  e(SET_TID_ADDRESS, 218)			\
+  e(SET_ROBUST_LIST, 273)			\
+  e(RT_SIGACTION, 13)				\
+  e(RT_SIGPROCMASK, 14)				\
+  e(GETRLIMIT, 97)				\
+  e(STATFS, 137)
+
 
 #ifndef STR
 # define STR(x) #x

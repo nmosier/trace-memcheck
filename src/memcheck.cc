@@ -23,11 +23,10 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
   patcher->start();
   maps_gen.open(child);
-
-  get_maps();
+  init_tracked_pages(tracked_pages);
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
-  pre_state.save(tracee, maps.begin(), maps.end());
+  save_state(pre_state);
   init_taint(taint_state);
 
   return true;
@@ -154,21 +153,30 @@ void Memcheck::clear_access() {
   }
 }
 
-void Memcheck::get_maps() {
-  maps.clear();
-  maps_gen.get_maps(util::conditional_inserter<MapList>(std::inserter(maps, maps.end()),
-							[] (auto map) {
-							  return (map.prot & PROT_WRITE) != 0;
-							}));
-  assert(maps_has_addr(tracee.get_sp()));
+void Memcheck::init_tracked_pages(PageSet& tracked_pages) {
+  assert(tracked_pages.empty());
+
+  std::vector<Map> tmp_maps;
+  maps_gen.get_maps(util::conditional_inserter<decltype(tmp_maps)>
+		    (std::inserter(tmp_maps, tmp_maps.end()),
+		     [] (const auto& map) {
+		      return (map.prot & PROT_WRITE) != 0;
+		    }));
+  std::for_each(tmp_maps.begin(), tmp_maps.end(), [&] (const auto& map) {
+    for (size_t i = 0; i < pagecount(map.begin, map.end); ++i) {
+      tracked_pages.insert(pageidx(map.begin, i));
+    }
+  });
 }
 
 void Memcheck::save_state(State& state) {
-  state.save(tracee, maps.begin(), maps.end());
+  state.save(tracee, tracked_pages.begin(), tracked_pages.end());
 }
 
 State Memcheck::save_state() {
-  return State(tracee, maps.begin(), maps.end());
+  State state;
+  save_state(state);
+  return state;
 }
 
 void Memcheck::syscall_handler_pre(uint8_t *addr) {
@@ -225,7 +233,7 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 	const int prot = syscall_args.arg<2, int>();
 	if ((prot & PROT_WRITE)) {
 	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
-	  add_map(rv, (char *) rv + length, prot);
+	  track_range(rv, (char *) rv + length);
 	}
       }
     }
@@ -233,17 +241,14 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 
   case Syscall::BRK:
     {
-      if (syscall_args.rv<int>() >= 0) {
-	const auto addr = syscall_args.arg<0, void *>();
-	if (addr != nullptr) {
-	  auto it = maps.lower_bound(Map(addr, addr, PROT_NONE));
-	  assert(it != maps.begin());
-	  --it;
-	  Map map = *it;
-	  map.end = addr;
-	  remove_map(it);
-	  add_map(map);
+      const auto rv = syscall_args.rv<void *>();
+      if (rv != nullptr) {
+	const auto endaddr = pagealign_up(syscall_args.arg<0, void *>());
+	if (endaddr != nullptr) {
+	  assert(brk != nullptr);
+	  track_range(brk, endaddr);
 	}
+	brk = rv;
       }
     }
     break;
@@ -256,78 +261,69 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
       const auto rv = syscall_args.rv<int>();
       if (rv >= 0) {
 	void *addr = syscall_args.arg<0, void *>();
-	remove_map([addr] (const Map& map) { return map.begin == addr; });
+	const size_t size = util::align_up(syscall_args.arg<1, size_t>(), PAGESIZE);
+	
+	untrack_range(addr, (char *) addr + size);
       }
     }
     break;
-  }
 
   case Syscall::MPROTECT:
     {
-      const auto rv = syscall_arg.rv<int>();
+      const auto rv = syscall_args.rv<int>();
       if (rv >= 0) {
 	void *addr = syscall_args.arg<0, void *>();
+	const size_t len = syscall_args.arg<1, size_t>();
+	const int prot = syscall_args.arg<2, int>();
+	void *end = (char *) addr + len;
+	if ((prot & PROT_WRITE)) {
+	  track_range(addr, end);
+	} else {
+	  untrack_range(addr, end);
+	}
       }
     }
     break;
-  
-  pre_state.save(tracee, maps.begin(), maps.end());
-  assert(maps_has_addr(tracee.get_sp()));
-}
-
-bool Memcheck::maps_has_addr(const void *addr) const {
-  return std::any_of(maps.begin(), maps.end(), [addr] (const auto& map) {
-    return map.has_addr(addr);
-  });
-}
-
-std::ostream& Memcheck::print_maps(std::ostream& os) const {
-  for (const auto& map : maps) {
-    os << map << "\n";
   }
-  return os;
+
+  save_state(pre_state);
 }
 
-const Map& Memcheck::stack_map() {
-  auto it = std::find_if(maps.begin(), maps.end(),
-			 std::bind(&Map::has_addr, std::placeholders::_1, tracee.get_sp()));
-  assert(it != maps.end());
-  return *it;
+bool Memcheck::maps_has_addr(void *addr) const {
+  return tracked_pages.find(pagealign(addr)) != tracked_pages.end();
 }
 
 void Memcheck::init_taint(State& taint_state) {
   /* taint memory below stack */
-  const Map& stack = stack_map();
-  save_state(taint_state);
+  save_state(taint_state); // TODO: optimize
   taint_state.zero();
-  taint_state.fill(stack.begin, tracee.get_sp(), -1);
+
+  /* find beginning of stack */
+  void *stackend = tracee.get_sp();
+  void *stackpage;
+  for (stackpage = pagealign(stackend);
+       tracked_pages.find(stackpage) != tracked_pages.end();
+       stackpage = pageidx(stackpage, -1)) {}
+
+  taint_state.snapshot().fill(stackpage, stackend, -1);
 }
 
-template <typename... Args>
-void Memcheck::add_map(Args&&... args) {
-  assert(find_map(std::bind(&Map::overlaps, std::placeholders::_1, Map(args...))) == maps.end());
-  const auto p = maps.emplace(args...);
-  assert(p.second); // insertion success
+void Memcheck::track_range(void *begin, void *end) {
+  for_each_page(begin, end, [this] (void *pageaddr) { tracked_pages.insert(pageaddr); });
+  taint_state.snapshot().add(begin, end, 0);
 
-  /* update existing states */
-  taint_state.add_zero(*p.first);
+  assert(check_tracked_pages());
 }
 
-template <class Pred>
-void Memcheck::remove_map(Pred pred) {
-  const auto it = find_map(pred);
-  if (it != maps.end()) {
-    maps.erase(it);
-  }
-  // TODO: update states
+void Memcheck::untrack_range(void *begin, void *end) {
+  for_each_page(begin, end, [this] (void *pageaddr) { tracked_pages.erase(pageaddr); });
+  taint_state.snapshot().remove(begin, end);
+
+  assert(check_tracked_pages());
 }
 
-template <class Pred>
-Memcheck::MapList::iterator Memcheck::find_map(Pred pred) {
-  return std::find_if(maps.begin(), maps.end(), pred);
-}
-
-template <class Pred>
-Memcheck::MapList::const_iterator Memcheck::find_map(Pred pred) const {
-  return std::find_if(maps.begin(), maps.end(), pred);
+bool Memcheck::check_tracked_pages() {
+  PageSet ref;
+  init_tracked_pages(ref);
+  return ref == tracked_pages;
 }

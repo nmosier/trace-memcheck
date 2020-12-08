@@ -37,6 +37,11 @@ public:
 
   void write(const void *from, size_t count, void *to) const;
 
+  template <typename T, size_t N>
+  void write(const std::array<T,N>& from, void *to) {
+    write(from.data(), from.size() * sizeof(T), to);
+  }
+  
 #if 0
   template <typename InputIt>
   void write(InputIt begin, InputIt end, void *to) const { // TODO: Rewrite this

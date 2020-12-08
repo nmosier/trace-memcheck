@@ -31,3 +31,4 @@
 [ ] Write alternative of 'writer' function that accepts rvalue reference
 [ ] Improve maps
 [ ] Use valarray?
+[ ] Rename Map -> PageMap

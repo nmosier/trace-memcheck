@@ -4,7 +4,7 @@ class Memcheck;
 class StackTracker;
 
 #include <string>
-#include <set>
+#include <unordered_set>
 #include "inst.hh"
 #include "util.hh"
 #include "patch.hh"
@@ -111,11 +111,8 @@ private:
   SyscallTracker syscall_tracker;
   
   Maps maps_gen;
-  struct MapCmp {
-    bool operator()(const Map& lhs, const Map& rhs) { return lhs.begin < rhs.begin; }
-  };
-  using MapList = std::set<Map, MapCmp>;
-  MapList maps;
+  using PageSet = std::unordered_set<void *>;
+  PageSet tracked_pages;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
 
@@ -131,23 +128,12 @@ private:
   }
 
   void clear_access();
-  void get_maps();
-  bool maps_has_addr(const void *addr) const; // TODO: should be member of maps class.
-  std::ostream& print_maps(std::ostream& os) const;
+  void init_tracked_pages(PageSet& tracked_pages);
+  bool check_tracked_pages();
+  bool maps_has_addr(void *addr) const; // TODO: should be member of maps class.
 
-  template <typename... Args>
-  void add_map(Args&&... args);
-
-  template <class Pred>
-  void remove_map(Pred pred);
-
-  void remove_map(MapList::iterator it) { maps.erase(it); }
-
-  template <class Pred>
-  MapList::iterator find_map(Pred pred);
-
-  template <class Pred>
-  MapList::const_iterator find_map(Pred pred) const;
+  void track_range(void *begin, void *end);
+  void untrack_range(void *begin, void *end);
   
   void syscall_handler_pre(uint8_t *addr);
   void syscall_handler_post(uint8_t *addr);
@@ -160,7 +146,6 @@ private:
   void check_round();
 
   void init_taint(State& taint_state);
-  const Map& stack_map();
 
   SyscallArgs syscall_args;
 
@@ -168,6 +153,8 @@ private:
   State pre_state;
   std::array<State, 2> post_states;
   State taint_state;
+
+  void *brk = nullptr; // current brk(2) value 
 };
 
 

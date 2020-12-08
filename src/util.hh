@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <memory>
+#include <cassert>
 
 void *get_pc(pid_t child);
 void *get_sp(pid_t pid);
@@ -112,6 +113,35 @@ namespace util {
     return conditional_insert_iterator<Container, Cond>(it, cond);
   }
 
+
+  template <class Container, typename Transform>
+  class transform_insert_iterator {
+  public:
+    using It = std::insert_iterator<Container>;
+    transform_insert_iterator(const It& it, Transform op): it(it), op(op) {}
+
+    template <typename T>
+    transform_insert_iterator& operator=(T val) {
+      *it++ = op(val);
+      return *this;
+    }
+
+    transform_insert_iterator& operator*() { return *this; }
+    transform_insert_iterator& operator++() { return *this; }
+    transform_insert_iterator& operator++(int i) { return *this; }
+    
+  private:
+    It it;
+    Transform op;
+  };
+
+  template <class Container, typename Op>
+  transform_insert_iterator<Container, Op> transform_inserter
+  (const typename transform_insert_iterator<Container, Op>::It& it, Op op) {
+    return transform_insert_iterator<Container, Op>(it, op); 
+  }
+
+  // TODO: Delete
   template <typename Class, typename Ret, typename... Args>
   std::function<Ret (Args...)> method_callback(Class& obj, Ret (Class::*method)(Args...)) {
     Class *ptr = &obj;
@@ -135,5 +165,62 @@ namespace util {
   constexpr T align_up(T val, U align) {
     return div_up(val, align) * align;
   }
+
+  template <typename T, typename U>
+  constexpr T div_down(T numer, U denom) {
+    return numer / denom;
+  }
+
+  template <typename T, typename U>
+  constexpr T align_down(T val, U align) {
+    return div_down(val, align) * align;
+  }
   
+}
+
+constexpr size_t PAGESIZE = 0x1000;
+
+template <typename T>
+bool is_pageaddr(const T *addr) {
+  return reinterpret_cast<uintptr_t>(addr) % PAGESIZE == 0;
+}
+
+template <typename T>
+size_t pagecount(const T *begin, const T *end) {
+  assert(is_pageaddr(begin));
+  assert(is_pageaddr(end));
+  return (reinterpret_cast<uintptr_t>(end) - reinterpret_cast<uintptr_t>(begin)) / PAGESIZE;
+}
+
+template <typename T>
+void *nextpage(T *pageaddr) {
+  assert(is_pageaddr(pageaddr));
+  return reinterpret_cast<T *>(reinterpret_cast<char *>(pageaddr) + PAGESIZE);
+}
+
+template <typename T>
+const void *nextpage(const T *pageaddr) {
+  assert(is_pageaddr(pageaddr));
+  return reinterpret_cast<const T *>(reinterpret_cast<const char *>(pageaddr) + PAGESIZE);
+}
+
+inline void *pageidx(void *pageaddr, size_t idx) {
+  return reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(pageaddr) + idx * PAGESIZE);
+}
+
+template <typename T>
+T *pagealign(T *addr) {
+  return reinterpret_cast<T *>(util::align_down(reinterpret_cast<uintptr_t>(addr), PAGESIZE));
+}
+
+template <typename T>
+T *pagealign_up(T *addr) {
+  return reinterpret_cast<T *>(util::align_up(reinterpret_cast<uintptr_t>(addr), PAGESIZE));
+}
+
+template <class Func>
+void for_each_page(void *begin, void *end, Func func) {
+  for (size_t i = 0; i < pagecount(begin, end); ++i) {
+    func(pageidx(begin, i));
+  }
 }

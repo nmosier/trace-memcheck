@@ -5,118 +5,64 @@
 #include "snapshot.hh"
 #include "state.hh"
 
-bool Snapshot::Entry::operator==(const Entry& other) const {
-  return STATE_MISMATCH_PRED(addr == other.addr) && STATE_MISMATCH_PRED(data == other.data);
-}
-
-bool Snapshot::operator==(const Snapshot& other) const {
-  if (entries.size() != other.entries.size()) {
+bool Snapshot::similar(const Snapshot& other) const {
+  if (map.size() != other.map.size()) {
     return false;
   }
-
-  for (size_t i = 0; i < entries.size(); ++i) {
-    if (entries[i] != other.entries[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-size_t Snapshot::size() const {
-  return std::accumulate(entries.begin(), entries.end(), 0, [] (auto acc, const auto& entry) {
-    return acc + entry.size();
+  return std::all_of(map.begin(), map.end(), [&] (const auto& p) {
+    return other.map.find(p.first) != other.map.end();
   });
 }
 
-bool Snapshot::Entry::similar(const Entry& other) const {
-  return addr == other.addr && size() == other.size();
-}
-
-bool Snapshot::similar(const Snapshot& other) const {
-  if (entries.size() != other.entries.size()) {
-    return false;
-  }
-
-  Entries entries = this->entries;
-  Entries other_entries = other.entries;
-  const auto sort_entries = [] (auto& entries) {
-    std::sort(entries.begin(), entries.end(), [] (const auto& lhs, const auto& rhs) {
-      return lhs.addr < rhs.addr;
-    });
-  };
-  sort_entries(entries);
-  sort_entries(other_entries);
-  
-  for (size_t i = 0; i < entries.size(); ++i) {
-    if (!entries[i].similar(other.entries[i])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 void Snapshot::restore(Tracee& tracee) const {
-  for (const Entry& entry : entries) {
-    entry.restore(tracee);
+  for (const auto& p : map) {
+    auto addr = p.first;
+    const auto& data = p.second;
+    tracee.write(data, addr);
   }
-}
-
-void Snapshot::Entry::restore(Tracee& tracee) const {
-  tracee.write(data.data(), data.size(), addr);
-}
-
-void Snapshot::Entry::save(const Map& map, Tracee& tracee) {
-  addr = map.begin;
-  data.resize(map.size());
-  tracee.read(data.data(), map.size(), map.begin);
 }
 
 void Snapshot::zero() {
-  std::for_each(entries.begin(), entries.end(), std::bind(&Entry::zero, std::placeholders::_1));
+  std::for_each(map.begin(), map.end(), [] (auto&& p) {
+    auto& data = p.second;
+    std::fill(data.begin(), data.end(), 0);
+  });
 }
 
-void Snapshot::Entry::zero() {
-  std::fill(data.begin(), data.end(), 0);
+size_t Snapshot::offset(const void *pageaddr, const void *ptr) {
+  const ptrdiff_t offset_raw = static_cast<const char *>(ptr) - static_cast<const char *>(pageaddr);
+  return std::min<size_t>(std::max<ptrdiff_t>(offset_raw, 0), PAGESIZE);
 }
 
+// TODO: Much more intelligent way to do this.
 bool Snapshot::is_zero(const void *begin, const void *end) const {
-  return std::all_of(entries.begin(), entries.end(),
-		     std::bind(&Entry::is_zero, std::placeholders::_1, begin, end));
+  return std::all_of(map.begin(), map.end(), [begin, end] (const auto& p) {
+    const auto begin_it = iter(p, begin);
+    const auto end_it = iter(p, end);
+    return std::all_of(begin_it , end_it, [] (auto elem) { return elem == 0; }); // TODO: std::bind
+  });
 }
 
-size_t Snapshot::Entry::offset(const void *ptr) const {
-  return std::min<size_t>
-    (std::max<ptrdiff_t>(static_cast<const char *>(ptr) - static_cast<const char *>(addr), 0),
-     size());
+void Snapshot::fill(void *begin, void *end, Elem val) {
+  std::for_each(map.begin(), map.end(), [begin, end, val] (auto& p) {
+    const auto begin_it = iter(p, begin);
+    const auto end_it = iter(p, end);
+    std::fill(begin_it, end_it, val);
+  });
 }
 
-Snapshot::Entry::Data::const_iterator Snapshot::Entry::iter(const void *ptr) const {
-  return std::next(data.begin(), offset(ptr));
+void Snapshot::remove(void *pageaddr) {
+  map.erase(pageaddr);
 }
 
-Snapshot::Entry::Data::iterator Snapshot::Entry::iter(void *ptr) {
-  return std::next(data.begin(), offset(ptr));
+void Snapshot::add(void *pageaddr, Tracee& tracee) {
+  add_fill(pageaddr, [&] (const auto pageaddr, const auto begin) {
+    tracee.read(&*begin, PAGESIZE, pageaddr);
+  });
 }
 
-bool Snapshot::Entry::is_zero(const void *begin, const void *end) const {
-  return std::all_of(iter(begin), iter(end),
-		     std::bind(std::equal_to<char>(), std::placeholders::_1, 0));
-}
-
-void Snapshot::Entry::fill(void *begin, void *end, char val) {
-  return std::fill(iter(begin), iter(end), val);
-}
-
-void Snapshot::fill(void *begin, void *end, char val) {
-  std::for_each(entries.begin(), entries.end(), std::bind(&Entry::fill, std::placeholders::_1,
-							  begin, end, val));
-}
-
-void Snapshot::add_zero(const Map& map) {
-  Entry entry;
-  entry.addr = map.begin;
-  entry.data.resize(map.size(), 0);
-  entries.push_back(entry);
+void Snapshot::remove(void *begin, void *end) {
+  for (size_t i = 0; i < pagecount(begin, end); ++i) {
+    remove(pageidx(begin, i));
+  }
 }

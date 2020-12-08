@@ -9,19 +9,15 @@
 class State {
 public:
   State() {}
-  
-  template <typename InputIt>
-  State(Tracee& tracee, InputIt begin, InputIt end) {
-    save(tracee, begin, end);
-  }
 
   const user_regs_struct& regs() const { return regs_; }
+  Snapshot& snapshot() { return snapshot_; }
   const Snapshot& snapshot() const { return snapshot_; }
 
   template <typename InputIt>
   void save(Tracee& tracee, InputIt begin, InputIt end) {
     tracee.get_regs(regs_);
-    snapshot_.save(tracee, begin, end);
+    snapshot_.save(begin, end, tracee);
   }
 
   State operator^(const State& other) const;
@@ -38,10 +34,6 @@ public:
 
   void zero();
 
-  void fill(void *begin, void *end, char val) { snapshot_.fill(begin, end, val); }
-
-  void add_zero(const Map& map) { snapshot_.add_zero(map); }
-  
 private:
   using reg_t = uint64_t;
   static_assert(sizeof(user_regs_struct) % sizeof(reg_t) == 0, "reg_t doesn't divide regs");
