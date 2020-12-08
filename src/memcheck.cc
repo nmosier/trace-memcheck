@@ -3,6 +3,8 @@
 #include <sys/types.h>
 #include <sstream>
 #include "memcheck.hh"
+#include "syscall-check.hh"
+
 
 bool Memcheck::open(const char *file, char * const argv[]) {
   const pid_t child = fork();
@@ -179,6 +181,16 @@ State Memcheck::save_state() {
   return state;
 }
 
+void *Memcheck::stack_begin() {
+  const auto stack_end = pagealign_up(tracee.get_sp());
+  auto stack_begin = stack_end;
+  while (tracked_pages.find(stack_begin) != tracked_pages.end()) {
+    stack_begin = pageidx(stack_begin, -1);
+  }
+  stack_begin = pageidx(stack_begin, 1);
+  return stack_begin;
+}
+
 void Memcheck::syscall_handler_pre(uint8_t *addr) {
   syscall_args.add_call(tracee);
   std::cerr << "syscall " << syscall_args.no() << '\n';
@@ -194,6 +206,12 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   }
   
   subround_counter = !subround_counter;
+
+  /* check syscall */
+  SyscallChecker syscall_checker(taint_state, AddrRange(stack_begin(), tracee.get_sp()));
+  if (!syscall_checker.run(syscall_args)) {
+    abort();
+  }
 }
 
 template <typename InputIt>

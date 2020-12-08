@@ -59,3 +59,9 @@ inline std::ostream& operator<<(std::ostream& os, Syscall syscall) {
     return os << s;
   }
 }
+
+namespace std {
+  template <> struct hash<Syscall> {
+    size_t operator()(Syscall syscall) const { return std::hash<int>()(static_cast<int>(syscall)); }
+  };
+}

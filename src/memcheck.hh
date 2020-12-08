@@ -98,7 +98,8 @@ public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee),
-    syscall_tracker(tracee) {}
+    syscall_tracker(tracee)
+  {}
   
   bool open(const char *file, char * const argv[]);
   bool open(char * const argv[]) { return open(argv[0], argv); }
@@ -146,6 +147,8 @@ private:
   void check_round();
 
   void init_taint(State& taint_state);
+
+  void *stack_begin();
 
   SyscallArgs syscall_args;
 

@@ -220,3 +220,6 @@ Have master memory hierarchy representation.
 Just do freaking page table. Freaking duh.
 Snapshot will have an unordered map of page addresses to page data.
 
+------
+
+Ok, so now need to check to make sure that inputs to syscall aren't uninitialized.
