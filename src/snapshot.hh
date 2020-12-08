@@ -1,6 +1,5 @@
 #pragma once
 
-#include <valarray>
 #include <vector>
 #include <type_traits>
 #include "maps.hh"
@@ -42,6 +41,7 @@ public:
 
   bool is_zero(const void *begin, const void *end) const;
   void fill(void *begin, void *end, char val);
+  void add_zero(const Map& map);
 
 private:
   struct Entry {

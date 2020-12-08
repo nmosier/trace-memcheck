@@ -189,15 +189,17 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
 }
 
 template <typename InputIt>
-void Memcheck::get_taint_state(InputIt begin, InputIt end, State& taint_state) {
+void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state) {
   assert(std::distance(begin, end) >= 2);
 
   auto first = begin++;
 
   assert(std::all_of(begin, end, std::bind(&State::similar, first, std::placeholders::_1)));
 
+#if 0
   taint_state = *first;
   taint_state.zero(); // TODO: Could be optimized.
+#endif
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *begin; // TODO: could be optimized.
   }
@@ -208,7 +210,7 @@ void Memcheck::check_round() {
   // TODO
   
   /* get taint mask */
-  get_taint_state(post_states.begin(), post_states.end(), taint_state);
+  update_taint_state(post_states.begin(), post_states.end(), taint_state);
 }
 
 
@@ -217,15 +219,57 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 
   switch (syscall_args.no()) {
   case Syscall::MMAP:
-  case Syscall::MUNMAP:
-  case Syscall::MREMAP:
+    {
+      const auto rv = syscall_args.rv<void *>();
+      if (rv != MAP_FAILED) {
+	const int prot = syscall_args.arg<2, int>();
+	if ((prot & PROT_WRITE)) {
+	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
+	  add_map(rv, (char *) rv + length, prot);
+	}
+      }
+    }
+    break;
+
   case Syscall::BRK:
-    // TODO: Faster to just add/remove particular instance.
-    if (syscall_args.rv<long long>() != -1) {
-      get_maps();
+    {
+      if (syscall_args.rv<int>() >= 0) {
+	const auto addr = syscall_args.arg<0, void *>();
+	if (addr != nullptr) {
+	  auto it = maps.lower_bound(Map(addr, addr, PROT_NONE));
+	  assert(it != maps.begin());
+	  --it;
+	  Map map = *it;
+	  map.end = addr;
+	  remove_map(it);
+	  add_map(map);
+	}
+      }
+    }
+    break;
+    
+  case Syscall::MREMAP:
+    abort();
+    
+  case Syscall::MUNMAP:
+    {
+      const auto rv = syscall_args.rv<int>();
+      if (rv >= 0) {
+	void *addr = syscall_args.arg<0, void *>();
+	remove_map([addr] (const Map& map) { return map.begin == addr; });
+      }
     }
     break;
   }
+
+  case Syscall::MPROTECT:
+    {
+      const auto rv = syscall_arg.rv<int>();
+      if (rv >= 0) {
+	void *addr = syscall_args.arg<0, void *>();
+      }
+    }
+    break;
   
   pre_state.save(tracee, maps.begin(), maps.end());
   assert(maps_has_addr(tracee.get_sp()));
@@ -257,4 +301,33 @@ void Memcheck::init_taint(State& taint_state) {
   save_state(taint_state);
   taint_state.zero();
   taint_state.fill(stack.begin, tracee.get_sp(), -1);
+}
+
+template <typename... Args>
+void Memcheck::add_map(Args&&... args) {
+  assert(find_map(std::bind(&Map::overlaps, std::placeholders::_1, Map(args...))) == maps.end());
+  const auto p = maps.emplace(args...);
+  assert(p.second); // insertion success
+
+  /* update existing states */
+  taint_state.add_zero(*p.first);
+}
+
+template <class Pred>
+void Memcheck::remove_map(Pred pred) {
+  const auto it = find_map(pred);
+  if (it != maps.end()) {
+    maps.erase(it);
+  }
+  // TODO: update states
+}
+
+template <class Pred>
+Memcheck::MapList::iterator Memcheck::find_map(Pred pred) {
+  return std::find_if(maps.begin(), maps.end(), pred);
+}
+
+template <class Pred>
+Memcheck::MapList::const_iterator Memcheck::find_map(Pred pred) const {
+  return std::find_if(maps.begin(), maps.end(), pred);
 }

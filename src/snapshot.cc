@@ -38,6 +38,16 @@ bool Snapshot::similar(const Snapshot& other) const {
     return false;
   }
 
+  Entries entries = this->entries;
+  Entries other_entries = other.entries;
+  const auto sort_entries = [] (auto& entries) {
+    std::sort(entries.begin(), entries.end(), [] (const auto& lhs, const auto& rhs) {
+      return lhs.addr < rhs.addr;
+    });
+  };
+  sort_entries(entries);
+  sort_entries(other_entries);
+  
   for (size_t i = 0; i < entries.size(); ++i) {
     if (!entries[i].similar(other.entries[i])) {
       return false;
@@ -102,4 +112,11 @@ void Snapshot::Entry::fill(void *begin, void *end, char val) {
 void Snapshot::fill(void *begin, void *end, char val) {
   std::for_each(entries.begin(), entries.end(), std::bind(&Entry::fill, std::placeholders::_1,
 							  begin, end, val));
+}
+
+void Snapshot::add_zero(const Map& map) {
+  Entry entry;
+  entry.addr = map.begin;
+  entry.data.resize(map.size(), 0);
+  entries.push_back(entry);
 }

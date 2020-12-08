@@ -39,6 +39,8 @@ public:
   void zero();
 
   void fill(void *begin, void *end, char val) { snapshot_.fill(begin, end, val); }
+
+  void add_zero(const Map& map) { snapshot_.add_zero(map); }
   
 private:
   using reg_t = uint64_t;

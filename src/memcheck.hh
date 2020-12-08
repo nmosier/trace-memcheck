@@ -4,6 +4,7 @@ class Memcheck;
 class StackTracker;
 
 #include <string>
+#include <set>
 #include "inst.hh"
 #include "util.hh"
 #include "patch.hh"
@@ -60,11 +61,11 @@ public:
        &user_regs_struct::r8,
        &user_regs_struct::r9,
       };
-    return static_cast<Arg>(regs_.*map[N]);
+    return (Arg) (regs_.*map[N]);
   }
 
   template <typename RV>
-  RV rv() const { return static_cast<RV>(rv_); }
+  RV rv() const { return (RV) rv_; }
 
   void add_call(const user_regs_struct& regs) { regs_ = regs; }
   void add_call(Tracee& tracee) { add_call(tracee.get_regs()); }
@@ -110,7 +111,10 @@ private:
   SyscallTracker syscall_tracker;
   
   Maps maps_gen;
-  using MapList = std::list<Map>;
+  struct MapCmp {
+    bool operator()(const Map& lhs, const Map& rhs) { return lhs.begin < rhs.begin; }
+  };
+  using MapList = std::set<Map, MapCmp>;
   MapList maps;
 
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
@@ -131,6 +135,20 @@ private:
   bool maps_has_addr(const void *addr) const; // TODO: should be member of maps class.
   std::ostream& print_maps(std::ostream& os) const;
 
+  template <typename... Args>
+  void add_map(Args&&... args);
+
+  template <class Pred>
+  void remove_map(Pred pred);
+
+  void remove_map(MapList::iterator it) { maps.erase(it); }
+
+  template <class Pred>
+  MapList::iterator find_map(Pred pred);
+
+  template <class Pred>
+  MapList::const_iterator find_map(Pred pred) const;
+  
   void syscall_handler_pre(uint8_t *addr);
   void syscall_handler_post(uint8_t *addr);
 
@@ -138,7 +156,7 @@ private:
   State save_state();
 
   template <typename InputIt>
-  void get_taint_state(InputIt begin, InputIt end, State& taint_state);
+  void update_taint_state(InputIt begin, InputIt end, State& taint_state);
   void check_round();
 
   void init_taint(State& taint_state);

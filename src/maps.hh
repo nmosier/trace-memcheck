@@ -19,10 +19,13 @@ struct Map {
   Map(char *s) { init(s); }
   Map(const char *s) { init(s); }
   Map(const std::string& s) { init(s.c_str()); }
+  Map(void *begin, void *end, int prot): begin(begin), end(end), prot(prot) {}
 
   size_t size() const { return (char *) end - (char *) begin; }
   bool has_addr(const void *addr) const { return begin <= addr && addr < end; }
 
+  bool overlaps(const Map& other) const;
+  
 private:
   Map() {}
   void init(char *s);

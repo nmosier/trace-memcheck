@@ -60,3 +60,13 @@ std::ostream& operator<<(std::ostream& os, const Map& map) {
   }
   return os;
 }
+
+bool Map::overlaps(const Map& other) const {
+  if (begin <= other.begin && other.begin < end) {
+    return true;
+  } else if (other.begin <= begin && begin < other.end) {
+    return true;
+  } else {
+    return false;
+  }
+}

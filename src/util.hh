@@ -120,9 +120,20 @@ namespace util {
     };
   }
 
+  // TODO: delete
   template <typename Class, typename Ret, typename... Args>
   std::function<Ret (Args...)> method_callback(Class *obj, Ret (Class::*method)(Args...)) {
     return method_callback(*obj, method);
+  }
+
+  template <typename T, typename U>
+  constexpr T div_up(T numer, U denom) {
+    return (numer + denom - 1) / denom;
+  }
+
+  template <typename T, typename U>
+  constexpr T align_up(T val, U align) {
+    return div_up(val, align) * align;
   }
   
 }
