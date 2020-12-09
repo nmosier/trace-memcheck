@@ -89,10 +89,14 @@ bool SyscallChecker::pre_access(const SyscallArgs& args) {
 }
 
 bool SyscallChecker::pre_open(const SyscallArgs& args) {
+#if 0  
   Params<int, const char *, int, int> params(args);
   const auto filename = params.arg<0>();
   const auto flags = params.arg<1>(); (void) flags;
   const auto mode = params.arg<2>(); (void) mode;
+#else
+  
+#endif
 
   if (tainted(filename)) {
     std::clog << "memcheck: open: tainted filename\n";
