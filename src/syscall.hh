@@ -9,37 +9,67 @@
 #define sa4 int a4_, sa5
 #define sa5 int a5_
 
+#define SYS_READ READ, 0, int, unsigned fd, char *buf, size_t count, sa3
+#define SYS_WRITE           WRITE,             1, int,    unsigned fd,                  const char *buf,            size_t count,            sa3 
+#define SYS_OPEN            OPEN ,             2, int,    const char *filename,         int flags,                  int mode,                sa3 
+#define SYS_CLOSE           CLOSE,             3, int,    unsigned fd,                  sa1 
+#define SYS_STAT            STAT ,             4, int,    const char *filename,         struct stat *statbuf,       sa2 
+#define SYS_FSTAT           FSTAT,             5, int,    unsigned fd,                  struct stat *statbuf,       sa2 
+#define SYS_LSTAT           LSTAT,             6, int,    const char *filename,         struct stat *statbuf,       sa2 
+#define SYS_POLL            POLL,              7, int,    struct poll_fd *ufds,         unsigned nfds,              long timeout_msecs,      sa3 
+#define SYS_LSEEK           LSEEK,             8, off_t,  unsigned fd,                  off_t offset,               unsigned origin,         sa3 
+#define SYS_MMAP            MMAP,              9, void *, void *addr,                   size_t len,                 int prot,                int flags,                       int fd,                   off_t offset 
+#define SYS_MPROTECT        MPROTECT,         10, int,    void *addr,                   size_t len,                 int prot,                sa3 
+#define SYS_MUNMAP          MUNMAP,           11, int,    void *addr,                   size_t length,              sa2 
+#define SYS_BRK             BRK,              12, void *, void *addr,                   sa1 
+#define SYS_ACCESS          ACCESS,           21, int,    const char *pathname,         int mode,                   sa2 
+#define SYS_ARCH_PRCTL      ARCH_PRCTL,      158, long,   struct task_struct *task,     int option,                 unsigned long *addr,     sa3 
+#define SYS_FUTEX           FUTEX,           202, int,    uint32_t *uaddr,              int op,                     uint32_t val,            struct timespec *utime,          uint32_t *uaddr2,         uint32_t val3
+#define SYS_EXIT_GROUP      EXIT_GROUP,      231, int,    int status,                   sa1 
+#define SYS_GETDENTS        GETDENTS,         78, int,    unsigned fd,                  struct linux_dirent *dirent,unsigned count, sa3 
+#define SYS_GETEUID         GETEUID,         107, uid_t,  sa0			      	
+#define SYS_MREMAP          MREMAP,           25, void *, void *addr,                   size_t old_size,            size_t new_size,         unsigned long flags,             unsigned long new_address,sa5 
+#define SYS_SOCKET          SOCKET,           41, int,    int domain,                   int type,                   int protocol, sa3	
+#define SYS_CONNECT         CONNECT,          42, int,    int sockfd,                   const struct sockaddr *addr,int addrlen, sa3 
+#define SYS_SENDTO          SENDTO,           44, ssize_t,int sockfd,                   const void *buf, size_t len,unsigned flags,          const struct sockaddr *dest_addr,int addrlen 
+#define SYS_SET_TID_ADDRESS SET_TID_ADDRESS, 218, long,   int *tidptr, sa1		
+#define SYS_SET_ROBUST_LIST SET_ROBUST_LIST, 273, long,   struct robust_list_head *head,size_t len,                 sa2 
+#define SYS_RT_SIGACTION    RT_SIGACTION,     13, int,    int signum,                   const struct sigaction *act,struct sigaction *oldact,size_t sigsetsize,               sa4 
+#define SYS_RT_SIGPROCMASK  RT_SIGPROCMASK,   14, int,    int how,                      const sigset_t *set,        sigset_t *oldset,        size_t sigsetsize,               sa4 
+#define SYS_GETRLIMIT       GETRLIMIT,        97, int,    unsigned resource,            struct rlimit *rlim,        sa2 
+#define SYS_STATFS          STATFS,          137, int,    const char *pathname,         struct statfs *buf,         sa2
+
 #define sysx(m, ...) m(__VA_ARGS__)
-#define SYSCALLS(e)							\
-  sysx(e, READ,              0, int,     unsigned fd,                   char *buf,                   size_t count,             sa3) \
-  sysx(e, WRITE,             1, int,     unsigned fd,                   const char *buf,             size_t count,             sa3) \
-  sysx(e, OPEN,              2, int,     const char *filename,          int flags,                   int mode,                 sa3) \
-  sysx(e, CLOSE,             3, int,     unsigned fd,                   sa1) \
-  sysx(e, STAT,              4, int,     const char *filename,          struct stat *statbuf,        sa2) \
-  sysx(e, FSTAT,             5, int,     unsigned fd,                   struct stat *statbuf,        sa2) \
-  sysx(e, LSTAT,             6, int,     const char *filename,          struct stat *statbuf,        sa2) \
-  sysx(e, POLL,              7, int,     struct poll_fd *ufds,          unsigned nfds,               long timeout_msecs,       sa3) \
-  sysx(e, LSEEK,             8, off_t,   unsigned fd,                   off_t offset,                unsigned origin,          sa3) \
-  sysx(e, MMAP,              9, void *,  void *addr,                    size_t len,                  int prot,                 int flags,                        int fd,                    off_t offset) \
-  sysx(e, MPROTECT,         10, int,     void *addr,                    size_t len,                  int prot,                 sa3) \
-  sysx(e, MUNMAP,           11, int,     void *addr,                    size_t length,               sa2) \
-  sysx(e, BRK,              12, void *,  void *addr,                    sa1) \
-  sysx(e, ACCESS,           21, int,     const char *pathname,          int mode,                    sa2) \
-  sysx(e, ARCH_PRCTL,      158, long,    struct task_struct *task,      int option,                  unsigned long *addr,      sa3) \
-  sysx(e, FUTEX,           202, int,     uint32_t *uaddr,               int op,                      uint32_t val,             struct timespec *utime,           uint32_t *uaddr2,          uint32_t val3) \
-  sysx(e, EXIT_GROUP,      231, int,     int status,                    sa1) \
-  sysx(e, GETDENTS,         78, int,     unsigned fd,                   struct linux_dirent *dirent, unsigned count, sa3) \
-  sysx(e, GETEUID,         107, uid_t,   sa0)				\
-  sysx(e, MREMAP,           25, void *,  void *addr,                    size_t old_size,             size_t new_size,          unsigned long flags,              unsigned long new_address, sa5) \
-  sysx(e, SOCKET,           41, int,     int domain,                    int type,                    int protocol, sa3)	\
-  sysx(e, CONNECT,          42, int,     int sockfd,                    const struct sockaddr *addr, int addrlen, sa3) \
-  sysx(e, SENDTO,           44, ssize_t, int sockfd,                    const void *buf, size_t len, unsigned flags,           const struct sockaddr *dest_addr, int addrlen) \
-  sysx(e, SET_TID_ADDRESS, 218, long,    int *tidptr, sa1)		\
-  sysx(e, SET_ROBUST_LIST, 273, long,    struct robust_list_head *head, size_t len,                  sa2) \
-  sysx(e, RT_SIGACTION,     13, int,     int signum,                    const struct sigaction *act, struct sigaction *oldact, size_t sigsetsize,                sa4) \
-  sysx(e, RT_SIGPROCMASK,   14, int,     int how,                       const sigset_t *set,         sigset_t *oldset,         size_t sigsetsize,                sa4) \
-  sysx(e, GETRLIMIT,        97, int,     unsigned resource,             struct rlimit *rlim,         sa2) \
-  sysx(e, STATFS,          137, int,     const char *pathname,          struct statfs *buf,          sa2)
+#define SYSCALLS(e)				\
+  sysx(e, SYS_READ)				\
+  sysx(e, SYS_WRITE)				\
+  sysx(e, SYS_OPEN)				\
+  sysx(e, SYS_CLOSE)				\
+  sysx(e, SYS_STAT)				\
+  sysx(e, SYS_FSTAT)				\
+  sysx(e, SYS_LSTAT)				\
+  sysx(e, SYS_POLL)				\
+  sysx(e, SYS_LSEEK)				\
+  sysx(e, SYS_MMAP)				\
+  sysx(e, SYS_MPROTECT)				\
+  sysx(e, SYS_MUNMAP)				\
+  sysx(e, SYS_BRK)				\
+  sysx(e, SYS_ACCESS)				\
+  sysx(e, SYS_ARCH_PRCTL)			\
+  sysx(e, SYS_FUTEX)				\
+  sysx(e, SYS_EXIT_GROUP)			\
+  sysx(e, SYS_GETDENTS)				\
+  sysx(e, SYS_GETEUID)				\
+  sysx(e, SYS_MREMAP)				\
+  sysx(e, SYS_SOCKET)				\
+  sysx(e, SYS_CONNECT)				\
+  sysx(e, SYS_SENDTO)				\
+  sysx(e, SYS_SET_TID_ADDRESS)			\
+  sysx(e, SYS_SET_ROBUST_LIST)			\
+  sysx(e, SYS_RT_SIGACTION)			\
+  sysx(e, SYS_RT_SIGPROCMASK)			\
+  sysx(e, SYS_GETRLIMIT)			\
+  sysx(e, SYS_STATFS)
 
 #ifndef STR
 # define STR(x) #x
