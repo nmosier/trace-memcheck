@@ -17,7 +17,7 @@
 
 void Tracee::open(pid_t pid, const char *command) {
   pid_ = pid;
-  command = command;
+  this->command = command;
   
   char *path;
   if (asprintf(&path, "/proc/%d/mem", pid_) < 0) {

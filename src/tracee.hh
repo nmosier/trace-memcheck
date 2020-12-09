@@ -79,6 +79,8 @@ public:
 
   std::ostream& cat_maps(std::ostream& os) const;
 
+  const char *filename() const { return command; }
+  
 private:
   pid_t pid_;
   int fd_;

@@ -2,6 +2,9 @@
 #include <unordered_set>
 #include <map>
 #include <sys/wait.h>
+#include <fstream>
+#include <elf.h>
+#include <cstring>
 #include "patch.hh"
 #include "config.hh"
 
@@ -81,15 +84,55 @@ Block *Patcher::lookup_block_patch(uint8_t *addr, bool can_fail) {
   return it->second;
 }
 
-void Patcher::start(uint8_t *root) {
+#define USE_BKPT 1
+
+#if USE_BKPT
+void Patcher::start() {
+  /* get entry point */
+  std::ifstream ifs;
+  ifs.open(tracee.filename());
+  assert(ifs);
+  
+
+  Elf64_Ehdr ehdr;
+  if (!ifs.read(reinterpret_cast<char *>(&ehdr), sizeof(ehdr))) {
+    abort();
+  }
+
+  // assert(strcmp(reinterpret_cast<const char *>(ehdr.e_ident), ELFMAG) == 0);
+  assert(ehdr.e_type == ET_EXEC);
+
+  const auto entry = ehdr.e_entry;
+
+  // TODO: if under ASLR, need to translate into runtime address.
+
+  entry_addr = reinterpret_cast<uint8_t *>(entry);
+  tracee.read(&old_entry_byte, 1, entry_addr);
+  static const uint8_t bkpt = 0xcc;
+  tracee.write(&bkpt, 1, entry_addr);
+
+  const auto status = tracee.cont();
+  assert(WIFSTOPPED(status));
+  assert(WSTOPSIG(status) == SIGTRAP);
+  assert(tracee.get_pc() == entry_addr + 1);
+  tracee.write(&old_entry_byte, 1, entry_addr);
+  tracee.set_pc(entry_addr);
+  start_block();
+  
+}
+#else
+void Patcher::start() { start_block(); }
+#endif
+
+void Patcher::start_block(uint8_t *root) {
   const bool patched = patch(root);
   assert(patched); (void) patched;
   Block& block = *lookup_block_patch(root, false); // cannot fail
   block.jump_to();
 }
 
-void Patcher::start(void) {
-  start(tracee.get_pc());
+void Patcher::start_block(void) {
+  start_block(tracee.get_pc());
 }
 
 bool Patcher::is_pool_addr(uint8_t *addr) const {
@@ -101,13 +144,12 @@ void Patcher::signal(int signum, const sighandler_t& handler) {
 }
 
 void Patcher::run(void) {
-  //  start();
+  int status;
 
   if (g_conf.profile) {
     ProfilerStart("memcheck.prof");
   }
 
-  int status;
   while (true) {    
     uint8_t *bkpt_pc;
 

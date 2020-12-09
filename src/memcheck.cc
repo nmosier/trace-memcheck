@@ -31,6 +31,9 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   save_state(pre_state);
   init_taint(taint_state);
 
+  /* get brk */
+  brk = reinterpret_cast<void *>(tracee.syscall(Syscall::BRK, 0));
+
   return true;
 }
 

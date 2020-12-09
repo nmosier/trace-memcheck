@@ -49,6 +49,11 @@ private:
   bool check_write(void *begin, void *end) const;
   bool check_write(void *begin, size_t size) const;
 
+  template <class S>
+  void read_struct(const void *addr, S& s) {
+    tracee.read(&s, sizeof(S), addr);
+  }
+
   using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);
 
 #define SYSCALLS_CHECK_PRE_DECL(name, ...) bool pre_##name();

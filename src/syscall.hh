@@ -15,8 +15,8 @@
 #define SYS_CLOSE CLOSE, 3, int, unsigned, fd, sa1 
 #define SYS_STAT STAT , 4, int, const char *, pathname, struct stat *, buf, sa2 
 #define SYS_FSTAT FSTAT, 5, int, unsigned, fd, struct stat *, buf, sa2 
-#define SYS_LSTAT LSTAT, 6, int, const char *, filename, struct stat *, buf, sa2 
-#define SYS_POLL POLL, 7, int, struct poll_fd *,ufds, unsigned, nfds, long, timeout_msecs, sa3 
+#define SYS_LSTAT LSTAT, 6, int, const char *, pathname, struct stat *, buf, sa2 
+#define SYS_POLL POLL, 7, int, struct pollfd *, fds, unsigned, nfds, long, timeout_msecs, sa3 
 #define SYS_LSEEK LSEEK, 8, off_t, unsigned,fd, off_t, offset, unsigned, origin, sa3 
 #define SYS_MMAP MMAP, 9, void *, void *,addr, size_t, len, int, prot, int, flags, int, fd, off_t, offset 
 #define SYS_MPROTECT MPROTECT, 10, int, void *,addr, size_t, len, int, prot, sa3 
@@ -26,7 +26,7 @@
 #define SYS_ARCH_PRCTL ARCH_PRCTL, 158, long, struct task_struct *,task, int, option, unsigned long *, addr, sa3 
 #define SYS_FUTEX FUTEX, 202, int, uint32_t *,uaddr, int, op, uint32_t, val, struct timespec *, utime, uint32_t *, uaddr2, uint32_t, val3
 #define SYS_EXIT_GROUP EXIT_GROUP, 231, int, int, status, sa1 
-#define SYS_GETDENTS GETDENTS, 78, int, unsigned, fd, struct linux_dirent *, dirent, unsigned, count, sa3 
+#define SYS_GETDENTS GETDENTS, 78, int, unsigned, fd, struct linux_dirent *, dirp, unsigned, count, sa3 
 #define SYS_GETEUID GETEUID, 107, uid_t, sa0 
 #define SYS_MREMAP MREMAP, 25, void *, void *,addr, size_t, old_size, size_t, new_size, unsigned long, flags, unsigned long, new_address, sa5 
 #define SYS_SOCKET SOCKET, 41, int, int, domain, int, type, int, protocol, sa3 
@@ -45,6 +45,15 @@
 #define SYS_FCNTL FCNTL, 72, int, unsigned, fd, unsigned, cmd, unsigned long, arg, sa3
 #define SYS_GETEGID GETEGID, 108, gid_t, sa0
 #define SYS_FACCESSAT FACCESSAT, 269, int, int, dirfd, const char *, pathname, int, mode, sa3
+#define SYS_IOCTL IOCTL, 16, int, unsigned, fd, unsigned request, unsigned long, arg, sa3
+#define SYS_LGETXATTR LGETXATTR, 192, int, const char *, pathname, const char *, name, void *, value, size_t, size, sa4
+#define SYS_GETXATTR GETXATTR, 191, int, const char *, pathname, const char *, name, void *, value, size_t, size, sa4
+#define SYS_RECVMSG RECVMSG, 47, ssize_t, int, sockfd, struct msghdr *, msg, unsigned, flags, sa3
+#define SYS_GETRUSAGE GETRUSAGE, 98, int, int, who, struct rusage *, usage, sa2
+#define SYS_UNAME UNAME, 63, int, struct utsname *, buf, sa1
+#define SYS_SETSOCKOPT SETSOCKOPT, 54, int, int, sockfd, int, level, int, optname, char *, optval, int, optlen, sa5
+#define SYS_GETPEERNAME GETPEERNAME, 52, int, int, sockfd, struct sockaddr *, addr, int *, addrlen, sa3
+#define SYS_GETSOCKNAME GETSOCKNAME, 51, int, int, sockfd, struct sockaddr *, addr, int *, addrlen, sa3
 
 #define sysx(m, ...) m(__VA_ARGS__)
 #define SYSCALLS(e)				\
@@ -84,6 +93,15 @@
   sysx(e, SYS_FCNTL)				\
   sysx(e, SYS_GETEGID)				\
   sysx(e, SYS_FACCESSAT)			\
+  sysx(e, SYS_IOCTL)				\
+  sysx(e, SYS_LGETXATTR)			\
+  sysx(e, SYS_GETXATTR)				\
+  sysx(e, SYS_RECVMSG)				\
+  sysx(e, SYS_GETRUSAGE)			\
+  sysx(e, SYS_UNAME)				\
+  sysx(e, SYS_SETSOCKOPT)			\
+  sysx(e, SYS_GETPEERNAME)			\
+  sysx(e, SYS_GETSOCKNAME)			\
 
 #define SYSCALL(m, s) sysx(m, s)
 
