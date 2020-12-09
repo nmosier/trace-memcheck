@@ -47,7 +47,6 @@ private:
 
   using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);
 
-  bool pre_read(const SyscallArgs& args);
   bool pre_write(const SyscallArgs& args);
   bool pre_brk(const SyscallArgs& args);
   bool pre_access(const SyscallArgs& args);

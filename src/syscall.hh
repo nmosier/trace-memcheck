@@ -71,6 +71,8 @@
   sysx(e, SYS_GETRLIMIT)			\
   sysx(e, SYS_STATFS)
 
+#define SYSCALL(m, s) sysx(m, s)
+
 #ifndef STR
 # define STR(x) #x
 #endif

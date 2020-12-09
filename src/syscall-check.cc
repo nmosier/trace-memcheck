@@ -14,7 +14,7 @@ bool SyscallChecker::tainted(const char *s) {
 
 bool SyscallChecker::pre(const SyscallArgs& args) {
   switch (args.no()) {
-  case Syscall::READ: return pre_read(args);
+  case Syscall::READ: return pre_READ(args);
   case Syscall::WRITE: return pre_write(args);
   case Syscall::BRK: return pre_brk(args);
   case Syscall::ACCESS: return pre_access(args);
@@ -32,10 +32,38 @@ bool SyscallChecker::pre(const SyscallArgs& args) {
   }
 }
 
-#define SYSCALLS_CHECK_PRE_DEF(name, val, rv, a0, a1, a2, a3, a4, a5)	\
-  bool SyscallChecker::pre_##name(const SyscallArgs& args) {		\
-  __attribute__((unused)) a0 = decltype(a0) 
+#define PRE_DEF_LINE(i, t, n)				\
+  t n = args.arg<i, t>(); (void) n;
+#define PRE_DEF2(name, val, rv, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5) \
+  PRE_DEF_LINE(0, t0, n0)				\
+  PRE_DEF_LINE(1, t1, n1)				\
+  PRE_DEF_LINE(2, t2, n2)				\
+  PRE_DEF_LINE(3, t3, n3)				\
+  PRE_DEF_LINE(4, t4, n4)				\
+  PRE_DEF_LINE(5, t5, n5)
 
+#define PRE_DEF(sys) SYSCALL(PRE_DEF2, SYS_##sys)
+
+bool SyscallChecker::pre_READ(const SyscallArgs& args) {
+  PRE_DEF(READ);
+
+  if (stack_range.overlaps(AddrRange(buf, count))) {
+    std::clog << "memcheck: read to below stack\n";
+    return false;
+  }
+
+  taint_state.fill(buf, buf + count, 0);
+  
+  return true;
+}
+
+#if 0
+bool SyscallChecker::pre_WRITE(const SyscallArgs& args) {
+  PRE_DEF(WRITE);
+}
+#endif
+
+#if 0
 bool SyscallChecker::pre_read(const SyscallArgs& args) {
   Params<int, unsigned int, char *, size_t> params(args);
   const auto fd = params.arg<0>(); (void) fd;
@@ -55,6 +83,7 @@ bool SyscallChecker::pre_read(const SyscallArgs& args) {
   
   return true;
 }
+#endif
 
 bool SyscallChecker::pre_write(const SyscallArgs& args) {
   Params<int, unsigned int, const char *, size_t> params(args);
@@ -93,7 +122,7 @@ bool SyscallChecker::pre_access(const SyscallArgs& args) {
 }
 
 bool SyscallChecker::pre_open(const SyscallArgs& args) {
-#if 0  
+#if 1
   Params<int, const char *, int, int> params(args);
   const auto filename = params.arg<0>();
   const auto flags = params.arg<1>(); (void) flags;
