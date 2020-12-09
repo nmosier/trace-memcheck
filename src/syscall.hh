@@ -54,6 +54,8 @@
 #define SYS_SETSOCKOPT SETSOCKOPT, 54, int, int, sockfd, int, level, int, optname, char *, optval, int, optlen, sa5
 #define SYS_GETPEERNAME GETPEERNAME, 52, int, int, sockfd, struct sockaddr *, addr, int *, addrlen, sa3
 #define SYS_GETSOCKNAME GETSOCKNAME, 51, int, int, sockfd, struct sockaddr *, addr, int *, addrlen, sa3
+#define SYS_GETTID GETTID, 186, pid_t, sa0
+#define SYS_TGKILL TGKILL, 234, int, pid_t, tgid, pid_t, pid, int, sig, pa3
 
 #define sysx(m, ...) m(__VA_ARGS__)
 #define SYSCALLS(e)				\
@@ -102,6 +104,8 @@
   sysx(e, SYS_SETSOCKOPT)			\
   sysx(e, SYS_GETPEERNAME)			\
   sysx(e, SYS_GETSOCKNAME)			\
+  sysx(e, SYS_GETTID)				\
+  sysx(e, SYS_TGKILL)				\
 
 #define SYSCALL(m, s) sysx(m, s)
 

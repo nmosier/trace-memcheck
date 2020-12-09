@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <sys/user.h>
+#include <cctype>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include "tracee.hh"
@@ -280,8 +281,7 @@ std::ostream& Tracee::cat_maps(std::ostream& os) const {
   return os;
 }
 
-size_t Tracee::strlen(const char *begin) {
-  std::vector<char> buf;
+size_t Tracee::string(const char *begin, std::vector<char>& buf) {
   const char *end = pagealign_up(begin);
   while (true) {
     // TODO: Could optimize for multi-page strings, since it looks for '\0' in first page many times
@@ -293,5 +293,14 @@ size_t Tracee::strlen(const char *begin) {
     }
     end = pageidx(end, 1); // add a page
   }
+}
 
+size_t Tracee::strlen(const char *addr) {
+  std::vector<char> buf;
+  return string(addr, buf);
+}
+
+std::string Tracee::string(const char *addr) {
+  std::vector<char> buf;
+  return std::string(buf.begin(), buf.begin() + string(addr, buf));
 }

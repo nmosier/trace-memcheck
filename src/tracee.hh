@@ -46,6 +46,7 @@ public:
   void write(const Blob& inst) const;
 
   size_t strlen(const char *addr);
+  std::string string(const char *addr);
 
   void dump(std::ostream& os, const void *ptr, size_t count);
 
@@ -89,4 +90,6 @@ private:
   user_regs_struct regs_;
 
   void cache_regs(void);
+
+  size_t string(const char *addr, std::vector<char>& buf);
 };

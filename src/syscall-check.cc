@@ -16,7 +16,7 @@ bool SyscallChecker::check_read(const void *begin, const void *end) const {
 }
 
 bool SyscallChecker::check_read(const char *s) {
-  return check_read(s, tracee.strlen(s));
+  return check_read(s, tracee.strlen(s) + 1);
 }
 
 bool SyscallChecker::check_write(void *begin, void *end) const {
@@ -144,7 +144,10 @@ bool SyscallChecker::pre_STAT() {
 
 bool SyscallChecker::pre_LSTAT() {
   PRE_DEF(LSTAT);
-  if (!check_read(pathname)) { return false; }
+  if (!check_read(pathname)) {
+    std::clog << "LSTAT pathname=" << tracee.string(pathname) << "\n";
+    return false;
+  }
   if (!check_write(buf, sizeof(*buf))) { return false; }
   return true;
 }
@@ -252,6 +255,15 @@ bool SyscallChecker::pre_GETSOCKNAME() {
   return true;
 }
 
+bool SyscallChecker::pre_RT_SIGPROCMASK() {
+  PRE_DEF(RT_SIGPROCMASK);
+  if (!check_read(set, sizeof(*set))) { return false; }
+  if (oldset != nullptr) {
+    if (!check_write(oldset, sizeof(*oldset))) { return false; }
+  }
+  return true;
+}
+
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
@@ -265,6 +277,8 @@ PRE_TRUE(GETPPID)
 PRE_TRUE(GETEGID)
 PRE_TRUE(SOCKET)
 PRE_TRUE(LSEEK)
+PRE_TRUE(GETTID)
+PRE_TRUE(TGKILL)
 
 PRE_STUB(ARCH_PRCTL)
 PRE_STUB(FUTEX)
@@ -273,6 +287,5 @@ PRE_STUB(FCNTL)
 PRE_STUB(IOCTL)
   
 PRE_ABORT(MREMAP)
-PRE_ABORT(RT_SIGPROCMASK)
 PRE_ABORT(GETRLIMIT)
 PRE_ABORT(STATFS)

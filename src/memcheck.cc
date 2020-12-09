@@ -209,20 +209,6 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   }
   
   subround_counter = !subround_counter;
-
-  /* check syscall */
-  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args);
-  if (!syscall_checker.pre()) {
-    /* DEBUG: Translate */
-    const auto orig_addr = patcher->orig_block_addr(tracee.get_pc());
-    std::clog << "orig addr: " << (void *) orig_addr << "\n";
-    if (g_conf.gdb) {
-      tracee.set_pc(tracee.get_pc() + 10);
-      tracee.gdb();
-    } else if (false) {
-      abort();
-    }
-  }
 }
 
 template <typename InputIt>
@@ -243,7 +229,18 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
 
 void Memcheck::check_round() {
   /* make sure args to syscall aren't tainted */
-  // TODO
+  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args);
+  if (!syscall_checker.pre()) {
+    /* DEBUG: Translate */
+    const auto orig_addr = patcher->orig_block_addr(tracee.get_pc());
+    std::clog << "orig addr: " << (void *) orig_addr << "\n";
+    if (g_conf.gdb) {
+      tracee.set_pc(tracee.get_pc() + 10);
+      tracee.gdb();
+    } else if (false) {
+      abort();
+    }
+  }
   
   /* get taint mask */
   update_taint_state(post_states.begin(), post_states.end(), taint_state);
