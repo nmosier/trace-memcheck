@@ -46,8 +46,8 @@ private:
   }
   bool check_read(const char *s);
 
-  bool check_write(const void *begin, const void *end) const;
-  bool check_write(const void *begin, size_t size) const;
+  bool check_write(void *begin, void *end) const;
+  bool check_write(void *begin, size_t size) const;
 
   using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);
 

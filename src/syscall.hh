@@ -13,9 +13,9 @@
 #define SYS_WRITE WRITE, 1, int, unsigned, fd, const char *, buf, size_t, count, sa3 
 #define SYS_OPEN OPEN , 2, int, const char *, filename, int, flags, int, mode, sa3 
 #define SYS_CLOSE CLOSE, 3, int, unsigned, fd, sa1 
-#define SYS_STAT STAT , 4, int, const char *, filename, struct stat *, statbuf, sa2 
+#define SYS_STAT STAT , 4, int, const char *, pathname, struct stat *, buf, sa2 
 #define SYS_FSTAT FSTAT, 5, int, unsigned, fd, struct stat *, buf, sa2 
-#define SYS_LSTAT LSTAT, 6, int, const char *, filename, struct stat *, statbuf, sa2 
+#define SYS_LSTAT LSTAT, 6, int, const char *, filename, struct stat *, buf, sa2 
 #define SYS_POLL POLL, 7, int, struct poll_fd *,ufds, unsigned, nfds, long, timeout_msecs, sa3 
 #define SYS_LSEEK LSEEK, 8, off_t, unsigned,fd, off_t, offset, unsigned, origin, sa3 
 #define SYS_MMAP MMAP, 9, void *, void *,addr, size_t, len, int, prot, int, flags, int, fd, off_t, offset 
@@ -38,6 +38,13 @@
 #define SYS_RT_SIGPROCMASK RT_SIGPROCMASK, 14, int, int,how, const sigset_t *, set, sigset_t *, oldset, size_t, sigsetsize, sa4 
 #define SYS_GETRLIMIT GETRLIMIT, 97, int, unsigned, resource, struct rlimit *, rlim, sa2 
 #define SYS_STATFS STATFS, 137, int, const char *, pathname, struct statfs *, buf, sa2
+#define SYS_GETUID GETUID, 102, uid_t, sa0
+#define SYS_GETGID GETGID, 104, gid_t, sa0
+#define SYS_GETPID GETPID, 39, pid_t, sa0
+#define SYS_GETPPID GETPPID, 110, pid_t, sa0
+#define SYS_FCNTL FCNTL, 72, int, unsigned, fd, unsigned, cmd, unsigned long, arg, sa3
+#define SYS_GETEGID GETEGID, 108, gid_t, sa0
+#define SYS_FACCESSAT FACCESSAT, 269, int, int, dirfd, const char *, pathname, int, mode, sa3
 
 #define sysx(m, ...) m(__VA_ARGS__)
 #define SYSCALLS(e)				\
@@ -69,7 +76,14 @@
   sysx(e, SYS_RT_SIGACTION)			\
   sysx(e, SYS_RT_SIGPROCMASK)			\
   sysx(e, SYS_GETRLIMIT)			\
-  sysx(e, SYS_STATFS)
+  sysx(e, SYS_STATFS)				\
+  sysx(e, SYS_GETUID)				\
+  sysx(e, SYS_GETGID)				\
+  sysx(e, SYS_GETPID)				\
+  sysx(e, SYS_GETPPID)				\
+  sysx(e, SYS_FCNTL)				\
+  sysx(e, SYS_GETEGID)				\
+  sysx(e, SYS_FACCESSAT)			\
 
 #define SYSCALL(m, s) sysx(m, s)
 
@@ -107,6 +121,7 @@ namespace std {
 }
 
 // test
+#if 0
 #define SYSCALLS_DECLARE(name, val, rv, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5)	\
   case Syscall::name:						\
   {								\
@@ -124,4 +139,4 @@ inline void syscalls_declare(Syscall syscall) {
     SYSCALLS(SYSCALLS_DECLARE);
   }
 }
-
+#endif

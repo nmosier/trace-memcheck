@@ -216,7 +216,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
     if (g_conf.gdb) {
       tracee.set_pc(tracee.get_pc() + 10);
       tracee.gdb();
-    } else {
+    } else if (false) {
       abort();
     }
   }

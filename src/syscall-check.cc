@@ -15,17 +15,21 @@ bool SyscallChecker::check_read(const char *s) {
   return check_read(s, tracee.strlen(s));
 }
 
-bool SyscallChecker::check_write(const void *begin, const void *end) const {
+bool SyscallChecker::check_write(void *begin, void *end) const {
   if (stack_range.overlaps(AddrRange(begin, end))) {
     std::clog << "memcheck: warning: " << to_string(args.no()) << ": write below stack pointer\n";
     std::clog << stack_range << " " << AddrRange(begin, end) << "\n";
     return true;
   }
+
+  /* mark as untainted */
+  taint_state.fill(begin, end, -1);
+  
   return true;
 }
 
-bool SyscallChecker::check_write(const void *begin, size_t size) const {
-  return check_write(begin, static_cast<const char *>(begin) + size);
+bool SyscallChecker::check_write(void *begin, size_t size) const {
+  return check_write(begin, static_cast<char *>(begin) + size);
 }
 
 bool SyscallChecker::pre() {
@@ -50,10 +54,15 @@ bool SyscallChecker::pre() {
 #define PRE_DEF(sys) SYSCALL(PRE_DEF2, SYS_##sys)
 #define PRE_TRUE(sys) bool SyscallChecker::pre_##sys() { return true; }
 #define PRE_ABORT(sys) bool SyscallChecker::pre_##sys() { abort(); }
+#define PRE_STUB(sys)				\
+  bool SyscallChecker::pre_##sys() {		\
+    std::clog << "memcheck: warning: " << args.no() << ": stub\n";	\
+    return true;							\
+  }
 
 bool SyscallChecker::pre_READ() {
   PRE_DEF(READ);
-  if (!check_read(buf, count)) {
+  if (!check_write(buf, count)) {
     return false;
   }
   return true;
@@ -61,7 +70,7 @@ bool SyscallChecker::pre_READ() {
 
 bool SyscallChecker::pre_WRITE() {
   PRE_DEF(WRITE);
-  if (!check_write(buf, count)) {
+  if (!check_read(buf, count)) {
     return false;
   }
   return true;
@@ -92,21 +101,48 @@ bool SyscallChecker::pre_FSTAT() {
   PRE_DEF(FSTAT);
 
   if (!check_write(buf, sizeof(*buf))) {
-    assert(stack_range.end == tracee.get_sp());
     return false;
   }
   return true;
 }
 
-bool SyscallChecker::pre_ARCH_PRCTL() {
-  PRE_DEF(ARCH_PRCTL);
-  // TODO: Need to figure out how this works
+bool SyscallChecker::pre_SET_TID_ADDRESS() {
+  PRE_DEF(SET_TID_ADDRESS);
+  if (!check_write(tidptr, sizeof(*tidptr))) {
+    return false;
+  }
   return true;
 }
 
-bool SyscallChecker::pre_FUTEX() {
-  PRE_DEF(FUTEX);
-  // TODO: Conditinoally check utime buf.
+bool SyscallChecker::pre_RT_SIGACTION() {
+  PRE_DEF(RT_SIGACTION);
+  if (!check_read(act, sizeof(*act))) {
+    return false;
+  }
+  if (oldact != nullptr) {
+    if (!check_write(oldact, sizeof(*oldact))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool SyscallChecker::pre_STAT() {
+  PRE_DEF(STAT);
+  if (!check_read(pathname)) {
+    return false;
+  }
+  if (!check_write(buf, sizeof(*buf))) {
+    return false;
+  }
+  return true;
+}
+
+bool SyscallChecker::pre_FACCESSAT() {
+  PRE_DEF(FACCESSAT);
+  if (!check_read(pathname)) {
+    return false;
+  }
   return true;
 }
 
@@ -115,20 +151,26 @@ PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
 PRE_TRUE(MUNMAP)
 PRE_TRUE(EXIT_GROUP)
+PRE_TRUE(GETUID)
+PRE_TRUE(GETGID)
+PRE_TRUE(GETPID)
+PRE_TRUE(GETEUID)
+PRE_TRUE(GETPPID)
+PRE_TRUE(GETEGID)
 
-PRE_ABORT(STAT)
+PRE_STUB(ARCH_PRCTL)
+PRE_STUB(FUTEX)
+PRE_STUB(SET_ROBUST_LIST)
+PRE_STUB(FCNTL)
+  
 PRE_ABORT(LSTAT)
 PRE_ABORT(POLL)
 PRE_ABORT(LSEEK)
 PRE_ABORT(GETDENTS)
-PRE_ABORT(GETEUID)
 PRE_ABORT(MREMAP)
 PRE_ABORT(SOCKET)
 PRE_ABORT(CONNECT)
 PRE_ABORT(SENDTO)
-PRE_ABORT(SET_TID_ADDRESS)
-PRE_ABORT(SET_ROBUST_LIST)
-PRE_ABORT(RT_SIGACTION)
 PRE_ABORT(RT_SIGPROCMASK)
 PRE_ABORT(GETRLIMIT)
 PRE_ABORT(STATFS)
