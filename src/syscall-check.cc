@@ -32,6 +32,10 @@ bool SyscallChecker::pre(const SyscallArgs& args) {
   }
 }
 
+#define SYSCALLS_CHECK_PRE_DEF(name, val, rv, a0, a1, a2, a3, a4, a5)	\
+  bool SyscallChecker::pre_##name(const SyscallArgs& args) {		\
+  __attribute__((unused)) a0 = decltype(a0) 
+
 bool SyscallChecker::pre_read(const SyscallArgs& args) {
   Params<int, unsigned int, char *, size_t> params(args);
   const auto fd = params.arg<0>(); (void) fd;

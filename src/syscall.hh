@@ -2,42 +2,42 @@
 
 #include <iostream>
 
-#define sa0 int a0_, sa1
-#define sa1 int a1_, sa2
-#define sa2 int a2_, sa3
-#define sa3 int a3_, sa4
-#define sa4 int a4_, sa5
-#define sa5 int a5_
+#define sa0 int, a0_, sa1
+#define sa1 int, a1_, sa2
+#define sa2 int, a2_, sa3
+#define sa3 int, a3_, sa4
+#define sa4 int, a4_, sa5
+#define sa5 int, a5_
 
-#define SYS_READ READ, 0, int, unsigned fd, char *buf, size_t count, sa3
-#define SYS_WRITE           WRITE,             1, int,    unsigned fd,                  const char *buf,            size_t count,            sa3 
-#define SYS_OPEN            OPEN ,             2, int,    const char *filename,         int flags,                  int mode,                sa3 
-#define SYS_CLOSE           CLOSE,             3, int,    unsigned fd,                  sa1 
-#define SYS_STAT            STAT ,             4, int,    const char *filename,         struct stat *statbuf,       sa2 
-#define SYS_FSTAT           FSTAT,             5, int,    unsigned fd,                  struct stat *statbuf,       sa2 
-#define SYS_LSTAT           LSTAT,             6, int,    const char *filename,         struct stat *statbuf,       sa2 
-#define SYS_POLL            POLL,              7, int,    struct poll_fd *ufds,         unsigned nfds,              long timeout_msecs,      sa3 
-#define SYS_LSEEK           LSEEK,             8, off_t,  unsigned fd,                  off_t offset,               unsigned origin,         sa3 
-#define SYS_MMAP            MMAP,              9, void *, void *addr,                   size_t len,                 int prot,                int flags,                       int fd,                   off_t offset 
-#define SYS_MPROTECT        MPROTECT,         10, int,    void *addr,                   size_t len,                 int prot,                sa3 
-#define SYS_MUNMAP          MUNMAP,           11, int,    void *addr,                   size_t length,              sa2 
-#define SYS_BRK             BRK,              12, void *, void *addr,                   sa1 
-#define SYS_ACCESS          ACCESS,           21, int,    const char *pathname,         int mode,                   sa2 
-#define SYS_ARCH_PRCTL      ARCH_PRCTL,      158, long,   struct task_struct *task,     int option,                 unsigned long *addr,     sa3 
-#define SYS_FUTEX           FUTEX,           202, int,    uint32_t *uaddr,              int op,                     uint32_t val,            struct timespec *utime,          uint32_t *uaddr2,         uint32_t val3
-#define SYS_EXIT_GROUP      EXIT_GROUP,      231, int,    int status,                   sa1 
-#define SYS_GETDENTS        GETDENTS,         78, int,    unsigned fd,                  struct linux_dirent *dirent,unsigned count, sa3 
-#define SYS_GETEUID         GETEUID,         107, uid_t,  sa0			      	
-#define SYS_MREMAP          MREMAP,           25, void *, void *addr,                   size_t old_size,            size_t new_size,         unsigned long flags,             unsigned long new_address,sa5 
-#define SYS_SOCKET          SOCKET,           41, int,    int domain,                   int type,                   int protocol, sa3	
-#define SYS_CONNECT         CONNECT,          42, int,    int sockfd,                   const struct sockaddr *addr,int addrlen, sa3 
-#define SYS_SENDTO          SENDTO,           44, ssize_t,int sockfd,                   const void *buf, size_t len,unsigned flags,          const struct sockaddr *dest_addr,int addrlen 
-#define SYS_SET_TID_ADDRESS SET_TID_ADDRESS, 218, long,   int *tidptr, sa1		
-#define SYS_SET_ROBUST_LIST SET_ROBUST_LIST, 273, long,   struct robust_list_head *head,size_t len,                 sa2 
-#define SYS_RT_SIGACTION    RT_SIGACTION,     13, int,    int signum,                   const struct sigaction *act,struct sigaction *oldact,size_t sigsetsize,               sa4 
-#define SYS_RT_SIGPROCMASK  RT_SIGPROCMASK,   14, int,    int how,                      const sigset_t *set,        sigset_t *oldset,        size_t sigsetsize,               sa4 
-#define SYS_GETRLIMIT       GETRLIMIT,        97, int,    unsigned resource,            struct rlimit *rlim,        sa2 
-#define SYS_STATFS          STATFS,          137, int,    const char *pathname,         struct statfs *buf,         sa2
+#define SYS_READ READ, 0, int, unsigned, fd, char *, buf, size_t, count, sa3
+#define SYS_WRITE WRITE, 1, int, unsigned, fd, const char *, buf, size_t, count, sa3 
+#define SYS_OPEN OPEN , 2, int, const char *, filename, int, flags, int, mode, sa3 
+#define SYS_CLOSE CLOSE, 3, int, unsigned, fd, sa1 
+#define SYS_STAT STAT , 4, int, const char *, filename, struct stat *, statbuf, sa2 
+#define SYS_FSTAT FSTAT, 5, int, unsigned,fd, struct stat *, statbuf, sa2 
+#define SYS_LSTAT LSTAT, 6, int, const char *, filename, struct stat *, statbuf, sa2 
+#define SYS_POLL POLL, 7, int, struct poll_fd *,ufds, unsigned, nfds, long, timeout_msecs, sa3 
+#define SYS_LSEEK LSEEK, 8, off_t, unsigned,fd, off_t, offset, unsigned, origin, sa3 
+#define SYS_MMAP MMAP, 9, void *, void *,addr, size_t, len, int, prot, int, flags, int, fd, off_t, offset 
+#define SYS_MPROTECT MPROTECT, 10, int, void *,addr, size_t, len, int, prot, sa3 
+#define SYS_MUNMAP MUNMAP, 11, int, void *,addr, size_t, length, sa2 
+#define SYS_BRK BRK, 12, void *, void *,addr, sa1 
+#define SYS_ACCESS ACCESS, 21, int, const char *,pathname, int, mode, sa2 
+#define SYS_ARCH_PRCTL ARCH_PRCTL, 158, long, struct task_struct *,task, int, option, unsigned long *, addr, sa3 
+#define SYS_FUTEX FUTEX, 202, int, uint32_t *,uaddr, int, op, uint32_t, val, struct timespec *, utime, uint32_t *, uaddr2, uint32_t, val3
+#define SYS_EXIT_GROUP EXIT_GROUP, 231, int, int, status, sa1 
+#define SYS_GETDENTS GETDENTS, 78, int, unsigned, fd, struct linux_dirent *, dirent, unsigned, count, sa3 
+#define SYS_GETEUID GETEUID, 107, uid_t, sa0 
+#define SYS_MREMAP MREMAP, 25, void *, void *,addr, size_t, old_size, size_t, new_size, unsigned long, flags, unsigned long, new_address, sa5 
+#define SYS_SOCKET SOCKET, 41, int, int, domain, int, type, int, protocol, sa3 
+#define SYS_CONNECT CONNECT, 42, int, int, sockfd, const struct sockaddr *, addr, int, addrlen, sa3 
+#define SYS_SENDTO SENDTO, 44, ssize_t,int, sockfd, const void *, buf, size_t, len, unsigned, flags, const struct sockaddr *, dest_addr, int, addrlen 
+#define SYS_SET_TID_ADDRESS SET_TID_ADDRESS, 218, long, int *, tidptr, sa1 
+#define SYS_SET_ROBUST_LIST SET_ROBUST_LIST, 273, long, struct robust_list_head *, head, size_t, len, sa2 
+#define SYS_RT_SIGACTION RT_SIGACTION, 13, int, int, signum, const struct sigaction *, act, struct sigaction *, oldact, size_t, sigsetsize, sa4 
+#define SYS_RT_SIGPROCMASK RT_SIGPROCMASK, 14, int, int,how, const sigset_t *, set, sigset_t *, oldset, size_t, sigsetsize, sa4 
+#define SYS_GETRLIMIT GETRLIMIT, 97, int, unsigned, resource, struct rlimit *, rlim, sa2 
+#define SYS_STATFS STATFS, 137, int, const char *, pathname, struct statfs *, buf, sa2
 
 #define sysx(m, ...) m(__VA_ARGS__)
 #define SYSCALLS(e)				\
@@ -105,15 +105,15 @@ namespace std {
 }
 
 // test
-#define SYSCALLS_DECLARE(name, val, rv, a0, a1, a2, a3, a4, a5)	\
+#define SYSCALLS_DECLARE(name, val, rv, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5)	\
   case Syscall::name:						\
   {								\
-    __attribute__((unused)) a0;					\
-    __attribute__((unused)) a1;					\
-    __attribute__((unused)) a2;					\
-    __attribute__((unused)) a3;					\
-    __attribute__((unused)) a4;					\
-    __attribute__((unused)) a5;					\
+  t0 n0; (void) n0;						\
+  t1 n1; (void) n1;						\
+  t2 n2; (void) n2;						\
+  t3 n3; (void) n3;						\
+  t4 n4; (void) n4;						\
+  t5 n5; (void) n5;						\
   }								\
   break;
 
@@ -122,3 +122,4 @@ inline void syscalls_declare(Syscall syscall) {
     SYSCALLS(SYSCALLS_DECLARE);
   }
 }
+

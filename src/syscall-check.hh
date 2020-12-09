@@ -60,4 +60,10 @@ private:
   bool pre_munmap(const SyscallArgs& args);
   bool pre_futex(const SyscallArgs& args);
   bool pre_exit_group(const SyscallArgs& args);
+
+#define SYSCALLS_CHECK_PRE_DECL(name, ...) bool pre_##name(const SyscallArgs& args);
+  SYSCALLS(SYSCALLS_CHECK_PRE_DECL)
+#undef SYSCALLS_CHECK_PRE_DECL
+
+  
 };
