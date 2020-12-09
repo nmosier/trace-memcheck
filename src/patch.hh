@@ -29,6 +29,9 @@ public:
   void start();
   void run();
 
+  /* find the original address of an instruction in a block */
+  uint8_t *orig_block_addr(uint8_t *addr) const;
+  
 private:
   using BlockMap = std::unordered_map<uint8_t *, Block *>;
   using BkptCallback = Terminator::BkptCallback;
@@ -59,4 +62,5 @@ private:
   bool patch(uint8_t *root);
   void handle_bkpt(uint8_t *bkpt_addr);
   void handle_signal(int signum);
+
 };

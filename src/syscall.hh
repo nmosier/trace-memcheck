@@ -14,7 +14,7 @@
 #define SYS_OPEN OPEN , 2, int, const char *, filename, int, flags, int, mode, sa3 
 #define SYS_CLOSE CLOSE, 3, int, unsigned, fd, sa1 
 #define SYS_STAT STAT , 4, int, const char *, filename, struct stat *, statbuf, sa2 
-#define SYS_FSTAT FSTAT, 5, int, unsigned,fd, struct stat *, statbuf, sa2 
+#define SYS_FSTAT FSTAT, 5, int, unsigned, fd, struct stat *, buf, sa2 
 #define SYS_LSTAT LSTAT, 6, int, const char *, filename, struct stat *, statbuf, sa2 
 #define SYS_POLL POLL, 7, int, struct poll_fd *,ufds, unsigned, nfds, long, timeout_msecs, sa3 
 #define SYS_LSEEK LSEEK, 8, off_t, unsigned,fd, off_t, offset, unsigned, origin, sa3 

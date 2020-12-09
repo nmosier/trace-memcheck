@@ -1,5 +1,6 @@
 #include <gperftools/profiler.h>
 #include <unordered_set>
+#include <map>
 #include <sys/wait.h>
 #include "patch.hh"
 #include "config.hh"
@@ -187,4 +188,17 @@ void Patcher::handle_signal(int signum) {
   } else {
     it->second(signum);
   }
+}
+
+uint8_t *Patcher::orig_block_addr(uint8_t *addr) const {
+  /* create map from new block addresses to orig block addresses */
+  std::map<uint8_t *, uint8_t *> map;
+  std::transform(block_map.begin(), block_map.end(), std::inserter(map, map.end()),
+		 [] (const auto& p) {
+		   return std::make_pair(p.second->orig_addr(), p.first);
+		 });
+  auto it = map.upper_bound(addr);
+  assert(it != map.begin());
+  --it;
+  return it->second;
 }

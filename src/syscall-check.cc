@@ -3,33 +3,38 @@
 #include <unistd.h>
 #include "syscall-check.hh"
 
-
-bool SyscallChecker::tainted(const void *begin, const void *end) const {
-  return !taint_state.is_zero(begin, end);
-}
-
-bool SyscallChecker::tainted(const char *s) {
-  return tainted(s, tracee.strlen(s));
-}
-
-bool SyscallChecker::pre(const SyscallArgs& args) {
-  switch (args.no()) {
-  case Syscall::READ: return pre_READ(args);
-  case Syscall::WRITE: return pre_write(args);
-  case Syscall::BRK: return pre_brk(args);
-  case Syscall::ACCESS: return pre_access(args);
-  case Syscall::OPEN: return pre_open(args);
-  case Syscall::FSTAT: return pre_fstat(args);
-  case Syscall::MMAP: return pre_mmap(args);
-  case Syscall::CLOSE: return pre_close(args);
-  case Syscall::MPROTECT: return pre_mprotect(args);
-  case Syscall::ARCH_PRCTL: return pre_arch_prctl(args);
-  case Syscall::MUNMAP: return pre_munmap(args);
-  case Syscall::FUTEX: return pre_futex(args);
-  case Syscall::EXIT_GROUP: return pre_exit_group(args);
-  default:
-    abort();
+bool SyscallChecker::check_read(const void *begin, const void *end) const {
+  if (!taint_state.is_zero(begin, end)) {
+    std::clog << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
+    return false;
   }
+  return true;
+}
+
+bool SyscallChecker::check_read(const char *s) {
+  return check_read(s, tracee.strlen(s));
+}
+
+bool SyscallChecker::check_write(const void *begin, const void *end) const {
+  if (stack_range.overlaps(AddrRange(begin, end))) {
+    std::clog << "memcheck: warning: " << to_string(args.no()) << ": write below stack pointer\n";
+    std::clog << stack_range << " " << AddrRange(begin, end) << "\n";
+    return true;
+  }
+  return true;
+}
+
+bool SyscallChecker::check_write(const void *begin, size_t size) const {
+  return check_write(begin, static_cast<const char *>(begin) + size);
+}
+
+bool SyscallChecker::pre() {
+#define PRE_TAB(name, ...) case Syscall::name: return pre_##name();
+  switch (args.no()) {
+    SYSCALLS(PRE_TAB);
+  default: abort();
+  }
+#undef PRE_TAB
 }
 
 #define PRE_DEF_LINE(i, t, n)				\
@@ -43,174 +48,87 @@ bool SyscallChecker::pre(const SyscallArgs& args) {
   PRE_DEF_LINE(5, t5, n5)
 
 #define PRE_DEF(sys) SYSCALL(PRE_DEF2, SYS_##sys)
+#define PRE_TRUE(sys) bool SyscallChecker::pre_##sys() { return true; }
+#define PRE_ABORT(sys) bool SyscallChecker::pre_##sys() { abort(); }
 
-bool SyscallChecker::pre_READ(const SyscallArgs& args) {
+bool SyscallChecker::pre_READ() {
   PRE_DEF(READ);
-
-  if (stack_range.overlaps(AddrRange(buf, count))) {
-    std::clog << "memcheck: read to below stack\n";
+  if (!check_read(buf, count)) {
     return false;
   }
-
-  taint_state.fill(buf, buf + count, 0);
-  
   return true;
 }
 
-#if 0
-bool SyscallChecker::pre_WRITE(const SyscallArgs& args) {
+bool SyscallChecker::pre_WRITE() {
   PRE_DEF(WRITE);
-}
-#endif
-
-#if 0
-bool SyscallChecker::pre_read(const SyscallArgs& args) {
-  Params<int, unsigned int, char *, size_t> params(args);
-  const auto fd = params.arg<0>(); (void) fd;
-  const auto buf = params.arg<1>();
-  const auto count = params.arg<2>();
-
-  /* TODO: Make sure that this is valid memory (e.g. not pointing past end of heap). */
-
-  /* make sure not below SP */
-  if (stack_range.overlaps(AddrRange(buf, count))) {
-    std::clog << "memcheck: read from below stack pointer\n";
+  if (!check_write(buf, count)) {
     return false;
   }
-  
-  /* untaint written-to memory */
-  taint_state.fill(buf, buf + count, 0);
-  
   return true;
 }
-#endif
 
-bool SyscallChecker::pre_write(const SyscallArgs& args) {
-  Params<int, unsigned int, const char *, size_t> params(args);
-  const auto fd = params.arg<0>(); (void) fd;
-  const auto buf = params.arg<1>();
-  const auto count = params.arg<2>();
+bool SyscallChecker::pre_BRK() {
+  PRE_DEF(BRK);
+  return true;
+}
 
-  /* TODO: Make sure that this is valid memory (e.g. not pointing past end of heap). */
-
-  if (tainted(buf, count)) {
-    std::clog << "memcheck: write from uninitialized memory\n";
+bool SyscallChecker::pre_ACCESS() {
+  PRE_DEF(ACCESS);
+  if (!check_read(pathname)) {
     return false;
   }
-  
   return true;
 }
 
-bool SyscallChecker::pre_brk(const SyscallArgs& args) {
-  Params<void *, void *> params(args);
-  const auto brk = params.arg<0>(); (void) brk;
-
-  return true;
-}
-
-bool SyscallChecker::pre_access(const SyscallArgs& args) {
-  Params<int, const char *, int> params(args);
-  const auto pathname = params.arg<0>();
-  const auto mode = params.arg<1>(); (void) mode;
-
-  if (tainted(pathname)) {
-    std::clog << "memcheck: access: tainted pathname\n";
+bool SyscallChecker::pre_OPEN() {
+  PRE_DEF(OPEN);
+  if (!check_read(filename)) {
     return false;
   }
-
   return true;
 }
 
-bool SyscallChecker::pre_open(const SyscallArgs& args) {
-#if 1
-  Params<int, const char *, int, int> params(args);
-  const auto filename = params.arg<0>();
-  const auto flags = params.arg<1>(); (void) flags;
-  const auto mode = params.arg<2>(); (void) mode;
-#else
-  
-#endif
+bool SyscallChecker::pre_FSTAT() {
+  PRE_DEF(FSTAT);
 
-  if (tainted(filename)) {
-    std::clog << "memcheck: open: tainted filename\n";
+  if (!check_write(buf, sizeof(*buf))) {
+    assert(stack_range.end == tracee.get_sp());
     return false;
   }
-  
   return true;
 }
 
-bool SyscallChecker::pre_fstat(const SyscallArgs& args) {
-#if 0
-  Params<int, unsigned int, struct stat *> params(args);
-  const auto fd = params.arg<0>(); (void) fd;
-  const auto buf = params.arg<1>();
-
-  /* TODO: Make sure this is valid memory. */
-
-  if (tainted(buf, sizeof(struct stat))) {
-    std::clog << "memcheck: fstat: tainted buf\n";
-    return false;
-  }
-#endif
-
-  return true;
-}
-
-bool SyscallChecker::pre_mmap(const SyscallArgs& args) {
-#if 0
-  Params<void *, unsigned long, unsigned long, unsigned long, unsigned long,
-	 unsigned long, unsigned long> params(args);
-  const auto addr = params.arg<0>();
-  const auto len = params.arg<1>();
-  const auto prot = params.arg<2>();
-  const auto flags = params.arg<3>();
-  const auto fd = params.arg<4>();
-  const auto off = params.arg<5>();
-#endif
-
-  return true;
-}
-
-bool SyscallChecker::pre_close(const SyscallArgs& args) {
-#if 0
-  Params<int, int> params(args);
-  const auto fd = params.arg<0>();
-#endif
-
-  return true;
-}
-
-bool SyscallChecker::pre_mprotect(const SyscallArgs& args) {
-  return true;
-}
-
-bool SyscallChecker::pre_arch_prctl(const SyscallArgs& args) {
-#if 0
-  Params<int, struct task_struct *, int, unsigned long *> params(args);
-  const auto task = params.arg<0>();
-  const auto code = params.arg<1>();
-  const auto addr = params.arg<2>();
-#endif
-
+bool SyscallChecker::pre_ARCH_PRCTL() {
+  PRE_DEF(ARCH_PRCTL);
   // TODO: Need to figure out how this works
-  
   return true;
 }
 
-bool SyscallChecker::pre_munmap(const SyscallArgs& args) {
-  return true;
-}
-
-bool SyscallChecker::pre_futex(const SyscallArgs& args) {
-  Params<int, uint32_t, int, uint32_t, struct timespec *, uint32_t *, uint32_t> params(args);
-  const auto uaddr = params.arg<0>(); (void) uaddr;
-  const auto utime = params.arg<3>(); (void) utime;
-  const auto uaddr2 = params.arg<4>(); (void) uaddr2;
-
+bool SyscallChecker::pre_FUTEX() {
+  PRE_DEF(FUTEX);
   // TODO: Conditinoally check utime buf.
   return true;
 }
 
-bool SyscallChecker::pre_exit_group(const SyscallArgs& args) {
-  return true;
-}
+PRE_TRUE(MMAP)
+PRE_TRUE(CLOSE)
+PRE_TRUE(MPROTECT)
+PRE_TRUE(MUNMAP)
+PRE_TRUE(EXIT_GROUP)
+
+PRE_ABORT(STAT)
+PRE_ABORT(LSTAT)
+PRE_ABORT(POLL)
+PRE_ABORT(LSEEK)
+PRE_ABORT(GETDENTS)
+PRE_ABORT(GETEUID)
+PRE_ABORT(MREMAP)
+PRE_ABORT(SOCKET)
+PRE_ABORT(CONNECT)
+PRE_ABORT(SENDTO)
+PRE_ABORT(SET_TID_ADDRESS)
+PRE_ABORT(SET_ROBUST_LIST)
+PRE_ABORT(RT_SIGACTION)
+PRE_ABORT(RT_SIGPROCMASK)
+PRE_ABORT(GETRLIMIT)
+PRE_ABORT(STATFS)

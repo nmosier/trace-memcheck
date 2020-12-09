@@ -208,9 +208,17 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   subround_counter = !subround_counter;
 
   /* check syscall */
-  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()));
-  if (!syscall_checker.pre(syscall_args)) {
-    abort();
+  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args);
+  if (!syscall_checker.pre()) {
+    /* DEBUG: Translate */
+    const auto orig_addr = patcher->orig_block_addr(tracee.get_pc());
+    std::clog << "orig addr: " << (void *) orig_addr << "\n";
+    if (g_conf.gdb) {
+      tracee.set_pc(tracee.get_pc() + 10);
+      tracee.gdb();
+    } else {
+      abort();
+    }
   }
 }
 

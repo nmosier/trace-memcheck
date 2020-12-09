@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
       " -p        enable profiling\n"				\
       " -s        single-step\n"				\
       " -x        print execution trace\n"			\
+      " -d        (with -x) print for use with diff\n"		\
       " -b        dump single-step breakpoint info\n"		\
       " -j        dump conditional jump breakpoint info\n"	\
       " --prediction-mode=<mode>\n"				\
@@ -43,7 +44,7 @@ int main(int argc, char *argv[]) {
     fprintf(f, usage, argv[0]);
   };
 
-  const char *optstring = "hgpsxbj";
+  const char *optstring = "hgpsxbjd";
   enum Option {
     PREDICTION_MODE = 256,
   };
@@ -80,6 +81,10 @@ int main(int argc, char *argv[]) {
 
     case 'j':
       g_conf.dump_jcc_info = true;
+      break;
+
+    case 'd':
+      g_conf.execution_trace_diff = true;
       break;
 
     case PREDICTION_MODE:

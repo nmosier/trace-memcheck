@@ -5,6 +5,7 @@ extern "C" {
 #include <xed/xed-interface.h>
 }
 #include "decoder.hh"
+#include "config.hh"
 
 xed_state_t Decoder::state = {XED_MACHINE_MODE_LONG_64, XED_ADDRESS_WIDTH_32b};
 
@@ -16,8 +17,10 @@ std::string Decoder::disas(const Instruction& inst) {
   if (inst) {
     constexpr size_t buflen = 64;
     char buf[buflen];
-    xed_format_context(XED_SYNTAX_INTEL, &inst.xedd(), buf, buflen, (xed_uint64_t) inst.pc(),
-		       nullptr, nullptr);
+    const xed_uint64_t pc =
+      reinterpret_cast<uintptr_t>(g_conf.execution_trace_diff ? nullptr : inst.pc());
+    
+    xed_format_context(XED_SYNTAX_INTEL, &inst.xedd(), buf, buflen, pc, nullptr, nullptr);
     return std::string(buf);
   } else {
     return "(bad)";

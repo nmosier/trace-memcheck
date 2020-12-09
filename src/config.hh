@@ -7,6 +7,7 @@ struct Config {
   bool profile = false;
   bool singlestep = false;
   bool execution_trace = false;
+  bool execution_trace_diff = false;
   bool dump_ss_bkpts = false;
   PredictionMode prediction_mode;
   bool dump_jcc_info;
