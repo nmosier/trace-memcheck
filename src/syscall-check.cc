@@ -99,20 +99,20 @@ bool SyscallChecker::pre() {
   PRE_DEF_LINE(5, t5, n5)
 
 // check arguments
-#define PRE_CHK_LINE(argc, i, t, n)		\
+#define PRE_CHK_LINE(name, argc, i, t, n)				\
   if (i < argc) {							\
     if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
-      std::clog << "memcheck: warning: tainted syscall parameter '"#n"'\n"; \
+      std::clog << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
       return false;							\
     }									\
   }
 #define PRE_CHK2(name, val, rv, argc, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5, ...) \
-  PRE_CHK_LINE(argc, 0, t0, n0)						\
-  PRE_CHK_LINE(argc, 1, t1, n1)						\
-  PRE_CHK_LINE(argc, 2, t2, n2)						\
-  PRE_CHK_LINE(argc, 3, t3, n3)						\
-  PRE_CHK_LINE(argc, 4, t4, n4)						\
-  PRE_CHK_LINE(argc, 5, t5, n5)
+  PRE_CHK_LINE(name, argc, 0, t0, n0)						\
+  PRE_CHK_LINE(name, argc, 1, t1, n1)						\
+  PRE_CHK_LINE(name, argc, 2, t2, n2)						\
+  PRE_CHK_LINE(name, argc, 3, t3, n3)						\
+  PRE_CHK_LINE(name, argc, 4, t4, n4)						\
+  PRE_CHK_LINE(name, argc, 5, t5, n5)
 #define PRE_CHK(sys) SYSCALL(PRE_CHK2, SYS_##sys)
 
 
