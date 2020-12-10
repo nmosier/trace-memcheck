@@ -217,7 +217,7 @@ bool SyscallChecker::pre_LSTAT() {
 bool SyscallChecker::pre_FACCESSAT() {
   PRE_DEF(FACCESSAT);
   PRE_CHK(FACCESSAT);
-  if (!check_read(pathname)) { return false; }
+  READ_STRING(pathname);
   return true;
 }
 
