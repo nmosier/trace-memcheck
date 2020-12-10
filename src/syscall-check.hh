@@ -68,6 +68,9 @@ private:
     std::clog << "\n";
   }
 
+  enum class Access {NONE, READ, WRITE};
+  static constexpr Access access(const char *typestr);
+
   using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);
 
 #define SYSCALLS_CHECK_PRE_DECL(name, ...) bool pre_##name();

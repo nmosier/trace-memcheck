@@ -8,6 +8,48 @@
 #include <poll.h>
 #include "syscall-check.hh"
 
+static constexpr size_t constexpr_strlen(const char *begin) {
+  const char *it = begin;
+  for (; *it; ++it) {}
+  return it - begin;
+}
+
+static constexpr int constexpr_strncmp(const char *s1, const char *s2, size_t n) {
+  for (size_t i = 0; i < n; ++i, ++s1, ++s2) {
+    if (*s1 != *s2) {
+      return *s1 - *s2;
+    } else if (*s1 == '\0') {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+static constexpr bool constexpr_isprefixof(const char *prefix, const char *s) {
+  return constexpr_strncmp(prefix, s, constexpr_strlen(prefix));
+}
+
+#if 0
+static constexpr bool constexpr_issuffixof(const char *suffix, const char *s) {
+  const size_t suffix_len = constexpr_strlen(suffix);
+  const size_t s_len = constexpr_strlen(s);
+  if (suffix_len > s_len) { return false; }
+  const char *s_ = s + (s_len - suffix_len); 
+  return constexpr_strncmp(suffix, s_, suffix_len);
+}
+#endif
+
+constexpr SyscallChecker::Access SyscallChecker::access(const char *typestr) {
+  const char *const_prefix = "const ";
+  if (constexpr_isprefixof(const_prefix, typestr)) {
+    return Access::READ;
+  } else if (constexpr_strlen(typestr) > 0 && typestr[constexpr_strlen(typestr) - 1] == '*') {
+    return Access::WRITE;
+  } else {
+    return Access::NONE;
+  }
+}
+
 bool SyscallChecker::check_read(const void *begin, const void *end) const {
   if (!taint_state.is_zero(begin, end)) {
     std::clog << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
@@ -73,6 +115,7 @@ bool SyscallChecker::pre() {
   PRE_CHK_LINE(argc, 5, t5, n5)
 #define PRE_CHK(sys) SYSCALL(PRE_CHK2, SYS_##sys)
 
+
 #define PRE_DEF(sys) SYSCALL(PRE_DEF2, SYS_##sys)
 #define PRE_TRUE(sys) \
   bool SyscallChecker::pre_##sys() {		\
@@ -89,83 +132,67 @@ bool SyscallChecker::pre() {
     return true;							\
   }
 
+#define READ_STRING(str) do { if (!check_read(str)) { return false; } } while (0)
+#define READ_TYPE(name) do { if (!check_read(name, sizeof(*name))) { return false; } } while (0)
+#define READ_BUF(buf, len) do { if (!check_read(buf, len)) { return false; } } while (0)
+
+#define WRITE_TYPE(name) do { if (!check_write(name, sizeof(*name))) { return false; } } while (0)
+#define WRITE_BUF(buf, len) do { if (!check_write(buf, len)) { return false; } } while (0)
+
 bool SyscallChecker::pre_READ() {
   PRE_DEF(READ);
   PRE_CHK(READ);
-  if (!check_write(buf, count)) {
-    return false;
-  }
+  WRITE_BUF(buf, count);
   return true;
 }
 
 bool SyscallChecker::pre_WRITE() {
   PRE_DEF(WRITE);
-  if (!check_read(buf, count)) {
-    return false;
-  }
-  return true;
-}
-
-bool SyscallChecker::pre_BRK() {
-  PRE_DEF(BRK);
+  PRE_CHK(WRITE);
+  READ_BUF(buf, count);
   return true;
 }
 
 bool SyscallChecker::pre_ACCESS() {
   PRE_DEF(ACCESS);
-  if (!check_read(pathname)) {
-    return false;
-  }
+  PRE_CHK(ACCESS);
+  READ_STRING(pathname);
   return true;
 }
 
 bool SyscallChecker::pre_OPEN() {
   PRE_DEF(OPEN);
-  if (!check_read(filename)) {
-    return false;
-  }
+  PRE_CHK(OPEN);
+  READ_STRING(filename);
   return true;
 }
 
 bool SyscallChecker::pre_FSTAT() {
   PRE_DEF(FSTAT);
-
-  if (!check_write(buf, sizeof(*buf))) {
-    return false;
-  }
-  return true;
-}
-
-bool SyscallChecker::pre_SET_TID_ADDRESS() {
-  PRE_DEF(SET_TID_ADDRESS);
-  if (!check_write(tidptr, sizeof(*tidptr))) {
-    return false;
-  }
+  PRE_CHK(FSTAT);
+  WRITE_TYPE(buf);
   return true;
 }
 
 bool SyscallChecker::pre_RT_SIGACTION() {
   PRE_DEF(RT_SIGACTION);
+  PRE_CHK(RT_SIGACTION);
 
   /* check mandatory fields in struct sigaction */
-  if (!check_read(&act->sa_mask, sizeof(act->sa_mask))) {
-    // print_values<unsigned long>((const unsigned long *) &act->sa_mask);
-    return false;
-  }
-  if (!check_read(&act->sa_flags, sizeof(act->sa_flags))) {
-    // print_values<int>(&act->sa_flags);
-    return false;
-  }
+  READ_TYPE(&act->sa_mask);
+  READ_TYPE(&act->sa_flags);
+
   int flags;
   read_struct(&act->sa_flags, flags);
+  
   if ((flags & SA_SIGINFO)) {
-    if (!check_read(&act->sa_sigaction, sizeof(act->sa_sigaction))) { return false; }
+    READ_TYPE(&act->sa_sigaction);
   } else {
-    if (!check_read(&act->sa_handler, sizeof(act->sa_handler))) { return false; }
+    READ_TYPE(&act->sa_handler);
   }
 
   if (oldact != nullptr) {
-    if (!check_write(oldact, sizeof(*oldact))) { return false; }
+    WRITE_TYPE(oldact);
   }
   
   return true;
@@ -173,76 +200,76 @@ bool SyscallChecker::pre_RT_SIGACTION() {
 
 bool SyscallChecker::pre_STAT() {
   PRE_DEF(STAT);
-  if (!check_read(pathname)) {
-    return false;
-  }
-  if (!check_write(buf, sizeof(*buf))) {
-    return false;
-  }
+  PRE_CHK(STAT);
+  READ_STRING(pathname);
+  WRITE_TYPE(buf);
   return true;
 }
 
 bool SyscallChecker::pre_LSTAT() {
   PRE_DEF(LSTAT);
-  if (!check_read(pathname)) {
-    std::clog << "LSTAT pathname=" << tracee.string(pathname) << "\n";
-    return false;
-  }
-  if (!check_write(buf, sizeof(*buf))) { return false; }
+  PRE_CHK(LSTAT);
+  READ_STRING(pathname);
+  WRITE_TYPE(buf);
   return true;
 }
 
 bool SyscallChecker::pre_FACCESSAT() {
   PRE_DEF(FACCESSAT);
-  if (!check_read(pathname)) {
-    return false;
-  }
+  PRE_CHK(FACCESSAT);
+  if (!check_read(pathname)) { return false; }
   return true;
 }
 
 bool SyscallChecker::pre_GETDENTS() {
   PRE_DEF(GETDENTS);
-  if (!check_write(dirp, count)) { return false; }
+  PRE_CHK(GETDENTS);
+  WRITE_BUF(dirp, count);
   return true;
 }
 
 bool SyscallChecker::pre_LGETXATTR() {
   PRE_DEF(LGETXATTR);
-  if (!check_read(pathname)) { return false; }
-  if (!check_read(name)) { return false; }
-  if (!check_write(value, size)) { return false; }
+  PRE_CHK(LGETXATTR);
+  READ_STRING(pathname);
+  READ_STRING(name);
+  WRITE_BUF(value, size);
   return true;
 }
 
 // TODO: have better way of handling families of these
 bool SyscallChecker::pre_GETXATTR() {
   PRE_DEF(GETXATTR);
-  if (!check_read(pathname)) { return false; }
-  if (!check_read(name)) { return false; }
-  if (!check_write(value, size)) { return false; }
+  PRE_CHK(GETXATTR);
+  READ_STRING(pathname);
+  READ_STRING(name);
+  WRITE_BUF(value, size);
   return true;
 }
 
 bool SyscallChecker::pre_CONNECT() {
   PRE_DEF(CONNECT);
-  if (!check_read(addr, addrlen)) { return false; }
+  PRE_CHK(CONNECT);
+  READ_BUF(addr, addrlen);
   return true;
 }
 
 bool SyscallChecker::pre_SENDTO() {
   PRE_DEF(SENDTO);
-  if (!check_read(buf, len)) { return false; }
-  if (!check_read(dest_addr, addrlen)) { return false; }
+  PRE_CHK(SENDTO);
+  READ_BUF(buf, len);
+  READ_BUF(dest_addr, addrlen);
   return true;
 }
 
 bool SyscallChecker::pre_POLL() {
   PRE_DEF(POLL);
+  PRE_CHK(POLL);
 
   /* read only some fields in the array */
   for (nfds_t i = 0; i < nfds; ++i) {
-    if (!check_read(&fds[i].fd, &fds[i].events + 1)) { return false; }
-    if (!check_write(&fds[i].revents, sizeof(fds[i].revents))) { return false; }
+    READ_BUF(&fds[i].fd, &fds[i].events + 1);
+    READ_TYPE(&fds[i].revents);
   }
 
   return true;
@@ -250,70 +277,81 @@ bool SyscallChecker::pre_POLL() {
 
 bool SyscallChecker::pre_RECVMSG() {
   PRE_DEF(RECVMSG);
-  if (!check_read(msg, sizeof(*msg))) { return false; }
+  PRE_CHK(RECVMSG);
+  READ_TYPE(msg);
   struct msghdr msg_;
   read_struct(msg, msg_);
-  if (!check_write(msg_.msg_name, msg_.msg_namelen)) { return false; }
-  std::clog << "memcheck: RECVMSG: stub\n";
+  READ_BUF(msg_.msg_name, msg_.msg_namelen);
+  std::clog << "memcheck: warning: RECVMSG: stub\n";
   return true;
 }
 
 bool SyscallChecker::pre_GETRUSAGE() {
   PRE_DEF(GETRUSAGE);
-  if (!check_write(usage, sizeof(*usage))) { return false; }
+  PRE_CHK(GETRUSAGE);
+  WRITE_TYPE(usage);
   return true;
 }
 
 bool SyscallChecker::pre_UNAME() {
   PRE_DEF(UNAME);
-  if (!check_write(buf, sizeof(*buf))) { return false; }
+  PRE_CHK(UNAME);
+  WRITE_TYPE(buf);
   return true;
 }
 
 bool SyscallChecker::pre_SETSOCKOPT() {
   PRE_DEF(SETSOCKOPT);
-  if (!check_read(optval, optlen)) { return false; }
+  PRE_CHK(SETSOCKOPT);
+  READ_BUF(optval, optlen);
   return true;
 }
 
 bool SyscallChecker::pre_GETPEERNAME() {
   PRE_DEF(GETPEERNAME);
-  if (!check_read(addrlen, sizeof(*addrlen))) { return false; }
+  PRE_CHK(GETPEERNAME);
+  READ_TYPE(addrlen);
+  WRITE_TYPE(addrlen);
   int addrlen_;
   read_struct(addrlen, addrlen_);
-  if (!check_write(addr, addrlen_)) { return false; }
+  WRITE_BUF(addr, addrlen_);
   return true;
 }
 
 // TODO: Merge with above
 bool SyscallChecker::pre_GETSOCKNAME() {
   PRE_DEF(GETSOCKNAME);
-  if (!check_read(addrlen, sizeof(*addrlen))) { return false; }
+  PRE_CHK(GETSOCKNAME);
+  READ_TYPE(addrlen);
+  WRITE_TYPE(addrlen);
   int addrlen_;
   read_struct(addrlen, addrlen_);
-  if (!check_write(addr, addrlen_)) { return false; }
+  WRITE_BUF(addr, addrlen_);
   return true;
 }
 
 bool SyscallChecker::pre_RT_SIGPROCMASK() {
   PRE_DEF(RT_SIGPROCMASK);
-  if (!check_read(set, sizeof(*set))) { return false; }
+  PRE_CHK(RT_SIGPROCMASK);
+  READ_TYPE(set);
   if (oldset != nullptr) {
-    if (!check_write(oldset, sizeof(*oldset))) { return false; }
+    WRITE_TYPE(oldset);
   }
   return true;
 }
 
 bool SyscallChecker::pre_GETRLIMIT() {
   PRE_DEF(GETRLIMIT);
-  if (!check_write(rlim, sizeof(*rlim))) { return false; }
+  PRE_CHK(GETRLIMIT);
+  WRITE_TYPE(rlim);
   return true;
 }
 
 bool SyscallChecker::pre_STATFS() {
   PRE_DEF(STATFS);
-  if (!check_read(path)) { return false; }
-  if (!check_write(buf, sizeof(*buf))) { return false; }
+  PRE_CHK(STATFS);
+  READ_STRING(path);
+  WRITE_TYPE(buf);
   return true;
 }
 
@@ -332,12 +370,14 @@ PRE_TRUE(SOCKET)
 PRE_TRUE(LSEEK)
 PRE_TRUE(GETTID)
 PRE_TRUE(TGKILL)
+PRE_TRUE(BRK)
 
 PRE_STUB(ARCH_PRCTL)
 PRE_STUB(FUTEX)
 PRE_STUB(SET_ROBUST_LIST)
 PRE_STUB(FCNTL)
 PRE_STUB(IOCTL)
+PRE_STUB(SET_TID_ADDRESS)
   
 PRE_ABORT(MREMAP)
 
