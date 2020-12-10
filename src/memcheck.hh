@@ -114,9 +114,9 @@ private:
   Maps maps_gen;
   using PageSet = std::unordered_set<void *>;
   PageSet tracked_pages;
-
+  
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
-
+  
   static bool stopped_trace(int status);
   static bool is_sp_dec(const Instruction& inst);
 
@@ -145,6 +145,7 @@ private:
   template <typename InputIt>
   void update_taint_state(InputIt begin, InputIt end, State& taint_state);
   void check_round();
+  void set_state_with_taint(State& state, const State& taint);
 
   void init_taint(State& taint_state);
 

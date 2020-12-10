@@ -13,6 +13,7 @@ public:
     taint_args(taint_state.regs()), memcheck(memcheck) {}
 
   bool pre();
+  void post();
   
   template <typename... Args>
   bool operator()(Args&&... args) { return run(args...); }
@@ -25,24 +26,6 @@ private:
   SyscallArgs taint_args;
   const Memcheck& memcheck;
 
-  template <typename RetType, typename... ArgTypes>
-  class Params {
-  public:
-    Params(const SyscallArgs& args): args(args) {}
-
-    Syscall no() const { return args.no(); }
-    RetType rv() const { return args.rv<RetType>(); }
-
-    template <size_t N>
-    using ArgType = typename std::tuple_element<N, std::tuple<ArgTypes...>>::type;
-
-    template <size_t N>
-    ArgType<N> arg() const { return args.arg<N, ArgType<N>>(); }
-
-  private:
-    const SyscallArgs& args;
-  };
-
   bool check_read(const void *begin, const void *end) const;
   bool check_read(const void *begin, size_t size) const {
     return check_read(begin, static_cast<const char *>(begin) + size);
@@ -51,6 +34,10 @@ private:
 
   bool check_write(void *begin, void *end) const;
   bool check_write(void *begin, size_t size) const;
+
+  void do_write(void *begin, void *end);
+  void do_write(void *addr, size_t size);
+  void do_write(char *str);
 
   template <class S>
   void read_struct(const void *addr, S& s) {
@@ -71,11 +58,12 @@ private:
   enum class Access {NONE, READ, WRITE};
   static constexpr Access access(const char *typestr);
 
-  using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);
-
 #define SYSCALLS_CHECK_PRE_DECL(name, ...) bool pre_##name();
   SYSCALLS(SYSCALLS_CHECK_PRE_DECL)
 #undef SYSCALLS_CHECK_PRE_DECL
-
+  
+#define SYSCALLS_CHECK_POST_DECL(name, ...) void post_##name();
+  SYSCALLS(SYSCALLS_CHECK_POST_DECL)
+#undef SYSCALLS_CHECK_POST_DECL
   
 };

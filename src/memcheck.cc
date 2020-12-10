@@ -194,6 +194,8 @@ void *Memcheck::stack_begin() {
   return stack_begin;
 }
 
+#define CHANGE_PRE_STATE 0
+
 void Memcheck::syscall_handler_pre(uint8_t *addr) {
   syscall_args.add_call(tracee);
   std::cerr << "syscall " << syscall_args.no() << '\n';
@@ -201,14 +203,23 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   save_state(post_states[subround_counter]);
 
   if (!subround_counter) {
+#if !CHANGE_PRE_STATE
     pre_state.restore(tracee);
-    // std::cerr << "rewound execution" << std::endl;
+#else
+    set_state_with_taint(pre_state, taint_state);
+#endif
     assert(save_state() == pre_state);
   } else {
     check_round();
   }
   
   subround_counter = !subround_counter;
+}
+
+/* Rewind to pre_state, flipping bits in taint_state */
+void Memcheck::set_state_with_taint(State& state, const State& taint) {
+  state ^= taint;
+  state.restore(tracee);
 }
 
 template <typename InputIt>
@@ -311,7 +322,14 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
     break;
   }
 
+  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()),
+				 syscall_args, *this);
+  syscall_checker.post();
+  
   save_state(pre_state);
+#if CHANGE_PRE_STATE
+  set_state_with_taint(pre_state, taint_state);
+#endif
 }
 
 bool Memcheck::maps_has_addr(void *addr) const {
