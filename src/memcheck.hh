@@ -157,7 +157,9 @@ private:
   std::array<State, 2> post_states;
   State taint_state;
 
-  void *brk = nullptr; // current brk(2) value 
+  void *brk = nullptr; // current brk(2) value
+
+  friend class SyscallChecker; // TEMPORARY
 };
 
 

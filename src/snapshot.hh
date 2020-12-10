@@ -38,7 +38,7 @@ public:
   bool similar(const Snapshot& other) const; // ensure entries are at same addresses
   bool is_zero(const void *begin, const void *end) const;
   void fill(void *begin, void *end, Elem val);
-
+  void read(const void *begin, const void *end, void *buf) const;
 
   void add(void *pageaddr, Elem val) {
     add_fill(pageaddr, [val] (const auto pageaddr, const auto begin) {

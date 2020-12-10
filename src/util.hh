@@ -225,3 +225,4 @@ void for_each_page(void *begin, void *end, Func func) {
     func(pageidx(begin, i));
   }
 }
+

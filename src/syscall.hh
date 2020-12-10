@@ -37,7 +37,7 @@
 #define SYS_RT_SIGACTION RT_SIGACTION, 13, int, int, signum, const struct sigaction *, act, struct sigaction *, oldact, size_t, sigsetsize, sa4 
 #define SYS_RT_SIGPROCMASK RT_SIGPROCMASK, 14, int, int,how, const sigset_t *, set, sigset_t *, oldset, size_t, sigsetsize, sa4 
 #define SYS_GETRLIMIT GETRLIMIT, 97, int, unsigned, resource, struct rlimit *, rlim, sa2 
-#define SYS_STATFS STATFS, 137, int, const char *, pathname, struct statfs *, buf, sa2
+#define SYS_STATFS STATFS, 137, int, const char *, path, struct statfs *, buf, sa2
 #define SYS_GETUID GETUID, 102, uid_t, sa0
 #define SYS_GETGID GETGID, 104, gid_t, sa0
 #define SYS_GETPID GETPID, 39, pid_t, sa0

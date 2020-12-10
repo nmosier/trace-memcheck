@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/vfs.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
 #include <unistd.h>
@@ -120,14 +121,28 @@ bool SyscallChecker::pre_SET_TID_ADDRESS() {
 
 bool SyscallChecker::pre_RT_SIGACTION() {
   PRE_DEF(RT_SIGACTION);
-  if (!check_read(act, sizeof(*act))) {
+
+  /* check mandatory fields in struct sigaction */
+  if (!check_read(&act->sa_mask, sizeof(act->sa_mask))) {
+    // print_values<unsigned long>((const unsigned long *) &act->sa_mask);
     return false;
   }
-  if (oldact != nullptr) {
-    if (!check_write(oldact, sizeof(*oldact))) {
-      return false;
-    }
+  if (!check_read(&act->sa_flags, sizeof(act->sa_flags))) {
+    // print_values<int>(&act->sa_flags);
+    return false;
   }
+  int flags;
+  read_struct(&act->sa_flags, flags);
+  if ((flags & SA_SIGINFO)) {
+    if (!check_read(&act->sa_sigaction, sizeof(act->sa_sigaction))) { return false; }
+  } else {
+    if (!check_read(&act->sa_handler, sizeof(act->sa_handler))) { return false; }
+  }
+
+  if (oldact != nullptr) {
+    if (!check_write(oldact, sizeof(*oldact))) { return false; }
+  }
+  
   return true;
 }
 
@@ -264,6 +279,19 @@ bool SyscallChecker::pre_RT_SIGPROCMASK() {
   return true;
 }
 
+bool SyscallChecker::pre_GETRLIMIT() {
+  PRE_DEF(GETRLIMIT);
+  if (!check_write(rlim, sizeof(*rlim))) { return false; }
+  return true;
+}
+
+bool SyscallChecker::pre_STATFS() {
+  PRE_DEF(STATFS);
+  if (!check_read(path)) { return false; }
+  if (!check_write(buf, sizeof(*buf))) { return false; }
+  return true;
+}
+
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
@@ -287,5 +315,4 @@ PRE_STUB(FCNTL)
 PRE_STUB(IOCTL)
   
 PRE_ABORT(MREMAP)
-PRE_ABORT(GETRLIMIT)
-PRE_ABORT(STATFS)
+

@@ -40,6 +40,8 @@ public:
   template <typename... Args>
   void fill(Args&&... args) { return snapshot_.fill(args...); }
 
+  void read(const void *begin, const void *end, void *buf) const { snapshot_.read(begin, end, buf); }
+
 private:
   using reg_t = uint64_t;
   static_assert(sizeof(user_regs_struct) % sizeof(reg_t) == 0, "reg_t doesn't divide regs");

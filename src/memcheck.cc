@@ -223,13 +223,16 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   init_taint(taint_state); // TODO: Could be optimized.
   
   for (auto it = begin; it != end; ++it) {
-    taint_state |= *first ^ *begin; // TODO: could be optimized.
+    taint_state |= *first ^ *it; // TODO: could be optimized.
   }
 }
 
 void Memcheck::check_round() {
+  /* get taint mask */
+  update_taint_state(post_states.begin(), post_states.end(), taint_state);
+
   /* make sure args to syscall aren't tainted */
-  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args);
+  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args, *this);
   if (!syscall_checker.pre()) {
     /* DEBUG: Translate */
     const auto orig_addr = patcher->orig_block_addr(tracee.get_pc());
@@ -241,9 +244,6 @@ void Memcheck::check_round() {
       abort();
     }
   }
-  
-  /* get taint mask */
-  update_taint_state(post_states.begin(), post_states.end(), taint_state);
 }
 
 

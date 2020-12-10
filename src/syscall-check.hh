@@ -8,8 +8,9 @@
 // checks and propogates taint
 class SyscallChecker {
 public:
-  SyscallChecker(Tracee& tracee, State& taint_state, const AddrRange& stack_range, const SyscallArgs& args):
-    tracee(tracee), taint_state(taint_state), stack_range(stack_range), args(args) {}
+  SyscallChecker(Tracee& tracee, State& taint_state, const AddrRange& stack_range, const SyscallArgs& args, const Memcheck& memcheck):
+    tracee(tracee), taint_state(taint_state), stack_range(stack_range), args(args),
+    memcheck(memcheck) {}
 
   bool pre();
   
@@ -21,6 +22,7 @@ private:
   State& taint_state;
   AddrRange stack_range;
   const SyscallArgs& args;
+  const Memcheck& memcheck;
 
   template <typename RetType, typename... ArgTypes>
   class Params {
@@ -52,6 +54,17 @@ private:
   template <class S>
   void read_struct(const void *addr, S& s) {
     tracee.read(&s, sizeof(S), addr);
+  }
+
+  template <typename T>
+  void print_values(const T *addr) const {
+    std::clog << args.no() << ": ";
+    for (const auto& state : memcheck.post_states) {
+      T val;
+      state.read(addr, addr + 1, &val);
+      std::clog << val << " ";
+    }
+    std::clog << "\n";
   }
 
   using run_f = bool (SyscallChecker::*)(const SyscallArgs& args);

@@ -66,3 +66,20 @@ void Snapshot::remove(void *begin, void *end) {
     remove(pageidx(begin, i));
   }
 }
+
+void Snapshot::read(const void *begin_, const void *end_, void *buf_) const {
+  const auto begin = reinterpret_cast<const uint8_t *>(begin_);
+  const auto end = reinterpret_cast<const uint8_t *>(end_);
+  const auto buf = reinterpret_cast<uint8_t *>(buf_);
+
+  const uint8_t *it = begin;
+  uint8_t *buf_it = buf;
+
+  while (it != end) {
+    const uint8_t *pageaddr = pagealign(it);
+    const Entry& entry = map.at(const_cast<uint8_t *>(pageaddr));
+    const auto count = std::min<size_t>(end - it, entry.size());
+    buf_it = std::copy_n(entry.begin() + (it - pageaddr), count, buf_it);
+    it += count;
+  }
+}
