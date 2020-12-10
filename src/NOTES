@@ -223,3 +223,8 @@ Snapshot will have an unordered map of page addresses to page data.
 ------
 
 Ok, so now need to check to make sure that inputs to syscall aren't uninitialized.
+
+----
+
+Need to also check that REGISTER inputs to syscall aren't uninitialized. This is more challenging using macros -- need to revise macro system.
+Include new argument count element. 'sysx' should then add the correct expansion afterwards.

@@ -10,7 +10,7 @@ class SyscallChecker {
 public:
   SyscallChecker(Tracee& tracee, State& taint_state, const AddrRange& stack_range, const SyscallArgs& args, const Memcheck& memcheck):
     tracee(tracee), taint_state(taint_state), stack_range(stack_range), args(args),
-    memcheck(memcheck) {}
+    taint_args(taint_state.regs()), memcheck(memcheck) {}
 
   bool pre();
   
@@ -22,6 +22,7 @@ private:
   State& taint_state;
   AddrRange stack_range;
   const SyscallArgs& args;
+  SyscallArgs taint_args;
   const Memcheck& memcheck;
 
   template <typename RetType, typename... ArgTypes>

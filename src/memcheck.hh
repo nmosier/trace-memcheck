@@ -45,7 +45,7 @@ public:
   SyscallArgs() {}
   
   template <typename... Ts>
-  SyscallArgs(Ts&&... ts) { add_args(ts...); }
+  SyscallArgs(Ts&&... ts) { add_call(ts...); }
 
   static constexpr unsigned MAX_ARGS = 6;
 

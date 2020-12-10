@@ -47,26 +47,51 @@ bool SyscallChecker::pre() {
 }
 
 #define PRE_DEF_LINE(i, t, n)				\
-  t n = args.arg<i, t>(); (void) n;
-#define PRE_DEF2(name, val, rv, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5) \
-  PRE_DEF_LINE(0, t0, n0)				\
-  PRE_DEF_LINE(1, t1, n1)				\
-  PRE_DEF_LINE(2, t2, n2)				\
-  PRE_DEF_LINE(3, t3, n3)				\
-  PRE_DEF_LINE(4, t4, n4)				\
+  t n = args.arg<i, t>(); (void) n;					
+#define PRE_DEF2(name, val, rv, argc, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5, ...) \
+  PRE_DEF_LINE(0, t0, n0)						\
+  PRE_DEF_LINE(1, t1, n1)						\
+  PRE_DEF_LINE(2, t2, n2)						\
+  PRE_DEF_LINE(3, t3, n3)						\
+  PRE_DEF_LINE(4, t4, n4)						\
   PRE_DEF_LINE(5, t5, n5)
 
+// check arguments
+#define PRE_CHK_LINE(argc, i, t, n)		\
+  if (i < argc) {							\
+    if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
+      std::clog << "memcheck: warning: tainted syscall parameter '"#n"'\n"; \
+      return false;							\
+    }									\
+  }
+#define PRE_CHK2(name, val, rv, argc, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5, ...) \
+  PRE_CHK_LINE(argc, 0, t0, n0)						\
+  PRE_CHK_LINE(argc, 1, t1, n1)						\
+  PRE_CHK_LINE(argc, 2, t2, n2)						\
+  PRE_CHK_LINE(argc, 3, t3, n3)						\
+  PRE_CHK_LINE(argc, 4, t4, n4)						\
+  PRE_CHK_LINE(argc, 5, t5, n5)
+#define PRE_CHK(sys) SYSCALL(PRE_CHK2, SYS_##sys)
+
 #define PRE_DEF(sys) SYSCALL(PRE_DEF2, SYS_##sys)
-#define PRE_TRUE(sys) bool SyscallChecker::pre_##sys() { return true; }
+#define PRE_TRUE(sys) \
+  bool SyscallChecker::pre_##sys() {		\
+    PRE_DEF(sys);				\
+    PRE_CHK(sys);				\
+    return true;				\
+  }
 #define PRE_ABORT(sys) bool SyscallChecker::pre_##sys() { abort(); }
 #define PRE_STUB(sys)				\
   bool SyscallChecker::pre_##sys() {		\
+    PRE_DEF(sys);							\
+    PRE_CHK(sys);							\
     std::clog << "memcheck: warning: " << args.no() << ": stub\n";	\
     return true;							\
   }
 
 bool SyscallChecker::pre_READ() {
   PRE_DEF(READ);
+  PRE_CHK(READ);
   if (!check_write(buf, count)) {
     return false;
   }
