@@ -76,16 +76,24 @@ void StackTracker::pre_handler(uint8_t *addr) {
   it->second->sp = tracee.get_sp();
 }
 
+#define FILL_SP_DEC 1
+
 void StackTracker::post_handler(uint8_t *addr) {
   const auto it = map.find(addr);
   assert(it != map.end());
   const auto post_sp = tracee.get_sp();
-  const auto& pre_sp = it->second->sp;
+  const auto pre_sp = it->second->sp;
 
   if (post_sp < pre_sp) {
 #if 0
     std::cerr << "sp dec @ " << (const void *) it->second->orig_addr << ": " << it->second->inst_str
 	      << std::endl;
+#endif
+
+#if FILL_SP_DEC
+    /* taint exposed stack memory */
+    tracee.fill(fill(), post_sp, pre_sp);
+    // std::clog << "Filling sp dec" << std::endl;
 #endif
   }
 }
@@ -212,6 +220,8 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   } else {
     check_round();
   }
+
+  stack_tracker.fill(~stack_tracker.fill());
   
   subround_counter = !subround_counter;
 }

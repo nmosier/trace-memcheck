@@ -45,6 +45,9 @@ public:
   
   void write(const Blob& inst) const;
 
+  void fill(uint8_t val, size_t count, void *to) const;
+  void fill(uint8_t val, void *to_begin, void *to_end) const;
+
   size_t strlen(const char *addr);
   std::string string(const char *addr);
 

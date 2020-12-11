@@ -14,9 +14,12 @@ class StackTracker;
 
 class StackTracker {
 public:
-  StackTracker(Tracee& tracee): tracee(tracee) {}
+  StackTracker(Tracee& tracee, uint8_t fill): tracee(tracee), fill_(fill) {}
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+
+  uint8_t fill() const { return fill_; }
+  void fill(uint8_t newfill) { fill_ = newfill; }
   
 private:
   // TODO: Can be optimized.
@@ -31,6 +34,7 @@ private:
   using BkptCallback = Terminator::BkptCallback;
 
   Tracee& tracee;
+  uint8_t fill_;
   Map map;
 
   const BkptCallback pre_callback = [this] (auto... args) { return pre_handler(args...); };
@@ -97,7 +101,7 @@ class Memcheck {
 public:
   Memcheck(void):
     tracee(),
-    stack_tracker(tracee),
+    stack_tracker(tracee, 0),
     syscall_tracker(tracee)
   {}
   

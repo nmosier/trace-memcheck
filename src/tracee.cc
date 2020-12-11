@@ -304,3 +304,12 @@ std::string Tracee::string(const char *addr) {
   std::vector<char> buf;
   return std::string(buf.begin(), buf.begin() + string(addr, buf));
 }
+
+void Tracee::fill(uint8_t val, size_t count, void *to) const {
+  std::vector<uint8_t> buf(count, val);
+  write(buf.data(), count, to);
+}
+
+void Tracee::fill(uint8_t val, void *to_begin, void *to_end) const {
+  fill(val, static_cast<char *>(to_end) - static_cast<char *>(to_begin), to_begin);
+}
