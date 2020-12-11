@@ -80,6 +80,12 @@ bool SyscallChecker::check_write(void *begin, size_t size) const {
 }
 
 bool SyscallChecker::pre() {
+  /* make sure syscall number not tainted */
+  if (static_cast<int>(taint_state.regs().rax)) {
+    std::clog << "memcheck: tainted system call number\n";
+    return false;
+  }
+  
 #define PRE_TAB(name, ...) case Syscall::name: return pre_##name();
   switch (args.no()) {
     SYSCALLS(PRE_TAB);

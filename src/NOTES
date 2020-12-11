@@ -228,3 +228,12 @@ Ok, so now need to check to make sure that inputs to syscall aren't uninitialize
 
 Need to also check that REGISTER inputs to syscall aren't uninitialized. This is more challenging using macros -- need to revise macro system.
 Include new argument count element. 'sysx' should then add the correct expansion afterwards.
+
+---
+
+Treat rdtsc as an 'event' instruction
+
+----
+
+Hard to debug why false positives are occurring. Need side-by-side execution functionality to debug further.
+Also need to implement stack randomization.

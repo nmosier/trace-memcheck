@@ -1,6 +1,4 @@
-3:printf-many
-5:sum
-6:sprintf
-8:myls
-9:in_addr
-10:mysh
+1:bad-fd-read-O0
+2:bad-fd-read-O1
+3:bad-fd-read-O2
+4:bad-fd-read-O3

@@ -1,3 +1,5 @@
+add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-switch -Wno-unused-parameter)
+
 find_package(Gperftools REQUIRED)
 
 link_libraries(${xed_LIBRARIES} ${GPERFTOOLS_LIBRARIES})

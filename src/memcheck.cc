@@ -238,7 +238,7 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   }
 }
 
-#define ABORT_ON_TAINT 0
+#define ABORT_ON_TAINT 1
 
 void Memcheck::check_round() {
   /* get taint mask */
