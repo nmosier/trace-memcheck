@@ -1,6 +1,8 @@
 #pragma once
 
 #include <sys/user.h>
+#include <string>
+#include <iostream>
 
 #include "tracee.hh"
 #include "snapshot.hh"
@@ -41,6 +43,8 @@ public:
   void fill(Args&&... args) { return snapshot_.fill(args...); }
 
   void read(const void *begin, const void *end, void *buf) const { snapshot_.read(begin, end, buf); }
+  std::string string(const void *addr) const;
+  std::ostream& dump(std::ostream& os, const void *begin, const void *end) const;
 
 private:
   using reg_t = uint64_t;

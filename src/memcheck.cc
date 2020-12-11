@@ -194,11 +194,11 @@ void *Memcheck::stack_begin() {
   return stack_begin;
 }
 
-#define CHANGE_PRE_STATE 0
+#define CHANGE_PRE_STATE 1
 
 void Memcheck::syscall_handler_pre(uint8_t *addr) {
   syscall_args.add_call(tracee);
-  std::cerr << "syscall " << syscall_args.no() << '\n';
+  std::clog << "syscall " << syscall_args.no() << "\n";
   
   save_state(post_states[subround_counter]);
 
@@ -238,6 +238,8 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   }
 }
 
+#define ABORT_ON_TAINT 0
+
 void Memcheck::check_round() {
   /* get taint mask */
   update_taint_state(post_states.begin(), post_states.end(), taint_state);
@@ -251,7 +253,7 @@ void Memcheck::check_round() {
     if (g_conf.gdb) {
       tracee.set_pc(tracee.get_pc() + 10);
       tracee.gdb();
-    } else if (false) {
+    } else if (ABORT_ON_TAINT) {
       abort();
     }
   }

@@ -55,6 +55,16 @@ private:
     std::clog << "\n";
   }
 
+  template <size_t N, typename T>
+  void print_regs() const {
+    std::clog << args.no() << ": ";
+    for (const auto& state : memcheck.post_states) {
+      const SyscallArgs args(state.regs());
+      std::clog << args.arg<N, T>() << " ";
+    }
+    std::clog << "\n";
+  }
+
   enum class Access {NONE, READ, WRITE};
   static constexpr Access access(const char *typestr);
 

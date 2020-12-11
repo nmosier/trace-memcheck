@@ -103,6 +103,7 @@ bool SyscallChecker::pre() {
   if (i < argc) {							\
     if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
       std::clog << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
+      print_regs<i, t>();						\
       return false;							\
     }									\
   }
@@ -132,7 +133,17 @@ bool SyscallChecker::pre() {
     return true;							\
   }
 
-#define PRE_READ_STRING(str) do { if (!check_read(str)) { return false; } } while (0)
+#define PRE_READ_STRING(str)			\
+  do {						\
+    if (!check_read(str)) {			\
+      std::clog << "memcheck: " << args.no() << ": ";	\
+      for (const State& state : memcheck.post_states) {	\
+	std::clog << "'" << state.string(str) << "' ";	\
+      }							\
+      std::clog << "\nstr @ " << (void *) str << ", sp @ " << (void *) tracee.get_sp() << "\n";	\
+      return false;					\
+    }							\
+  } while (0)
 #define PRE_READ_TYPE(name) do { if (!check_read(name, sizeof(*name))) { return false; } } while (0)
 #define PRE_READ_BUF(buf, len) do { if (!check_read(buf, len)) { return false; } } while (0)
 
@@ -174,6 +185,7 @@ bool SyscallChecker::pre_FSTAT() {
   return true;
 }
 
+#if 0
 bool SyscallChecker::pre_RT_SIGACTION() {
   PRE_DEF(RT_SIGACTION);
   PRE_CHK(RT_SIGACTION);
@@ -197,6 +209,9 @@ bool SyscallChecker::pre_RT_SIGACTION() {
   
   return true;
 }
+#else
+PRE_STUB(RT_SIGACTION)
+#endif
 
 bool SyscallChecker::pre_STAT() {
   PRE_DEF(STAT);
@@ -355,6 +370,21 @@ bool SyscallChecker::pre_STATFS() {
   return true;
 }
 
+bool SyscallChecker::pre_SETRLIMIT() {
+  PRE_DEF(SETRLIMIT);
+  PRE_CHK(SETRLIMIT);
+  PRE_READ_TYPE(rlim);
+  return true;
+}
+
+bool SyscallChecker::pre_READLINK() {
+  PRE_DEF(READLINK);
+  PRE_CHK(READLINK);
+  PRE_READ_STRING(pathname);
+  PRE_WRITE_BUF(buf, bufsiz);
+  return true;
+}
+
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
@@ -371,6 +401,7 @@ PRE_TRUE(LSEEK)
 PRE_TRUE(GETTID)
 PRE_TRUE(TGKILL)
 PRE_TRUE(BRK)
+PRE_TRUE(FADVISE64)
 
 PRE_STUB(ARCH_PRCTL)
 PRE_STUB(FUTEX)
@@ -473,12 +504,16 @@ void SyscallChecker::post_GETRUSAGE() {
   if (rv >= 0) { POST_WRITE_TYPE(usage); }
 }
 
+#if 0
 void SyscallChecker::post_RT_SIGACTION() {
   POST_DEF(RT_SIGACTION);
   if (rv >= 0) {
     if (oldact != nullptr) { POST_WRITE_TYPE(oldact); }
   }
 }
+#else
+POST_STUB(RT_SIGACTION)
+#endif
 
 void SyscallChecker::post_UNAME() {
   POST_DEF(UNAME);
@@ -490,6 +525,16 @@ void SyscallChecker::post_UNAME() {
     POST_WRITE_STRING(buf->machine);
     POST_WRITE_STRING(buf->domainname);
   }
+}
+
+void SyscallChecker::post_GETRLIMIT() {
+  POST_DEF(GETRLIMIT);
+  if (rv >= 0) { POST_WRITE_TYPE(rlim); }
+}
+
+void SyscallChecker::post_READLINK() {
+  POST_DEF(READLINK);
+  if (rv >= 0) { POST_WRITE_BUF(buf, rv); }
 }
 
 POST_TRUE(OPEN)
@@ -509,6 +554,8 @@ POST_TRUE(GETPPID)
 POST_TRUE(GETEGID)
 POST_TRUE(SETSOCKOPT)
 POST_TRUE(LSEEK)
+POST_TRUE(FADVISE64)
+POST_TRUE(SETRLIMIT)
 
 POST_STAT(STAT)
 POST_STAT(LSTAT)
@@ -533,7 +580,6 @@ POST_ABORT(MREMAP)
 POST_ABORT(SET_TID_ADDRESS)
 POST_ABORT(SET_ROBUST_LIST)
 POST_ABORT(RT_SIGPROCMASK)
-POST_ABORT(GETRLIMIT)
 POST_ABORT(STATFS)
 POST_ABORT(FACCESSAT)
 POST_ABORT(GETTID)

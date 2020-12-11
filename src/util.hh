@@ -226,3 +226,16 @@ void for_each_page(void *begin, void *end, Func func) {
   }
 }
 
+namespace util {
+
+  template <typename InputIt>
+  auto distance(InputIt begin, InputIt end) {
+    return std::distance(begin, end);
+  }
+
+  template <> inline auto distance<const void *>(const void *begin, const void *end) {
+    return static_cast<const char *>(end) - static_cast<const char *>(begin);
+  }
+
+}
+	     
