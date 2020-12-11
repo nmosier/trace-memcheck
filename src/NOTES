@@ -237,3 +237,22 @@ Treat rdtsc as an 'event' instruction
 
 Hard to debug why false positives are occurring. Need side-by-side execution functionality to debug further.
 Also need to implement stack randomization.
+
+---
+
+Randomize when SP decreases doesn't work for accesses below SP.
+A solution: randomize whenever SP increases, not decreases. (?)
+
+I investigated how valgrind deals with shadow stack memory.
+Apparently it looks for a CALL or RET.
+If a CALL or RET is encountered, it ALWAYS marks the shadow stack memory as uninitialized.
+
+Also, valgrind ignores changes in the stack pointer inside functions. I.e. if SP is incremented by 128, a signal could overwrite the values, but valgrind doesn't complain.
+
+So basically the entire stack from SP
+
+On CALL/RET: mark mem below SP as tainted.
+All references below SP-128 invalid. (Can't do this yet.)
+
+---
+

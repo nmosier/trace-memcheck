@@ -44,15 +44,24 @@ bool Memcheck::stopped_trace(int status) {
 
 
 bool Memcheck::is_sp_dec(const Instruction& inst) {
-  return inst.xed_reg0() == XED_REG_RSP;
+  if (inst.xed_reg0() != XED_REG_RSP) {
+    return false;
+  }
+
+  switch (inst.xed_iclass()) {
+  case XED_ICLASS_PUSH: return false;
+  default:
+    break;
+  }
+
+  return true; // TODO: Should be more conservative about this...
 }
 
 void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
   (void) addr;
 
 #if 1
-  const bool sp_dec = is_sp_dec(inst);
-  if (sp_dec) {
+  if (is_sp_dec(inst)) {
     addr = stack_tracker.add(addr, inst, info);
     return;
   }
@@ -60,13 +69,20 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
 
 #if 1
   if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
-    addr = syscall_tracker.add(addr, inst, info,
+    addr = syscall_tracker.add(addr, inst, info, 
 			       util::method_callback(this, &Memcheck::syscall_handler_pre),
 			       util::method_callback(this, &Memcheck::syscall_handler_post));
     return;
   }
 #endif
-    
+
+#if 1
+  if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR || inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
+    addr = call_tracker.add(addr, inst, info);
+    return;
+  }
+#endif
+  
   addr = info.writer(inst);
 }
 
@@ -77,6 +93,7 @@ void StackTracker::pre_handler(uint8_t *addr) {
 }
 
 #define FILL_SP_DEC 1
+#define FILL_SP_INC 1
 
 void StackTracker::post_handler(uint8_t *addr) {
   const auto it = map.find(addr);
@@ -84,18 +101,17 @@ void StackTracker::post_handler(uint8_t *addr) {
   const auto post_sp = tracee.get_sp();
   const auto pre_sp = it->second->sp;
 
-  if (post_sp < pre_sp) {
-#if 0
-    std::cerr << "sp dec @ " << (const void *) it->second->orig_addr << ": " << it->second->inst_str
-	      << std::endl;
-#endif
-
 #if FILL_SP_DEC
-    /* taint exposed stack memory */
+  if (post_sp < pre_sp) {
     tracee.fill(fill(), post_sp, pre_sp);
     // std::clog << "Filling sp dec" << std::endl;
-#endif
   }
+#endif
+#if FILL_SP_INC
+  if (pre_sp < post_sp) {
+    tracee.fill(fill(), pre_sp, post_sp);
+  }
+#endif
 }
 
 uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
@@ -116,6 +132,36 @@ uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Tran
   map.emplace(post_addr, elem);
   
   return addr;
+}
+
+#if 1
+uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+  const auto iclass = inst.xed_iclass();
+  const auto bkpt_addr = addr;
+  auto bkpt = Instruction::int3(addr);
+  addr = info.writer(bkpt);
+  addr = info.writer(inst);
+
+  if (iclass == XED_ICLASS_CALL_NEAR) {
+    info.rb(bkpt_addr, call_callback);
+  } else {
+    assert(iclass == XED_ICLASS_RET_NEAR);
+    info.rb(bkpt_addr, ret_callback);
+  }
+
+  return addr;
+}
+#endif
+
+void CallTracker::call_handler(uint8_t *addr) const {
+  /* mark [stack_begin, rsp - 8) as tainted */
+  const auto sp = static_cast<char *>(tracee.get_sp());
+  tracee.fill(fill(), sp - 128, sp - 8);
+}
+
+void CallTracker::ret_handler(uint8_t *addr) const {
+  const auto sp = static_cast<char *>(tracee.get_sp());
+  tracee.fill(fill(), sp - 128, sp); // TODO: is this ok that it doesn't taint the return address?
 }
 
 StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
@@ -222,6 +268,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   }
 
   stack_tracker.fill(~stack_tracker.fill());
+  call_tracker.fill(~call_tracker.fill());
   
   subround_counter = !subround_counter;
 }

@@ -15,9 +15,9 @@ class StackTracker;
 class StackTracker {
 public:
   StackTracker(Tracee& tracee, uint8_t fill): tracee(tracee), fill_(fill) {}
-
+  
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
-
+  
   uint8_t fill() const { return fill_; }
   void fill(uint8_t newfill) { fill_ = newfill; }
   
@@ -97,12 +97,34 @@ private:
   Tracee& tracee;
 };
 
+class CallTracker {
+public:
+  using BkptCallback = Terminator::BkptCallback;
+  CallTracker(Tracee& tracee, uint8_t fill): tracee(tracee), fill_(fill) {}
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+
+  void fill(uint8_t fill) { fill_ = fill; }
+  uint8_t fill() const { return fill_; }
+  
+private:
+  Tracee& tracee;
+  uint8_t fill_;
+  // TODO: use std::Bind?
+  const BkptCallback call_callback = [this] (auto... args) { return call_handler(args...); };
+  const BkptCallback ret_callback = [this] (auto... args) { return ret_handler(args...); };
+
+  void call_handler(uint8_t *addr) const;
+  void ret_handler(uint8_t *addr) const;
+};
+
 class Memcheck {
 public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee, 0),
-    syscall_tracker(tracee)
+    syscall_tracker(tracee),
+    call_tracker(tracee, 0)
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -114,6 +136,7 @@ private:
   util::optional<Patcher> patcher;
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
+  CallTracker call_tracker;
   
   Maps maps_gen;
   using PageSet = std::unordered_set<void *>;
