@@ -25,7 +25,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
   patcher->start();
   maps_gen.open(child);
-  init_tracked_pages(tracked_pages);
+  tracked_pages.add_state(taint_state);
+  tracked_pages.add_maps(maps_gen);
 
   memory = UserMemory(tracee, PAGESIZE, PROT_READ | PROT_WRITE);
   
@@ -144,22 +145,6 @@ void Memcheck::clear_access() {
       tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, map.size(), map.prot & ~PROT_WRITE);
     }
   }
-}
-
-void Memcheck::init_tracked_pages(PageSet& tracked_pages) {
-  assert(tracked_pages.empty());
-
-  std::vector<Map> tmp_maps;
-  maps_gen.get_maps(util::conditional_inserter<decltype(tmp_maps)>
-		    (std::inserter(tmp_maps, tmp_maps.end()),
-		     [] (const auto& map) {
-		      return (map.prot & PROT_WRITE) != 0;
-		    }));
-  std::for_each(tmp_maps.begin(), tmp_maps.end(), [&] (const auto& map) {
-    for (size_t i = 0; i < pagecount(map.begin, map.end); ++i) {
-      tracked_pages.insert(pageidx(map.begin, i));
-    }
-  });
 }
 
 void Memcheck::save_state(State& state) {
@@ -303,7 +288,7 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 	const int prot = syscall_args.arg<2, int>();
 	if ((prot & PROT_WRITE)) {
 	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
-	  track_range(rv, (char *) rv + length);
+	  tracked_pages.track_range(rv, (char *) rv + length);
 	}
       }
     }
@@ -316,7 +301,7 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 	const auto endaddr = pagealign_up(syscall_args.arg<0, void *>());
 	if (endaddr != nullptr) {
 	  assert(brk != nullptr);
-	  track_range(brk, endaddr);
+	  tracked_pages.track_range(brk, endaddr);
 	}
 	brk = rv;
       }
@@ -333,7 +318,7 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 	void *addr = syscall_args.arg<0, void *>();
 	const size_t size = util::align_up(syscall_args.arg<1, size_t>(), PAGESIZE);
 	
-	untrack_range(addr, (char *) addr + size);
+	tracked_pages.untrack_range(addr, (char *) addr + size);
       }
     }
     break;
@@ -347,9 +332,9 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 	const int prot = syscall_args.arg<2, int>();
 	void *end = (char *) addr + len;
 	if ((prot & PROT_WRITE)) {
-	  track_range(addr, end);
+	  tracked_pages.track_range(addr, end);
 	} else {
-	  untrack_range(addr, end);
+	  tracked_pages.untrack_range(addr, end);
 	}
       }
     }
@@ -366,34 +351,10 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
 #endif
 }
 
-bool Memcheck::maps_has_addr(void *addr) const {
-  return tracked_pages.find(pagealign(addr)) != tracked_pages.end();
-}
-
 void Memcheck::init_taint(State& taint_state) {
   /* taint memory below stack */
   save_state(taint_state); // TODO: optimize
   taint_state.zero();
 
   taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
-}
-
-void Memcheck::track_range(void *begin, void *end) {
-  for_each_page(begin, end, [this] (void *pageaddr) { tracked_pages.insert(pageaddr); });
-  taint_state.snapshot().add(begin, end, 0);
-
-  assert(check_tracked_pages());
-}
-
-void Memcheck::untrack_range(void *begin, void *end) {
-  for_each_page(begin, end, [this] (void *pageaddr) { tracked_pages.erase(pageaddr); });
-  taint_state.snapshot().remove(begin, end);
-
-  assert(check_tracked_pages());
-}
-
-bool Memcheck::check_tracked_pages() {
-  PageSet ref;
-  init_tracked_pages(ref);
-  return ref == tracked_pages;
 }

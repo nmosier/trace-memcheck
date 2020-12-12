@@ -56,9 +56,7 @@ public:
   }
   
   void remove(void *pageaddr);
-
   void remove(void *begin, void *end);
-    
 
 private:
   static_assert(PAGESIZE % sizeof(Elem) == 0, "");

@@ -33,6 +33,7 @@ add_executable(memcheck
   syscall-check.cc
   addr-range.cc
   tracker.cc
+  pageset.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)

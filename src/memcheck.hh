@@ -2,9 +2,6 @@
 
 class Memcheck;
 
-#include <string>
-#include <unordered_set>
-#include <map>
 #include "tracker.hh"
 #include "inst.hh"
 #include "util.hh"
@@ -12,6 +9,7 @@ class Memcheck;
 #include "maps.hh"
 #include "snapshot.hh"
 #include "state.hh"
+#include "pageset.hh"
 
 class Memcheck {
 public:
@@ -37,7 +35,6 @@ private:
   util::optional<UserMemory> memory;
   
   Maps maps_gen;
-  using PageSet = std::unordered_set<void *>;
   PageSet tracked_pages;
   
   void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
@@ -55,13 +52,7 @@ private:
   }
 
   void clear_access();
-  void init_tracked_pages(PageSet& tracked_pages);
-  bool check_tracked_pages();
-  bool maps_has_addr(void *addr) const; // TODO: should be member of maps class.
 
-  void track_range(void *begin, void *end);
-  void untrack_range(void *begin, void *end);
-  
   void syscall_handler_pre(uint8_t *addr);
   void syscall_handler_post(uint8_t *addr);
 

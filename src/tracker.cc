@@ -9,7 +9,6 @@ uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Transf
     return addr;
 }
 
-
 void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
   const auto flags = tracee.get_regs().eflags & mask;
