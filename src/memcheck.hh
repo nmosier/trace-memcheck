@@ -15,14 +15,36 @@ class StackTracker;
 
 constexpr unsigned SHADOW_STACK_SIZE = 128;
 
-class StackTracker {
+class Tracker {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill): tracee(tracee), fill_(fill) {}
+  using BkptCallback = Terminator::BkptCallback;
+  using TransformerInfo = Patcher::TransformerInfo;
+  Tracker(Tracee& tracee): tracee(tracee) {}
+  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) = 0;
   
-  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
-  
+protected:
+  Tracee& tracee;
+};
+
+class Filler {
+public:
+  Filler(uint8_t fill): fill_(fill) {}
+
   uint8_t fill() const { return fill_; }
   void fill(uint8_t newfill) { fill_ = newfill; }
+  
+protected:
+  
+private:
+  uint8_t fill_;
+  
+};
+
+class StackTracker: public Tracker, public Filler {
+public:
+  StackTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
+  
+  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
   
 private:
   // TODO: Can be optimized.
@@ -36,8 +58,6 @@ private:
   using Map = std::unordered_map<uint8_t *, std::shared_ptr<Elem>>;
   using BkptCallback = Terminator::BkptCallback;
 
-  Tracee& tracee;
-  uint8_t fill_;
   Map map;
 
   const BkptCallback pre_callback = [this] (auto... args) { return pre_handler(args...); };
@@ -100,20 +120,13 @@ private:
   Tracee& tracee;
 };
 
-class CallTracker {
+class CallTracker: public Tracker, public Filler {
 public:
-  using BkptCallback = Terminator::BkptCallback;
-  CallTracker(Tracee& tracee, uint8_t fill): tracee(tracee), fill_(fill) {}
+  CallTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
 
-  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
 
-  void fill(uint8_t fill) { fill_ = fill; }
-  uint8_t fill() const { return fill_; }
-  
 private:
-  Tracee& tracee;
-  uint8_t fill_;
-  // TODO: use std::Bind?
   const BkptCallback call_callback = [this] (auto... args) { return call_handler(args...); };
   const BkptCallback ret_callback = [this] (auto... args) { return ret_handler(args...); };
 
@@ -121,21 +134,20 @@ private:
   void ret_handler(uint8_t *addr) const;
 };
 
-class JccTracker {
+class JccTracker: public Tracker {
 public:
   using cksum_t = uint32_t;
   using List = std::vector<std::pair<uint8_t *, cksum_t>>;
-  using BkptCallback = Terminator::BkptCallback;
-  JccTracker(Tracee& tracee): tracee(tracee) { reset(); } 
 
-  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+  JccTracker(Tracee& tracee): Tracker(tracee) { reset(); } 
+
+  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
   cksum_t cksum() const { return cksum_; }
   void reset() { cksum_ = 0; list_.clear(); }
 
   const List& list() const { return list_; }
   
 private:
-  Tracee& tracee;
   cksum_t cksum_;
   List list_;
 
