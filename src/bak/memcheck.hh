@@ -16,7 +16,6 @@ public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee, 0),
-    syscall_tracker(tracee, tracked_pages),
     call_tracker(tracee, 0),
     jcc_tracker(tracee)
   {}
@@ -29,7 +28,7 @@ private:
   Tracee tracee;
   util::optional<Patcher> patcher;
   StackTracker stack_tracker;
-  SyscallTracker syscall_tracker;
+  util::optional<SyscallTracker> syscall_tracker;
   CallTracker call_tracker;
   JccTracker jcc_tracker;
   util::optional<UserMemory> memory;
@@ -52,7 +51,6 @@ private:
   }
 
   void syscall_handler_pre(uint8_t *addr);
-  void syscall_handler_post(uint8_t *addr);
 
   void save_state(State& state);
   State save_state();
@@ -66,7 +64,8 @@ private:
 
   void *stack_begin();
 
-  SyscallArgs syscall_args;
+  void start_subround();
+  void stop_subround();
 
   static constexpr unsigned SUBROUNDS = 2;
   bool subround_counter = false; // TODO: Generalize for SUBROUNDS.
@@ -80,10 +79,7 @@ private:
   RoundArray<JccTracker::List> jcc_lists;
   State taint_state;
 
-  void *brk = nullptr; // current brk(2) value
-
   friend class SyscallChecker; // TEMPORARY
 };
 
-constexpr bool FILL_SP_DEC = true;
-constexpr bool FILL_SP_INC = true;
+constexpr bool CHANGE_PRE_STATE = true;

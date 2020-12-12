@@ -271,3 +271,9 @@ Memcheck needs to be able to get its own memory map.
 
 Hmm, it would be good to be able to run rounds at arbitrary sequence points, rather than just syscalls. This would provide a greater resolution, and errors would be easier to pinpoint.
 
+Sequence Points:
+PRE bkpt
+POST bkpt
+
+Hmm, handler can just call memcheck pre/post sequence point if it's in the mask.
+
