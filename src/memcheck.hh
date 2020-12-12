@@ -16,7 +16,7 @@ public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee, 0),
-    syscall_tracker(tracee),
+    syscall_tracker(tracee, tracked_pages),
     call_tracker(tracee, 0),
     jcc_tracker(tracee)
   {}
@@ -50,8 +50,6 @@ private:
   static constexpr void *mprotect_ptr(void *ptr) {
     return (void *) (((uintptr_t) ptr) & ~(mprotect_size - 1));
   }
-
-  void clear_access();
 
   void syscall_handler_pre(uint8_t *addr);
   void syscall_handler_post(uint8_t *addr);

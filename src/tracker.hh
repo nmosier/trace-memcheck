@@ -5,6 +5,7 @@
 #include <vector>
 #include "block-term.hh"
 #include "patch.hh"
+#include "pageset.hh"
 
 constexpr unsigned SHADOW_STACK_SIZE = 128;
 
@@ -103,11 +104,14 @@ private:
 
 class SyscallTracker: public Tracker {
 public:
-  SyscallTracker(Tracee& tracee): Tracker(tracee) {}
+  SyscallTracker(Tracee& tracee, PageSet& page_set): Tracker(tracee), page_set(page_set) {}
 
   virtual Kind kind() const override { return Kind::SYSCALL; }
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
 	       const BkptCallback& pre_handler, const BkptCallback& post_handler);
+  
+private:
+  PageSet& page_set;
 };
 
 class CallTracker: public Tracker, public Filler {

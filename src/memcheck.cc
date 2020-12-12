@@ -136,17 +136,6 @@ void Memcheck::segfault_handler(int signum) {
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) mprotect_ptr(fault_addr), mprotect_size, PROT_READ | PROT_WRITE);
 }
 
-void Memcheck::clear_access() {
-  std::vector<Map> map_list;
-  maps_gen.get_maps(std::back_inserter(map_list));
-
-  for (const Map& map : map_list) {
-    if ((map.prot & PROT_WRITE)) {
-      tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, map.size(), map.prot & ~PROT_WRITE);
-    }
-  }
-}
-
 void Memcheck::save_state(State& state) {
   state.save(tracee, tracked_pages.begin(), tracked_pages.end());
 }
