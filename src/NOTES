@@ -256,3 +256,13 @@ All references below SP-128 invalid. (Can't do this yet.)
 
 ---
 
+Next: step-by-step execution when mismatch detected.
+How to do this?
+
+1. Restore to canonical state. (Shouldn't need to do anything for this right now)
+2. While syscall not encountered, have patcher execute single instruction. Make sure no loads/stores from tainted memory occur (how to do this?)
+
+---
+
+Actually, break at each conditional jump to cksum EFLAGS.
+Memcheck needs to be able to get its own memory map.

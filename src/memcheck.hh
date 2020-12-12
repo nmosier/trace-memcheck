@@ -12,6 +12,8 @@ class StackTracker;
 #include "snapshot.hh"
 #include "state.hh"
 
+constexpr unsigned SHADOW_STACK_SIZE = 128;
+
 class StackTracker {
 public:
   StackTracker(Tracee& tracee, uint8_t fill): tracee(tracee), fill_(fill) {}
@@ -118,13 +120,33 @@ private:
   void ret_handler(uint8_t *addr) const;
 };
 
+class JccTracker {
+public:
+  using cksum_t = uint32_t;
+  using BkptCallback = Terminator::BkptCallback;
+  JccTracker(Tracee& tracee): tracee(tracee) { reset(); } 
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+  cksum_t cksum() const { return cksum_; }
+  void reset() { cksum_ = 0; }
+  
+private:
+  Tracee& tracee;
+  cksum_t cksum_;
+
+  static constexpr cksum_t mask = 0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800;
+
+  void handler(uint8_t *addr);
+};
+
 class Memcheck {
 public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee, 0),
     syscall_tracker(tracee),
-    call_tracker(tracee, 0)
+    call_tracker(tracee, 0),
+    jcc_tracker(tracee)
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -137,6 +159,8 @@ private:
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
   CallTracker call_tracker;
+  JccTracker jcc_tracker;
+  util::optional<UserMemory> memory;
   
   Maps maps_gen;
   using PageSet = std::unordered_set<void *>;
@@ -146,6 +170,7 @@ private:
   
   static bool stopped_trace(int status);
   static bool is_sp_dec(const Instruction& inst);
+  static bool is_jcc(const Instruction& inst);
 
   void segfault_handler(int signum);
   static constexpr size_t mprotect_bits = 12;
@@ -180,9 +205,11 @@ private:
 
   SyscallArgs syscall_args;
 
-  bool subround_counter = false;
+  static constexpr unsigned SUBROUNDS = 2;
+  bool subround_counter = false; // TODO: Generalize for SUBROUNDS.
   State pre_state;
-  std::array<State, 2> post_states;
+  std::array<State, SUBROUNDS> post_states;
+  std::array<JccTracker::cksum_t, SUBROUNDS> jcc_cksums;
   State taint_state;
 
   void *brk = nullptr; // current brk(2) value

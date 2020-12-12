@@ -4,6 +4,7 @@
 #include <sys/user.h>
 #include <memory>
 #include <cassert>
+#include <algorithm>
 
 void *get_pc(pid_t child);
 void *get_sp(pid_t pid);
@@ -237,5 +238,15 @@ namespace util {
     return static_cast<const char *>(end) - static_cast<const char *>(begin);
   }
 
+  template <class ForwardIt>
+  bool all_equal(ForwardIt first, ForwardIt last) {
+    if (first == last) {
+      return true;
+    }
+    const auto first_val = *first++;
+    return std::all_of(first, last, [&] (const auto& val) {
+      return val == first_val;
+    });
+  }
 }
 	     

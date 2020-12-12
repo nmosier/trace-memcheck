@@ -26,6 +26,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher->start();
   maps_gen.open(child);
   init_tracked_pages(tracked_pages);
+
+  memory = UserMemory(tracee, PAGESIZE, PROT_READ | PROT_WRITE);
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
   save_state(pre_state);
@@ -57,6 +59,33 @@ bool Memcheck::is_sp_dec(const Instruction& inst) {
   return true; // TODO: Should be more conservative about this...
 }
 
+bool Memcheck::is_jcc(const Instruction& inst) {
+  switch (inst.xed_iclass()) {
+  case XED_ICLASS_JB:
+  case XED_ICLASS_JBE:
+  case XED_ICLASS_JCXZ:
+  case XED_ICLASS_JECXZ:
+  case XED_ICLASS_JL:
+  case XED_ICLASS_JLE:
+  case XED_ICLASS_JNB:
+  case XED_ICLASS_JNBE:
+  case XED_ICLASS_JNL:
+  case XED_ICLASS_JNLE:
+  case XED_ICLASS_JNO:
+  case XED_ICLASS_JNP:
+  case XED_ICLASS_JNS:
+  case XED_ICLASS_JNZ:
+  case XED_ICLASS_JO:
+  case XED_ICLASS_JP:
+  case XED_ICLASS_JRCXZ:
+  case XED_ICLASS_JS:
+  case XED_ICLASS_JZ:
+    return true;
+  default:
+    return false;
+  }
+}
+
 void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
   (void) addr;
 
@@ -76,15 +105,38 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
   }
 #endif
 
-#if 1
+#if 0
   if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR || inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
     addr = call_tracker.add(addr, inst, info);
+    return;
+  }
+#endif
+
+#if 1
+  if (is_jcc(inst)) {
+    addr = jcc_tracker.add(addr, inst, info);
     return;
   }
 #endif
   
   addr = info.writer(inst);
 }
+
+uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+    auto bkpt = Instruction::int3(addr);
+    addr = info.writer(bkpt);
+    info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+    addr = info.writer(inst);
+    return addr;
+}
+
+
+void JccTracker::handler(uint8_t *addr) {
+  /* checksum flags */
+  const auto flags = tracee.get_regs().eflags & mask;
+  cksum_ = (cksum_ >> 1 | cksum_ << 31) + flags;
+}
+
 
 void StackTracker::pre_handler(uint8_t *addr) {
   const auto it = map.find(addr);
@@ -98,18 +150,18 @@ void StackTracker::pre_handler(uint8_t *addr) {
 void StackTracker::post_handler(uint8_t *addr) {
   const auto it = map.find(addr);
   assert(it != map.end());
-  const auto post_sp = tracee.get_sp();
-  const auto pre_sp = it->second->sp;
+  const auto post_sp = static_cast<char *>(tracee.get_sp());
+  const auto pre_sp = static_cast<char *>(it->second->sp);
 
 #if FILL_SP_DEC
   if (post_sp < pre_sp) {
-    tracee.fill(fill(), post_sp, pre_sp);
+    tracee.fill(fill(), post_sp - SHADOW_STACK_SIZE, pre_sp - SHADOW_STACK_SIZE);
     // std::clog << "Filling sp dec" << std::endl;
   }
 #endif
 #if FILL_SP_INC
   if (pre_sp < post_sp) {
-    tracee.fill(fill(), pre_sp, post_sp);
+    tracee.fill(fill(), pre_sp - SHADOW_STACK_SIZE, post_sp - SHADOW_STACK_SIZE);
   }
 #endif
 }
@@ -156,12 +208,12 @@ uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Trans
 void CallTracker::call_handler(uint8_t *addr) const {
   /* mark [stack_begin, rsp - 8) as tainted */
   const auto sp = static_cast<char *>(tracee.get_sp());
-  tracee.fill(fill(), sp - 128, sp - 8);
+  tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
 }
 
 void CallTracker::ret_handler(uint8_t *addr) const {
   const auto sp = static_cast<char *>(tracee.get_sp());
-  tracee.fill(fill(), sp - 128, sp); // TODO: is this ok that it doesn't taint the return address?
+  tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp); // TODO: is this ok that it doesn't taint the return address?
 }
 
 StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
@@ -241,9 +293,9 @@ State Memcheck::save_state() {
 void *Memcheck::stack_begin() {
   const auto stack_end = pagealign_up(tracee.get_sp());
   auto stack_begin = stack_end;
-  while (tracked_pages.find(stack_begin) != tracked_pages.end()) {
+  do {
     stack_begin = pageidx(stack_begin, -1);
-  }
+  } while (tracked_pages.find(stack_begin) != tracked_pages.end());
   stack_begin = pageidx(stack_begin, 1);
   return stack_begin;
 }
@@ -255,6 +307,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   std::clog << "syscall " << syscall_args.no() << "\n";
   
   save_state(post_states[subround_counter]);
+  jcc_cksums[subround_counter] = jcc_tracker.cksum();
 
   if (!subround_counter) {
 #if !CHANGE_PRE_STATE
@@ -266,10 +319,10 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   } else {
     check_round();
   }
-
+  
   stack_tracker.fill(~stack_tracker.fill());
   call_tracker.fill(~call_tracker.fill());
-  
+  jcc_tracker.reset();
   subround_counter = !subround_counter;
 }
 
@@ -289,7 +342,7 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   
   /* taint stack */
   init_taint(taint_state); // TODO: Could be optimized.
-  
+
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *it; // TODO: could be optimized.
   }
@@ -298,8 +351,16 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
 #define ABORT_ON_TAINT 1
 
 void Memcheck::check_round() {
+  // TODO: should return bool.
+  
   /* get taint mask */
   update_taint_state(post_states.begin(), post_states.end(), taint_state);
+
+  /* ensure eflags cksum same */
+  if (!util::all_equal(jcc_cksums.begin(), jcc_cksums.end())) {
+    std::clog << "memcheck: conditional jump checksums differ\n";
+    abort();
+  }
 
   /* make sure args to syscall aren't tainted */
   SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args, *this);
@@ -400,14 +461,8 @@ void Memcheck::init_taint(State& taint_state) {
   save_state(taint_state); // TODO: optimize
   taint_state.zero();
 
-  /* find beginning of stack */
-  void *stackend = tracee.get_sp();
-  void *stackpage;
-  for (stackpage = pagealign(stackend);
-       tracked_pages.find(stackpage) != tracked_pages.end();
-       stackpage = pageidx(stackpage, -1)) {}
-
-  taint_state.fill(stackpage, stackend, -1);
+  // FIXME
+  // taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
 }
 
 void Memcheck::track_range(void *begin, void *end) {
