@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <linux/futex.h>
 #include "syscall-check.hh"
 
 static constexpr size_t constexpr_strlen(const char *begin) {
@@ -393,6 +394,44 @@ bool SyscallChecker::pre_READLINK() {
   return true;
 }
 
+bool SyscallChecker::pre_IOCTL() {
+  PRE_DEF(IOCTL);
+  PRE_CHK(IOCTL);
+
+  switch (request) {
+  case TCGETS:
+    {
+      const auto argp = reinterpret_cast<struct termios *>(arg);
+      PRE_WRITE_TYPE(argp);
+    }
+    break;
+  case TIOCGWINSZ:
+    {
+      const auto argp = reinterpret_cast<struct winsize *>(arg);
+      PRE_WRITE_TYPE(argp);
+    }
+    break;
+  default:
+    abort();
+  }
+
+  return true;
+}
+
+bool SyscallChecker::pre_FUTEX() {
+  PRE_DEF(FUTEX);
+  PRE_CHK(FUTEX);
+  constexpr int ignoremask = FUTEX_PRIVATE_FLAG; // TODO: unite w/ other def
+  switch (futex_op & ~ignoremask) {
+  case FUTEX_WAKE:
+    break;
+  default:
+    abort();
+  }
+  return true;
+}
+
+
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
@@ -412,10 +451,8 @@ PRE_TRUE(BRK)
 PRE_TRUE(FADVISE64)
 
 PRE_STUB(ARCH_PRCTL)
-PRE_STUB(FUTEX)
 PRE_STUB(SET_ROBUST_LIST)
 PRE_STUB(FCNTL)
-PRE_STUB(IOCTL)
 PRE_STUB(SET_TID_ADDRESS)
   
 PRE_ABORT(MREMAP)
@@ -567,6 +604,18 @@ void SyscallChecker::post_IOCTL() {
   }
 }
 
+void SyscallChecker::post_FUTEX() {
+  POST_DEF(FUTEX);
+  if (rv >= 0) {
+    constexpr uint32_t ignoremask = FUTEX_PRIVATE_FLAG;
+    switch (futex_op & ~ignoremask) {
+    case FUTEX_WAKE:
+      break;
+    default:
+      abort();
+    }
+  }
+}
 
 POST_TRUE(OPEN)
 POST_TRUE(CLOSE)
@@ -598,7 +647,6 @@ POST_GETXATTR(GETXATTR)
 POST_GETNAME(GETSOCKNAME)
 POST_GETNAME(GETPEERNAME)
 
-POST_STUB(FUTEX)
 POST_STUB(SENDTO)
 POST_STUB(RECVMSG)
 POST_STUB(BRK)

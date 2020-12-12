@@ -25,7 +25,7 @@
 #define SYS_BRK BRK, 12, void *, 1, void *, addr,
 #define SYS_ACCESS ACCESS, 21, int, 2, const char *,pathname, int, mode,
 #define SYS_ARCH_PRCTL ARCH_PRCTL, 158, long, 3, struct task_struct *,task, int, option, unsigned long *, addr,
-#define SYS_FUTEX FUTEX, 202, int, 3, uint32_t *, uaddr, int, op, uint32_t, val, struct timespec *, utime, uint32_t *, uaddr2, uint32_t, val3,
+#define SYS_FUTEX FUTEX, 202, int, 3, uint32_t *, uaddr, int, futex_op, uint32_t, val, struct timespec *, timeout, uint32_t *, uaddr2, uint32_t, val3,
 #define SYS_EXIT_GROUP EXIT_GROUP, 231, int, 1, int, status,
 #define SYS_GETDENTS GETDENTS, 78, int, 3, unsigned, fd, struct linux_dirent *, dirp, unsigned, count,
 #define SYS_GETEUID GETEUID, 107, uid_t, 0,

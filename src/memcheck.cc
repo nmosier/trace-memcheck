@@ -137,7 +137,7 @@ void JccTracker::handler(uint8_t *addr) {
   cksum_ = (cksum_ >> 1 | cksum_ << 31) + flags;
 
   // TODO: temporary
-  map_.emplace(addr, flags);
+  list_.emplace_back(addr, flags);
 }
 
 
@@ -311,7 +311,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   
   save_state(post_states[subround_counter]);
   jcc_cksums[subround_counter] = jcc_tracker.cksum();
-  jcc_maps[subround_counter] = jcc_tracker.map();
+  jcc_lists[subround_counter] = jcc_tracker.list();
 
   if (!subround_counter) {
 #if !CHANGE_PRE_STATE
@@ -361,13 +361,31 @@ void Memcheck::check_round() {
   update_taint_state(post_states.begin(), post_states.end(), taint_state);
 
   // TODO: DEBUG:
-  const auto begin1 = jcc_maps[0].begin(), end1 = jcc_maps[0].end();
-  const auto begin2 = jcc_maps[1].begin(), end2 = jcc_maps[1].end();
-  for (auto it1 = begin1, it2 = begin2; it1 != end1 && it2 != end2; ++it1, ++it2) {
-    if (*it1 != *it2) {
-      assert(it1->first == it2->first);
-      std::clog << "JCC MISMATCH @ " << (void *) it1->first << ", flags " << std::hex << it1->second
-		<< " vs " << std::hex << it2->second << "\n";
+  {
+    const auto begin1 = jcc_lists[0].begin(), end1 = jcc_lists[0].end();
+    const auto begin2 = jcc_lists[1].begin(), end2 = jcc_lists[1].end();
+    auto it1 = begin1, it2 = begin2;
+    for (; it1 != end1 && it2 != end2; ++it1, ++it2) {
+      if (*it1 != *it2) {
+	assert(it1->first == it2->first);
+	std::clog << "JCC MISMATCH @ " << (void *) it1->first << ", flags " << std::hex
+		  << it1->second << " vs " << std::hex << it2->second << "\n";
+	abort();
+      }
+    }
+    if (it1 != end1) {
+      std::clog << "JCC OVERHANG @ " << (void *) it1->first << ", flags " << std::hex << it1->second
+		<< "\n";
+      abort();
+    }
+    if (it2 != end2) {
+      std::clog << "JCC OVERHANG @ " << (void *) it2->first << ", flags " << std::hex << it2->second
+		<< "\n";
+      abort();
+    }
+    if (!util::all_equal(jcc_lists.begin(), jcc_lists.end())) {
+      std::clog << "memcheck: condition jump maps differ\n";
+      abort();
     }
   }
 
@@ -378,7 +396,9 @@ void Memcheck::check_round() {
   }
 
   /* make sure args to syscall aren't tainted */
-  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()), syscall_args, *this);
+  SyscallChecker syscall_checker
+    (tracee, taint_state, AddrRange(stack_begin(), static_cast<char *>(tracee.get_sp()) -
+				    SHADOW_STACK_SIZE), syscall_args, *this);
   if (!syscall_checker.pre()) {
     /* DEBUG: Translate */
     const auto orig_addr = patcher->orig_block_addr(tracee.get_pc());
