@@ -105,7 +105,7 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
   }
 #endif
 
-#if 0
+#if 1
   if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR || inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
     addr = call_tracker.add(addr, inst, info);
     return;
@@ -135,6 +135,9 @@ void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
   const auto flags = tracee.get_regs().eflags & mask;
   cksum_ = (cksum_ >> 1 | cksum_ << 31) + flags;
+
+  // TODO: temporary
+  map_.emplace(addr, flags);
 }
 
 
@@ -308,6 +311,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   
   save_state(post_states[subround_counter]);
   jcc_cksums[subround_counter] = jcc_tracker.cksum();
+  jcc_maps[subround_counter] = jcc_tracker.map();
 
   if (!subround_counter) {
 #if !CHANGE_PRE_STATE
@@ -355,6 +359,17 @@ void Memcheck::check_round() {
   
   /* get taint mask */
   update_taint_state(post_states.begin(), post_states.end(), taint_state);
+
+  // TODO: DEBUG:
+  const auto begin1 = jcc_maps[0].begin(), end1 = jcc_maps[0].end();
+  const auto begin2 = jcc_maps[1].begin(), end2 = jcc_maps[1].end();
+  for (auto it1 = begin1, it2 = begin2; it1 != end1 && it2 != end2; ++it1, ++it2) {
+    if (*it1 != *it2) {
+      assert(it1->first == it2->first);
+      std::clog << "JCC MISMATCH @ " << (void *) it1->first << ", flags " << std::hex << it1->second
+		<< " vs " << std::hex << it2->second << "\n";
+    }
+  }
 
   /* ensure eflags cksum same */
   if (!util::all_equal(jcc_cksums.begin(), jcc_cksums.end())) {
@@ -461,8 +476,7 @@ void Memcheck::init_taint(State& taint_state) {
   save_state(taint_state); // TODO: optimize
   taint_state.zero();
 
-  // FIXME
-  // taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
+  taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
 }
 
 void Memcheck::track_range(void *begin, void *end) {

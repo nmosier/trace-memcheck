@@ -5,6 +5,7 @@ class StackTracker;
 
 #include <string>
 #include <unordered_set>
+#include <map>
 #include "inst.hh"
 #include "util.hh"
 #include "patch.hh"
@@ -123,18 +124,22 @@ private:
 class JccTracker {
 public:
   using cksum_t = uint32_t;
+  using Map = std::map<uint8_t *, cksum_t>;
   using BkptCallback = Terminator::BkptCallback;
   JccTracker(Tracee& tracee): tracee(tracee) { reset(); } 
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
   cksum_t cksum() const { return cksum_; }
-  void reset() { cksum_ = 0; }
+  void reset() { cksum_ = 0; map_.clear(); }
+
+  const Map& map() const { return map_; }
   
 private:
   Tracee& tracee;
   cksum_t cksum_;
+  Map map_;
 
-  static constexpr cksum_t mask = 0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800;
+  static constexpr cksum_t mask = 0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800; // TODO: remove this
 
   void handler(uint8_t *addr);
 };
@@ -210,6 +215,7 @@ private:
   State pre_state;
   std::array<State, SUBROUNDS> post_states;
   std::array<JccTracker::cksum_t, SUBROUNDS> jcc_cksums;
+  std::array<JccTracker::Map, SUBROUNDS> jcc_maps;
   State taint_state;
 
   void *brk = nullptr; // current brk(2) value

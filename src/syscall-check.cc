@@ -6,6 +6,8 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <poll.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 #include "syscall-check.hh"
 
 static constexpr size_t constexpr_strlen(const char *begin) {
@@ -543,6 +545,29 @@ void SyscallChecker::post_READLINK() {
   if (rv >= 0) { POST_WRITE_BUF(buf, rv); }
 }
 
+void SyscallChecker::post_IOCTL() {
+  POST_DEF(IOCTL);
+  if (rv >= 0) {
+    switch (request) {
+    case TCGETS:
+      {
+	const auto argp = reinterpret_cast<struct termios *>(arg);
+	POST_WRITE_TYPE(argp);
+      }
+      break;
+    case TIOCGWINSZ:
+      {
+	const auto argp = reinterpret_cast<struct winsize *>(arg);
+	POST_WRITE_TYPE(argp);
+      }
+      break;
+    default:
+      abort();
+    }
+  }
+}
+
+
 POST_TRUE(OPEN)
 POST_TRUE(CLOSE)
 POST_TRUE(MMAP)
@@ -574,7 +599,6 @@ POST_GETNAME(GETSOCKNAME)
 POST_GETNAME(GETPEERNAME)
 
 POST_STUB(FUTEX)
-POST_STUB(IOCTL)
 POST_STUB(SENDTO)
 POST_STUB(RECVMSG)
 POST_STUB(BRK)
