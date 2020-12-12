@@ -1,10 +1,21 @@
 #pragma once
 
+#include <cassert>
+#include <string>
+#include <vector>
+#include "block-term.hh"
+#include "patch.hh"
+
+constexpr unsigned SHADOW_STACK_SIZE = 128;
+
 class Tracker {
 public:
   using BkptCallback = Terminator::BkptCallback;
   using TransformerInfo = Patcher::TransformerInfo;
+  enum class Kind {STACK, SYSCALL, CALL, JCC};
+  
   Tracker(Tracee& tracee): tracee(tracee) {}
+  virtual Kind kind() const = 0;
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) { abort(); }
   
 protected:
@@ -18,17 +29,15 @@ public:
   uint8_t fill() const { return fill_; }
   void fill(uint8_t newfill) { fill_ = newfill; }
   
-protected:
-  
 private:
   uint8_t fill_;
-  
 };
 
 class StackTracker: public Tracker, public Filler {
 public:
   StackTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
   
+  virtual Kind kind() const override { return Kind::STACK; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
   
 private:
@@ -96,6 +105,7 @@ class SyscallTracker: public Tracker {
 public:
   SyscallTracker(Tracee& tracee): Tracker(tracee) {}
 
+  virtual Kind kind() const override { return Kind::SYSCALL; }
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
 	       const BkptCallback& pre_handler, const BkptCallback& post_handler);
 };
@@ -104,6 +114,7 @@ class CallTracker: public Tracker, public Filler {
 public:
   CallTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
 
+  virtual Kind kind() const override { return Kind::CALL; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
 
 private:
@@ -121,6 +132,7 @@ public:
 
   JccTracker(Tracee& tracee): Tracker(tracee) { reset(); } 
 
+  virtual Kind kind() const override { return Kind::JCC; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
   cksum_t cksum() const { return cksum_; }
   void reset() { cksum_ = 0; list_.clear(); }

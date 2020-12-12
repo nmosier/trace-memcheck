@@ -32,6 +32,7 @@ add_executable(memcheck
   state.cc
   syscall-check.cc
   addr-range.cc
+  tracker.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)

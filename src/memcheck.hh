@@ -5,16 +5,13 @@ class Memcheck;
 #include <string>
 #include <unordered_set>
 #include <map>
+#include "tracker.hh"
 #include "inst.hh"
 #include "util.hh"
 #include "patch.hh"
 #include "maps.hh"
 #include "snapshot.hh"
 #include "state.hh"
-#include "tracker.hh"
-
-constexpr unsigned SHADOW_STACK_SIZE = 128;
-
 
 class Memcheck {
 public:
@@ -85,9 +82,13 @@ private:
   static constexpr unsigned SUBROUNDS = 2;
   bool subround_counter = false; // TODO: Generalize for SUBROUNDS.
   State pre_state;
-  std::array<State, SUBROUNDS> post_states;
-  std::array<JccTracker::cksum_t, SUBROUNDS> jcc_cksums;
-  std::array<JccTracker::List, SUBROUNDS> jcc_lists;
+
+  template <typename T>
+  using RoundArray = std::array<T, SUBROUNDS>;
+  
+  RoundArray<State> post_states;
+  RoundArray<JccTracker::cksum_t> jcc_cksums;
+  RoundArray<JccTracker::List> jcc_lists;
   State taint_state;
 
   void *brk = nullptr; // current brk(2) value
