@@ -102,6 +102,13 @@ void Tracee::cache_regs(void) {
   }
 }
 
+void Tracee::cache_fpregs() {
+  if (!fpregs_good_) {
+    ptrace(PTRACE_GETFPREGS, pid(), nullptr, &fpregs_);
+    fpregs_good_ = true;
+  }
+}
+
 void Tracee::get_regs(user_regs_struct& regs) {
   cache_regs();
   regs = get_regs();
@@ -194,7 +201,7 @@ void Tracee::perror(void) const {
   abort();
 }
 
-void Tracee::gdb(void) {
+void Tracee::gdb() {
   Instruction inst(get_pc(), *this);
   const unsigned instlen = inst.size();
   uint8_t instbuf[Decoder::max_inst_len];
@@ -203,7 +210,7 @@ void Tracee::gdb(void) {
   instbuf[1] = 0xfe;
   
   /* run in infinite loop */
-  write(instbuf, instlen, get_pc());
+  write(instbuf, std::max<unsigned>(instlen, 2), get_pc());
   ptrace(PTRACE_DETACH, pid(), 0, 0);
   
   char pid_str[16];
@@ -312,4 +319,20 @@ void Tracee::fill(uint8_t val, size_t count, void *to) const {
 
 void Tracee::fill(uint8_t val, void *to_begin, void *to_end) const {
   fill(val, static_cast<char *>(to_end) - static_cast<char *>(to_begin), to_begin);
+}
+
+void Tracee::get_fpregs(user_fpregs_struct& fpregs) {
+  cache_fpregs();
+  fpregs = fpregs_;
+}
+
+const user_fpregs_struct& Tracee::get_fpregs() {
+  cache_fpregs();
+  return fpregs_;
+}
+
+void Tracee::set_fpregs(const user_fpregs_struct& fpregs) {
+  fpregs_ = fpregs;
+  ptrace(PTRACE_SETFPREGS, pid(), nullptr, &fpregs_);
+  fpregs_good_ = true;
 }

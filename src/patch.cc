@@ -75,7 +75,7 @@ Block *Patcher::lookup_block_patch(uint8_t *addr, bool can_fail) {
       if (can_fail) {
 	return nullptr;
       } else {
-	std::cerr << "failed to translate block\n";
+	*g_conf.log << "failed to translate block\n";
 	abort();
       }
     }
@@ -161,9 +161,11 @@ void Patcher::run(void) {
 
     if (g_conf.execution_trace && !g_conf.singlestep) { 
       if (WIFSTOPPED(status)) {
-	std::cerr << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	*g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
+		  << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
+		  << ": ";
 	Instruction cur_inst(tracee.get_pc(), tracee);
-	std::cerr << cur_inst << '\n';
+	*g_conf.log << cur_inst << '\n';
       }
     }
 
@@ -175,9 +177,11 @@ void Patcher::run(void) {
 	  uint8_t pc_byte;
 	  while (true) {
 	    if (g_conf.execution_trace) {
-	      std::cerr << "ss pc = " << static_cast<void *>(tracee.get_pc()) << ": ";
+	      *g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
+			<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
+			<< ": ";
 	      Instruction cur_inst(tracee.get_pc(), tracee);
-	      std::cerr << cur_inst << '\n';
+	      *g_conf.log << cur_inst << '\n';
 	    }
 
 	    bkpt_pc = tracee.get_pc();
@@ -216,17 +220,12 @@ void Patcher::run(void) {
 void Patcher::handle_signal(int signum) {
   const auto it = sighandlers.find(signum);
   if (it == sighandlers.end()) {
-    std::cerr << "unexpected signal " << signum << '\n';
-    std::cerr << "pc = " << (void *) tracee.get_pc() << '\n';
+    *g_conf.log << "unexpected signal " << signum << '\n';
+    *g_conf.log << "pc = " << (void *) tracee.get_pc() << '\n';
     uint8_t *stop_pc = tracee.get_pc();
     Instruction inst(stop_pc, tracee);
-    std::cerr << "stopped at inst: " << Decoder::disas(inst).c_str() << '\n';
-    
-    if (g_conf.gdb) {
-      tracee.gdb();
-    } else {
-      abort();
-    }
+    *g_conf.log << "stopped at inst: " << Decoder::disas(inst).c_str() << '\n';
+    g_conf.abort(tracee);
   } else {
     it->second(signum);
   }
@@ -237,7 +236,7 @@ uint8_t *Patcher::orig_block_addr(uint8_t *addr) const {
   std::map<uint8_t *, uint8_t *> map;
   std::transform(block_map.begin(), block_map.end(), std::inserter(map, map.end()),
 		 [] (const auto& p) {
-		   return std::make_pair(p.second->orig_addr(), p.first);
+		   return std::make_pair(p.second->pool_addr(), p.first);
 		 });
   auto it = map.upper_bound(addr);
   assert(it != map.begin());

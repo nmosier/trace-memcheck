@@ -56,6 +56,10 @@ public:
   const user_regs_struct& get_regs(void);
   void get_regs(user_regs_struct& regs);
   void set_regs(const user_regs_struct& regs);
+
+  const user_fpregs_struct& get_fpregs();
+  void get_fpregs(user_fpregs_struct& fpregs);
+  void set_fpregs(const user_fpregs_struct& fpregs);
   
   uint8_t *get_pc(void);
   void set_pc(void *pc);
@@ -63,6 +67,7 @@ public:
   void set_sp(void *sp);
   void get_siginfo(siginfo_t& siginfo);
   siginfo_t get_siginfo();
+  auto get_flags() { return get_regs().eflags; }
   
   int singlestep(void);
   int cont(void);
@@ -91,8 +96,11 @@ private:
   const char *command;
   bool regs_good_ = false;
   user_regs_struct regs_;
+  bool fpregs_good_ = false;
+  user_fpregs_struct fpregs_;
 
-  void cache_regs(void);
+  void cache_regs();
+  void cache_fpregs();
 
   size_t string(const char *addr, std::vector<char>& buf);
 };

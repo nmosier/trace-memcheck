@@ -60,6 +60,7 @@
 #define SYS_FADVISE64 FADVISE64, 221, int, 4, int, fd, off_t, offset, size_t, len, int, advice,
 #define SYS_SETRLIMIT SETRLIMIT, 160, int, 2, unsigned, resource, const struct rlimit *, rlim,
 #define SYS_READLINK READLINK, 89, ssize_t, 3, const char *, pathname, char *, buf, int, bufsiz,
+#define SYS_PIPE PIPE, 22, int, 1, int *, pipefd,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -116,6 +117,7 @@
   sysx(e, SYS_FADVISE64)			\
   sysx(e, SYS_SETRLIMIT)			\
   sysx(e, SYS_READLINK)				\
+  sysx(e, SYS_PIPE)				\
 
 #define SYSCALL(m, s) sysx(m, s)
 

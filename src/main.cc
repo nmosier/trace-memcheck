@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
       " -d        (with -x) print for use with diff\n"		\
       " -b        dump single-step breakpoint info\n"		\
       " -j        dump conditional jump breakpoint info\n"	\
+      " -l <file> log file\n"					\
       " --prediction-mode=<mode>\n"				\
       "           branch prediction mode to use\n"		\
       "           legal values: 'none', 'iclass', 'iform'\n"	\
@@ -44,7 +45,9 @@ int main(int argc, char *argv[]) {
     fprintf(f, usage, argv[0]);
   };
 
-  const char *optstring = "hgpsxbjd";
+  std::ofstream log;
+
+  const char *optstring = "hgpsxbjdl:";
   enum Option {
     PREDICTION_MODE = 256,
   };
@@ -87,6 +90,15 @@ int main(int argc, char *argv[]) {
       g_conf.execution_trace_diff = true;
       break;
 
+    case 'l':
+      log.open(optarg, std::ofstream::in | std::ofstream::trunc);
+      if (!log) {
+	std::cerr << argv[0] << ": couldn't open log file '" << optarg << "'\n";
+	return 1;
+      }
+      g_conf.log = &log;
+      break;
+      
     case PREDICTION_MODE:
       if (!g_conf.set_prediction_mode(optarg)) {
 	fprintf(stderr, "%s: --prediction-mode: bad argument\n", argv[0]);

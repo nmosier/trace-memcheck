@@ -46,23 +46,23 @@ private:
 
   template <typename T>
   void print_values(const T *addr) const {
-    std::clog << args.no() << ": ";
+    *g_conf.log << args.no() << ": ";
     for (const auto& state : memcheck.post_states) {
       T val;
       state.read(addr, addr + 1, &val);
-      std::clog << val << " ";
+      *g_conf.log << val << " ";
     }
-    std::clog << "\n";
+    *g_conf.log << "\n";
   }
 
   template <size_t N, typename T>
   void print_regs() const {
-    std::clog << args.no() << ": ";
+    *g_conf.log << args.no() << ": ";
     for (const auto& state : memcheck.post_states) {
       const SyscallArgs args(state.regs());
-      std::clog << args.arg<N, T>() << " ";
+      *g_conf.log << args.arg<N, T>() << " ";
     }
-    std::clog << "\n";
+    *g_conf.log << "\n";
   }
 
   enum class Access {NONE, READ, WRITE};

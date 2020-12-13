@@ -15,10 +15,10 @@ class Memcheck {
 public:
   Memcheck(void):
     tracee(),
-    stack_tracker(tracee, 0),
+    stack_tracker(tracee, 0, cksum),
     syscall_tracker(tracee, tracked_pages),
-    call_tracker(tracee, 0),
-    jcc_tracker(tracee)
+    call_tracker(tracee, 0, cksum),
+    jcc_tracker(tracee, cksum)
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -69,20 +69,24 @@ private:
   SyscallArgs syscall_args;
 
   static constexpr unsigned SUBROUNDS = 2;
-  bool subround_counter = false; // TODO: Generalize for SUBROUNDS.
+  unsigned subround_counter = 0;
   State pre_state;
 
   template <typename T>
   using RoundArray = std::array<T, SUBROUNDS>;
-  
+
+  RoundArray<uint8_t> fills = {{0x00, 0x00}};
   RoundArray<State> post_states;
-  RoundArray<JccTracker::cksum_t> jcc_cksums;
-  RoundArray<JccTracker::List> jcc_lists;
+  Checksum cksum;
+  RoundArray<Checksum> cksums;
   State taint_state;
 
   void *brk = nullptr; // current brk(2) value
 
   friend class SyscallChecker; // TEMPORARY
+
+  using Loc = std::pair<void *, std::string>;
+  Loc orig_loc(uint8_t *addr);
 };
 
 constexpr bool FILL_SP_DEC = true;

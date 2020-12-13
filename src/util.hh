@@ -248,5 +248,16 @@ namespace util {
       return val == first_val;
     });
   }
+
+  template <class InputIt, class BinaryFunction>
+  BinaryFunction for_each_pair(InputIt first, InputIt last, BinaryFunction f) {
+    if (first != last) {
+      for (auto it = std::next(first, 1); it != last; ++it) {
+	f(*first, *it);
+      }
+    }
+    return f;
+  }
+  
 }
 	     

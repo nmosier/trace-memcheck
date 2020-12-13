@@ -13,12 +13,14 @@ public:
   State() {}
 
   const user_regs_struct& regs() const { return regs_; }
+  const user_fpregs_struct& fpregs() const { return fpregs_; }
   Snapshot& snapshot() { return snapshot_; }
   const Snapshot& snapshot() const { return snapshot_; }
 
   template <typename InputIt>
   void save(Tracee& tracee, InputIt begin, InputIt end) {
     tracee.get_regs(regs_);
+    tracee.get_fpregs(fpregs_);
     snapshot_.save(begin, end, tracee);
   }
 
@@ -48,9 +50,11 @@ public:
 
 private:
   using reg_t = uint64_t;
+  using fpreg_t = uint64_t;
   static_assert(sizeof(user_regs_struct) % sizeof(reg_t) == 0, "reg_t doesn't divide regs");
   
   user_regs_struct regs_;
+  user_fpregs_struct fpregs_;
   Snapshot snapshot_;
 
   // TODO: Combine these with out-of-class operators for user_regs_struct.
@@ -58,6 +62,11 @@ private:
   reg_t *regs_begin() { return reinterpret_cast<reg_t *>(&regs_); }
   const reg_t *regs_end() const { return reinterpret_cast<const reg_t *>(&regs_ + 1); }
   reg_t *regs_end() { return reinterpret_cast<reg_t *>(&regs_ + 1); }
+
+  const fpreg_t *fpregs_begin() const { return reinterpret_cast<const fpreg_t *>(&fpregs_); }
+  fpreg_t *fpregs_begin() { return reinterpret_cast<fpreg_t *>(&fpregs_); }
+  const fpreg_t *fpregs_end() const { return reinterpret_cast<const fpreg_t *>(&fpregs_ + 1); }
+  fpreg_t *fpregs_end() { return reinterpret_cast<fpreg_t *>(&fpregs_ + 1); }
 };
 
 user_regs_struct operator^(const user_regs_struct& lhs, const user_regs_struct& rhs);
@@ -65,9 +74,15 @@ user_regs_struct& operator^=(user_regs_struct& acc, const user_regs_struct& othe
 bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs);
 bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs);
 
+user_fpregs_struct operator^(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
+user_fpregs_struct& operator^=(user_fpregs_struct& acc, const user_fpregs_struct& other);
+bool operator==(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
+bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
+
+
 #if STATE_MISMATCH_INFO
 # define STATE_MISMATCH_PRED(pred)		\
-  ((pred) ? true : ((std::clog << "state mismatch: " #pred "\n"), false))
+  ((pred) ? true : ((*g_conf.log << "state mismatch: " #pred "\n"), false))
 #else
 # define STATE_MISMATCH_PRED(pred) (pred)
 #endif

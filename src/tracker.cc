@@ -11,13 +11,9 @@ uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Transf
 
 void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
-  const auto flags = tracee.get_regs().eflags & mask;
-  cksum_ = (cksum_ >> 1 | cksum_ << 31) + flags;
-
-  // TODO: temporary
-  list_.emplace_back(addr, flags);
+  const auto flags = tracee.get_flags() & mask;
+  cksum.add(addr, flags);
 }
-
 
 void StackTracker::pre_handler(uint8_t *addr) {
   const auto it = map.find(addr);
@@ -44,6 +40,9 @@ void StackTracker::post_handler(uint8_t *addr) {
       tracee.fill(fill(), pre_sp - SHADOW_STACK_SIZE, post_sp - SHADOW_STACK_SIZE);
     }
   }
+
+  // DEBUG
+  cksum.add(addr, tracee.get_flags());
 }
 
 uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
@@ -87,11 +86,17 @@ void CallTracker::call_handler(uint8_t *addr) const {
   /* mark [stack_begin, rsp - 8) as tainted */
   const auto sp = static_cast<char *>(tracee.get_sp());
   tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
+
+  /* DEBUG: checksum */
+  cksum.add(addr, tracee.get_flags());
 }
 
 void CallTracker::ret_handler(uint8_t *addr) const {
   const auto sp = static_cast<char *>(tracee.get_sp());
   tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp); // TODO: is this ok that it doesn't taint the return address?
+
+  /* DEBUG: Checksum */
+  cksum.add(addr, tracee.get_flags());
 }
 
 

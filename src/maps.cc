@@ -19,9 +19,19 @@ void Maps::close() {}
 Maps::~Maps() {}
 
 void Map::init(char *s) {
+  const char *space = " \t";
   const char *begin_s = strsep(&s, "-");
-  const char *end_s = strsep(&s, " \t");
-  const char *prot_s = strsep(&s, " \t");
+  const char *end_s = strsep(&s, space);
+  const char *prot_s = strsep(&s, space);
+  for (auto i = 0; i < 3; ++i) {
+    strsep(&s, space);
+  }
+  for (; strchr(space, *s) != nullptr; ++s) {}
+  if (*s == '\n') {
+    desc = "";
+  } else {
+    desc = strsep(&s, "\n");
+  }
 
   std::stringstream begin_ss(begin_s);
   begin_ss >> begin;

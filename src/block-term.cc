@@ -655,9 +655,6 @@ uint8_t *JmpIndTerminator<CACHELEN>::load_addr(const Instruction& jmp, PointerPo
   const Instruction inst(addr, newdata);
   write(inst);
 
-  // DEBUG: write inst
-  // std::clog << jmp << " -> " << inst << std::endl;
-
   assert(inst.size() == load_addr_size(jmp));
   return addr + inst.size();
 }

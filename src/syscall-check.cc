@@ -55,7 +55,7 @@ constexpr SyscallChecker::Access SyscallChecker::access(const char *typestr) {
 
 bool SyscallChecker::check_read(const void *begin, const void *end) const {
   if (!taint_state.is_zero(begin, end)) {
-    std::clog << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
+    *g_conf.log << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
     return false;
   }
   return true;
@@ -67,8 +67,8 @@ bool SyscallChecker::check_read(const char *s) {
 
 bool SyscallChecker::check_write(void *begin, void *end) const {
   if (stack_range.overlaps(AddrRange(begin, end))) {
-    std::clog << "memcheck: warning: " << to_string(args.no()) << ": write below stack pointer\n";
-    std::clog << stack_range << " " << AddrRange(begin, end) << "\n";
+    *g_conf.log << "memcheck: warning: " << to_string(args.no()) << ": write below stack pointer\n";
+    *g_conf.log << stack_range << " " << AddrRange(begin, end) << "\n";
     return true;
   }
 
@@ -85,7 +85,7 @@ bool SyscallChecker::check_write(void *begin, size_t size) const {
 bool SyscallChecker::pre() {
   /* make sure syscall number not tainted */
   if (static_cast<int>(taint_state.regs().rax)) {
-    std::clog << "memcheck: tainted system call number\n";
+    *g_conf.log << "memcheck: tainted system call number\n";
     return false;
   }
   
@@ -111,7 +111,7 @@ bool SyscallChecker::pre() {
 #define PRE_CHK_LINE(name, argc, i, t, n)				\
   if (i < argc) {							\
     if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
-      std::clog << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
+      *g_conf.log << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
       print_regs<i, t>();						\
       return false;							\
     }									\
@@ -138,18 +138,18 @@ bool SyscallChecker::pre() {
   bool SyscallChecker::pre_##sys() {		\
     PRE_DEF(sys);							\
     PRE_CHK(sys);							\
-    std::clog << "memcheck: warning: " << args.no() << ": stub\n";	\
+    *g_conf.log << "memcheck: warning: " << args.no() << ": stub\n";	\
     return true;							\
   }
 
 #define PRE_READ_STRING(str)			\
   do {						\
     if (!check_read(str)) {			\
-      std::clog << "memcheck: " << args.no() << ": ";	\
+      *g_conf.log << "memcheck: " << args.no() << ": ";	\
       for (const State& state : memcheck.post_states) {	\
-	std::clog << "'" << state.string(str) << "' ";	\
+	*g_conf.log << "'" << state.string(str) << "' ";	\
       }							\
-      std::clog << "\nstr @ " << (void *) str << ", sp @ " << (void *) tracee.get_sp() << "\n";	\
+      *g_conf.log << "\nstr @ " << (void *) str << ", sp @ " << (void *) tracee.get_sp() << "\n";	\
       return false;					\
     }							\
   } while (0)
@@ -306,7 +306,7 @@ bool SyscallChecker::pre_RECVMSG() {
   struct msghdr msg_;
   read_struct(msg, msg_);
   PRE_READ_BUF(msg_.msg_name, msg_.msg_namelen);
-  std::clog << "memcheck: warning: RECVMSG: stub\n";
+  *g_conf.log << "memcheck: warning: RECVMSG: stub\n";
   return true;
 }
 
@@ -431,6 +431,12 @@ bool SyscallChecker::pre_FUTEX() {
   return true;
 }
 
+bool SyscallChecker::pre_PIPE() {
+  PRE_DEF(PIPE);
+  PRE_CHK(PIPE);
+  PRE_WRITE_BUF(pipefd, sizeof(*pipefd) * 2);
+  return true;
+}
 
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
@@ -486,7 +492,7 @@ void SyscallChecker::post() {
 #define POST_ABORT(sys) void SyscallChecker::post_##sys() { abort(); }
 #define POST_STUB(sys)				\
   void SyscallChecker::post_##sys() {			\
-    std::clog << "memcheck: warning: "#sys": stub\n";	\
+    *g_conf.log << "memcheck: warning: "#sys": stub\n";	\
   }
 #define POST_TRUE(sys) void SyscallChecker::post_##sys() {}
 #define POST_WRITE_TYPE(name) do_write(name, sizeof(*name))
@@ -614,6 +620,13 @@ void SyscallChecker::post_FUTEX() {
     default:
       abort();
     }
+  }
+}
+
+void SyscallChecker::post_PIPE() {
+  POST_DEF(PIPE);
+  if (rv >= 0) {
+    POST_WRITE_BUF(pipefd, sizeof(*pipefd) * 2);
   }
 }
 

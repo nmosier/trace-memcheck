@@ -6,6 +6,7 @@
 #include "block-term.hh"
 #include "patch.hh"
 #include "pageset.hh"
+#include "cksum.hh"
 
 constexpr unsigned SHADOW_STACK_SIZE = 128;
 
@@ -34,9 +35,17 @@ private:
   uint8_t fill_;
 };
 
-class StackTracker: public Tracker, public Filler {
+class Checksummer {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
+  Checksummer(Checksum& cksum): cksum(cksum) {}
+protected:
+  Checksum& cksum;
+};
+
+class StackTracker: public Tracker, public Filler, public Checksummer {
+public:
+  StackTracker(Tracee& tracee, uint8_t fill, Checksum& cksum):
+    Tracker(tracee), Filler(fill), Checksummer(cksum) {}
   
   virtual Kind kind() const override { return Kind::STACK; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
@@ -114,9 +123,10 @@ private:
   PageSet& page_set;
 };
 
-class CallTracker: public Tracker, public Filler {
+class CallTracker: public Tracker, public Filler, public Checksummer {
 public:
-  CallTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
+  CallTracker(Tracee& tracee, uint8_t fill, Checksum& cksum):
+    Tracker(tracee), Filler(fill), Checksummer(cksum) {}
 
   virtual Kind kind() const override { return Kind::CALL; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
@@ -129,25 +139,15 @@ private:
   void ret_handler(uint8_t *addr) const;
 };
 
-class JccTracker: public Tracker {
+class JccTracker: public Tracker, public Checksummer {
 public:
-  using cksum_t = uint32_t;
-  using List = std::vector<std::pair<uint8_t *, cksum_t>>;
-
-  JccTracker(Tracee& tracee): Tracker(tracee) { reset(); } 
+  JccTracker(Tracee& tracee, Checksum& cksum): Tracker(tracee), Checksummer(cksum) {}
 
   virtual Kind kind() const override { return Kind::JCC; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
-  cksum_t cksum() const { return cksum_; }
-  void reset() { cksum_ = 0; list_.clear(); }
 
-  const List& list() const { return list_; }
-  
 private:
-  cksum_t cksum_;
-  List list_;
-
-  static constexpr cksum_t mask = 0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800; // TODO: remove this
-
+  static constexpr Checksum::cksum_t mask =
+    0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800; // TODO: remove this
   void handler(uint8_t *addr);
 };

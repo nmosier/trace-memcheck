@@ -7,3 +7,4 @@ maps-test
 *.out
 tmp
 bak/
+libc.asm
