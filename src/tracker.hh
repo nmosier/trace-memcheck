@@ -37,14 +37,14 @@ private:
 
 class Checksummer {
 public:
-  Checksummer(Checksum& cksum): cksum(cksum) {}
+  Checksummer(FlagChecksum& cksum): cksum(cksum) {}
 protected:
-  Checksum& cksum;
+  FlagChecksum& cksum;
 };
 
 class StackTracker: public Tracker, public Filler, public Checksummer {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill, Checksum& cksum):
+  StackTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
     Tracker(tracee), Filler(fill), Checksummer(cksum) {}
   
   virtual Kind kind() const override { return Kind::STACK; }
@@ -125,7 +125,7 @@ private:
 
 class CallTracker: public Tracker, public Filler, public Checksummer {
 public:
-  CallTracker(Tracee& tracee, uint8_t fill, Checksum& cksum):
+  CallTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
     Tracker(tracee), Filler(fill), Checksummer(cksum) {}
 
   virtual Kind kind() const override { return Kind::CALL; }
@@ -141,13 +141,11 @@ private:
 
 class JccTracker: public Tracker, public Checksummer {
 public:
-  JccTracker(Tracee& tracee, Checksum& cksum): Tracker(tracee), Checksummer(cksum) {}
+  JccTracker(Tracee& tracee, FlagChecksum& cksum): Tracker(tracee), Checksummer(cksum) {}
 
   virtual Kind kind() const override { return Kind::JCC; }
   virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
 
 private:
-  static constexpr Checksum::cksum_t mask =
-    0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800; // TODO: remove this
   void handler(uint8_t *addr);
 };

@@ -1,0 +1,4 @@
+JCC MISMATCH @ 0x7fb0139a62af, flags 4 vs 84
+0x7fb01331d75a /lib/x86_64-linux-gnu/libc-2.23.so
+orig: and rax, 0xfffffffffffffff0
+new:  jz 0x7fb0139a62bb

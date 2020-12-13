@@ -116,6 +116,17 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
     return;
   }
 #endif
+
+  // DEBUG
+  if (inst.xed_iclass() == XED_ICLASS_RDTSC) {
+    auto bkpt = Instruction::int3(addr);
+    addr = info.writer(bkpt);
+    info.rb(bkpt.pc(), [] (const auto addr) {
+      *g_conf.log << "RDTSC @ " << (void *) addr << "\n";
+    });
+    addr = info.writer(inst);
+    return;
+  }
   
   addr = info.writer(inst);
 }
@@ -153,7 +164,6 @@ void *Memcheck::stack_begin() {
   return stack_begin;
 }
 
-constexpr bool CHANGE_PRE_STATE = true;
 
 void Memcheck::syscall_handler_pre(uint8_t *addr) {
   syscall_args.add_call(tracee);
@@ -201,10 +211,10 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
 
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *it; // TODO: could be optimized.
+    assert(*first == *it);
   }
 }
 
-constexpr bool ABORT_ON_TAINT = true;
 
 void Memcheck::check_round() {
   // TODO: should return bool.
@@ -215,33 +225,43 @@ void Memcheck::check_round() {
   // TODO: DEBUG:
   {
     util::for_each_pair(cksums.begin(), cksums.end(), [this] (const auto& l, const auto& r) {
-      l.diff(r, [this] (const auto addr, const auto& flags1, const auto& flags2) {
+      l.diff(r, [this] (const auto addr,
+			const auto& flags1, const auto& flags2,
+			const auto& data1, const auto& data2) {
 	*g_conf.log << "JCC MISMATCH @ " << (void *) addr << ", flags " << std::hex
 		    << flags1 << " vs " << std::hex << flags2 << "\n";
 	const auto loc = this->orig_loc(addr);
 	*g_conf.log << loc.first << " " << loc.second << "\n";
 	*g_conf.log << "orig: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
 	*g_conf.log << "new:  " << Instruction((uint8_t *) addr + 1, tracee) << "\n";
-	g_conf.abort(tracee);
+	*g_conf.log << "data: " << data1 << " vs " << data2 << "\n";
+	if (ABORT_ON_TAINT) {
+	  g_conf.abort(tracee);
+	}
       });
     });
 
     if (!util::all_equal(cksums.begin(), cksums.end())) {
       *g_conf.log << "memcheck: condition jump maps differ\n";
-      abort();
+      if (ABORT_ON_TAINT) {
+	abort();
+      }
     }
   }
 
   /* ensure eflags cksum same */
   if (!util::all_equal(cksums.begin(), cksums.end())) {
     *g_conf.log << "memcheck: conditional jump checksums differ\n";
-    g_conf.abort(tracee);
+    if (ABORT_ON_TAINT) {
+      g_conf.abort(tracee);
+    }
   }
 
   /* make sure args to syscall aren't tainted */
   SyscallChecker syscall_checker
     (tracee, taint_state, AddrRange(stack_begin(), static_cast<char *>(tracee.get_sp()) -
 				    SHADOW_STACK_SIZE), syscall_args, *this);
+
   if (!syscall_checker.pre()) {
     /* DEBUG: Translate */
     const auto loc = orig_loc(tracee.get_pc());
@@ -334,12 +354,23 @@ void Memcheck::syscall_handler_post(uint8_t *addr) {
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
+
+
+  // DEBUG
+#if 0
+  if (syscall_args.no() == Syscall::GETDENTS) {
+    g_conf.singlestep = true;
+    g_conf.execution_trace = true;
+  }
+#endif
 }
+
 
 void Memcheck::init_taint(State& taint_state) {
   /* taint memory below stack */
   save_state(taint_state); // TODO: optimize
   taint_state.zero();
-
-  taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
+  if (TAINT_STACK) {
+    taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
+  }
 }

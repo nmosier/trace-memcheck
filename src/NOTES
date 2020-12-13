@@ -277,3 +277,9 @@ POST bkpt
 
 Hmm, handler can just call memcheck pre/post sequence point if it's in the mask.
 
+----
+
+It looks like strlen uses an optimization that introduces some tainted condition bits (e.g. sign), but DOESN'T taint the ZF.
+
+Perhaps the solution would just be to hash the branch condition. Then re-run with sufficient taints to get results.
+PROBLEM: equality will be impossible to check, then...

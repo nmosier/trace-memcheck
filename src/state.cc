@@ -128,3 +128,11 @@ std::string State::string(const void *addr) const {
     buf.resize(buf.size() * 2);
   }
 }
+
+bool State::is_zero() const {
+  const auto is_zero = [] (const auto val) { return val == 0; };
+  if (!std::all_of(regs_begin(), regs_end(), is_zero)) { return false; }
+  if (!std::all_of(fpregs_begin(), fpregs_end(), is_zero)) { return false; }
+  if (!snapshot().is_zero()) { return false; }
+  return true;
+}

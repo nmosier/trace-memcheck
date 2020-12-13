@@ -51,7 +51,7 @@ public:
   size_t strlen(const char *addr);
   std::string string(const char *addr);
 
-  void dump(std::ostream& os, const void *ptr, size_t count);
+  std::ostream& dump(std::ostream& os, const void *ptr, size_t count);
 
   const user_regs_struct& get_regs(void);
   void get_regs(user_regs_struct& regs);

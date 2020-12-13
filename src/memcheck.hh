@@ -75,10 +75,10 @@ private:
   template <typename T>
   using RoundArray = std::array<T, SUBROUNDS>;
 
-  RoundArray<uint8_t> fills = {{0x00, 0x00}};
+  RoundArray<uint8_t> fills = {{0x00, 0xff}};
   RoundArray<State> post_states;
-  Checksum cksum;
-  RoundArray<Checksum> cksums;
+  FlagChecksum cksum;
+  RoundArray<FlagChecksum> cksums;
   State taint_state;
 
   void *brk = nullptr; // current brk(2) value
@@ -89,5 +89,9 @@ private:
   Loc orig_loc(uint8_t *addr);
 };
 
-constexpr bool FILL_SP_DEC = true;
-constexpr bool FILL_SP_INC = true;
+constexpr bool FILL_SP_DEC = false;
+constexpr bool FILL_SP_INC = false;
+constexpr bool FILL_CALL = false;
+constexpr bool TAINT_STACK = false;
+constexpr bool CHANGE_PRE_STATE = true;
+constexpr bool ABORT_ON_TAINT = true;

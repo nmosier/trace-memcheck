@@ -1,36 +1,56 @@
 #pragma once
 
 #include <vector>
+#include <tuple>
 #include <cassert>
+#include <string>
 #include <cstdint>
+#include "tracee.hh"
 
+template <typename Cksum, typename Data>
 class Checksum {
 public:
-  using cksum_t = uint32_t;
-  using List = std::vector<std::pair<uint8_t *, cksum_t>>;
+  using cksum_t = Cksum;
+  using List = std::vector<std::tuple<uint8_t *, cksum_t, Data>>;
 
   Checksum() { clear(); }
   
   cksum_t cksum() const { return cksum_; }
   const List& list() const { return list_; }
 
-  void add(uint8_t *addr, cksum_t val);
-  void clear();
+  void add(uint8_t *addr, cksum_t val, const Data& data) {
+    cksum_ = (cksum_ >> 1 | cksum_ << 31) + val;
+    list_.emplace_back(addr, val, data);
+  }
+  
+  void clear() {
+    cksum_ = 0;
+    list_.clear();
+  }
 
   template <typename Func>
   bool diff(const Checksum& other, Func func) const {
     assert(size() == other.size());
     for (auto it = begin(), other_it = other.begin(); it != end(); ++it, ++other_it) {
-      if (*it != *other_it) {
-	assert(it->first == other_it->first);
-	func(it->first, it->second, other_it->second);
+      assert(std::get<0>(*it) == std::get<0>(*other_it));
+      if (std::get<1>(*it) != std::get<1>(*other_it)) {
+	func(std::get<0>(*it), std::get<1>(*it), std::get<1>(*other_it),
+	     std::get<2>(*it), std::get<2>(*other_it));
 	return true;
       }
     }
     return false;
   }
 
-  bool operator==(const Checksum& other) const;
+  bool operator==(const Checksum& other) const {
+    if (cksum_ != other.cksum_) {
+      return false; // TODO: actually...
+    }
+    return std::equal(list_.begin(), list_.end(), other.list_.begin(), other.list_.end(),
+		      [] (const auto& l, const auto& r) {
+			return std::get<0>(l) == std::get<0>(r) && std::get<1>(l) == std::get<1>(r);
+		      });
+  }
   
 private:
   cksum_t cksum_;
@@ -40,3 +60,18 @@ private:
   auto end() const { return list_.end(); }
   auto size() const { return list_.size(); }
 };
+
+class FlagChecksum: public Checksum<uint32_t, std::string> {
+public:
+  void add(uint8_t *addr, cksum_t flags, const std::string& s = "") {
+    Checksum::add(addr, flags & mask, s);
+  }
+  
+  void add(uint8_t *addr, Tracee& tracee, const std::string& s = "") {
+    add(addr, tracee.get_flags(), s);
+  }
+  
+private:
+  static constexpr cksum_t mask = 0x1 | 0x4 | 0x10 | 0x40 | 0x80 | 0x800; // TODO: add?
+};
+

@@ -72,8 +72,10 @@ bool SyscallChecker::check_write(void *begin, void *end) const {
     return true;
   }
 
-  /* mark as untainted */
+#if 0
+  /* mark as untainted (???) */
   taint_state.fill(begin, end, -1);
+#endif
   
   return true;
 }

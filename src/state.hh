@@ -37,7 +37,8 @@ public:
   void restore(Tracee& tracee) const;
 
   void zero();
-
+  bool is_zero() const;
+  
   template <typename... Args>
   bool is_zero(Args&&... args) { return snapshot_.is_zero(args...); }
 

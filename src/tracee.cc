@@ -84,7 +84,7 @@ void Tracee::write(const void *from, size_t count, void *to) const {
   assert((size_t) bytes_written == count);
 }
 
-void Tracee::dump(std::ostream& os, const void *ptr, size_t count) {
+std::ostream& Tracee::dump(std::ostream& os, const void *ptr, size_t count) {
   std::vector<uint8_t> data(count);
   read(data.data(), count, ptr);
   for (const uint8_t b : data) {
@@ -92,7 +92,7 @@ void Tracee::dump(std::ostream& os, const void *ptr, size_t count) {
     sprintf(s, "%02hhx ", b);
     os << s;
   }
-  os << std::endl;
+  return os;
 }
 
 void Tracee::cache_regs(void) {

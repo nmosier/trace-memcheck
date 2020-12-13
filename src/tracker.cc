@@ -1,5 +1,6 @@
 #include <sstream>
 #include "tracker.hh"
+#include "memcheck.hh"
 
 uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
     auto bkpt = Instruction::int3(addr);
@@ -11,8 +12,14 @@ uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Transf
 
 void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
-  const auto flags = tracee.get_flags() & mask;
-  cksum.add(addr, flags);
+  std::stringstream ss;
+  ss << "rdx = " << std::hex << tracee.get_regs().rdx;
+  const auto rdi = tracee.get_regs().rdi;
+  ss << ", rdi = " << (void *) rdi;
+  if (rdi == 0x626dda) {
+    ss << "'" << tracee.string((const char *) rdi) << "'";
+  }
+  cksum.add(addr, tracee, ss.str());
 }
 
 void StackTracker::pre_handler(uint8_t *addr) {
@@ -20,9 +27,6 @@ void StackTracker::pre_handler(uint8_t *addr) {
   assert(it != map.end());
   it->second->sp = tracee.get_sp();
 }
-
-constexpr bool FILL_SP_DEC = true;
-constexpr bool FILL_SP_INC = true;
 
 void StackTracker::post_handler(uint8_t *addr) {
   const auto it = map.find(addr);
@@ -85,7 +89,10 @@ uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Trans
 void CallTracker::call_handler(uint8_t *addr) const {
   /* mark [stack_begin, rsp - 8) as tainted */
   const auto sp = static_cast<char *>(tracee.get_sp());
-  tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
+
+  if (FILL_CALL) {
+    tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
+  }
 
   /* DEBUG: checksum */
   cksum.add(addr, tracee.get_flags());
@@ -93,7 +100,10 @@ void CallTracker::call_handler(uint8_t *addr) const {
 
 void CallTracker::ret_handler(uint8_t *addr) const {
   const auto sp = static_cast<char *>(tracee.get_sp());
-  tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp); // TODO: is this ok that it doesn't taint the return address?
+
+  if (FILL_CALL) {
+    tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp); // TODO: is this ok that it doesn't taint the return address?
+  }
 
   /* DEBUG: Checksum */
   cksum.add(addr, tracee.get_flags());

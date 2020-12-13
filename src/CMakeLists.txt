@@ -34,7 +34,6 @@ add_executable(memcheck
   addr-range.cc
   tracker.cc
   pageset.cc
-  cksum.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)

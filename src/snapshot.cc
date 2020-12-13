@@ -83,3 +83,10 @@ void Snapshot::read(const void *begin_, const void *end_, void *buf_) const {
     it += count;
   }
 }
+
+bool Snapshot::is_zero() const {
+  return std::all_of(map.begin(), map.end(), [] (const auto& pair) {
+    const auto& entry = pair.second;
+    return std::all_of(entry.begin(), entry.end(), [] (const auto elem) { return elem == 0; });
+  });
+}
