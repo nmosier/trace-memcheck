@@ -135,3 +135,18 @@ uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Tr
 }
 
 
+uint8_t *LockTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo& info,
+			  bool& match) {
+  if ((match = (inst.data()[0] == LOCK_PREFIX))) {
+    auto pre_bkpt = Instruction::int3(addr);
+    addr = info.writer(pre_bkpt);
+    addr = info.writer(inst);
+    auto post_bkpt = Instruction::int3(addr);
+    addr = info.writer(post_bkpt);
+
+    info.rb(pre_bkpt.pc(), pre_callback);
+    info.rb(post_bkpt.pc(), post_callback);
+  } 
+
+  return addr;
+}

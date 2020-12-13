@@ -19,12 +19,32 @@ static inline bool stopped_trace(int status) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    fprintf(stderr, "usage: %s command [args...]\n", argv[0]);
+  bool execution_trace = false;
+  const char *usage = "usage: %s [-hx] command [args...]\n";
+  const char *optstring = "hx";
+  int optchar;
+  while ((optchar = getopt(argc, argv, optstring)) >= 0) {
+    switch (optchar) {
+    case 'h':
+      printf(usage, argv[0]);
+      return 0;
+      
+    case 'x':
+      execution_trace = true;
+      break;
+
+    default:
+      fprintf(stderr, usage, argv[0]);
+      return 1;
+    }
+  }
+  
+  if (argc - optind < 1) {
+    fprintf(stderr, usage, argv[0]);
     return 1;
   }
 
-  char **command = &argv[1];
+  char **command = &argv[optind];
   
   pid_t child = fork();
   if (child == 0) {
@@ -46,10 +66,9 @@ int main(int argc, char *argv[]) {
 
   std::vector<void *> insts;
 
-  while (1) {
-    ptrace(PTRACE_SINGLESTEP, child, nullptr, nullptr);
-    wait(&status);
-    
+  while (true) {
+    status = tracee.singlestep();
+
     if (WIFSTOPPED(status)) {
       const int stopsig = WSTOPSIG(status);
        if (stopsig != SIGTRAP) {
@@ -59,9 +78,10 @@ int main(int argc, char *argv[]) {
 	 fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
 	 abort();
        }
-#if DEBUG
-       fprintf(stderr, "ss pc = %p\n", tracee.get_pc());
-#endif
+       if (execution_trace) {
+	 std::clog << "ss pc = " << (void *) tracee.get_pc() << ": "
+		   << Instruction(tracee.get_pc(), tracee) << "\n";
+       }
     } else {
       break;
     }

@@ -192,6 +192,14 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
   cksum.clear();
 }
 
+void Memcheck::lock_handler_pre(uint8_t *addr) {
+  abort();
+}
+
+void Memcheck::lock_handler_post(uint8_t *addr) {
+  abort();
+}
+
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {
   state ^= taint;
@@ -211,7 +219,6 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
 
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *it; // TODO: could be optimized.
-    assert(*first == *it);
   }
 }
 

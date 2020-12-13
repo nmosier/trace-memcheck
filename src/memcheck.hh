@@ -18,7 +18,9 @@ public:
     stack_tracker(tracee, 0, cksum),
     syscall_tracker(tracee, tracked_pages),
     call_tracker(tracee, 0, cksum),
-    jcc_tracker(tracee, cksum)
+    jcc_tracker(tracee, cksum),
+    lock_tracker(tracee, SequencePoint([this] (auto addr) { this->lock_handler_pre(addr); },
+				       [this] (auto addr) { this->lock_handler_post(addr); }))
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -32,6 +34,7 @@ private:
   SyscallTracker syscall_tracker;
   CallTracker call_tracker;
   JccTracker jcc_tracker;
+  LockTracker lock_tracker;
   util::optional<UserMemory> memory;
   
   Maps maps_gen;
@@ -53,6 +56,9 @@ private:
 
   void syscall_handler_pre(uint8_t *addr);
   void syscall_handler_post(uint8_t *addr);
+
+  void lock_handler_pre(uint8_t *addr);
+  void lock_handler_post(uint8_t *addr);
 
   void save_state(State& state);
   State save_state();
@@ -92,6 +98,6 @@ private:
 constexpr bool FILL_SP_DEC = false;
 constexpr bool FILL_SP_INC = false;
 constexpr bool FILL_CALL = false;
-constexpr bool TAINT_STACK = false;
+constexpr bool TAINT_STACK = true;
 constexpr bool CHANGE_PRE_STATE = true;
 constexpr bool ABORT_ON_TAINT = true;

@@ -283,3 +283,13 @@ It looks like strlen uses an optimization that introduces some tainted condition
 
 Perhaps the solution would just be to hash the branch condition. Then re-run with sufficient taints to get results.
 PROBLEM: equality will be impossible to check, then...
+
+-----
+
+LOCK instructions should also be treated as sequence points!
+But they would have to be simulated.
+Actually, an easier way would be to translate them like so:
+lock cmpxchg DWORD PTR [rdx], edi
+lock dec DWORD PTR [rdx]
+
+Wait, just treat the outcomes of locks as deterministic.

@@ -30,8 +30,9 @@ public:
 
   template <typename Func>
   bool diff(const Checksum& other, Func func) const {
-    assert(size() == other.size());
-    for (auto it = begin(), other_it = other.begin(); it != end(); ++it, ++other_it) {
+    for (auto it = begin(), other_it = other.begin();
+	 it != end() && other_it != other.end();
+	 ++it, ++other_it) {
       assert(std::get<0>(*it) == std::get<0>(*other_it));
       if (std::get<1>(*it) != std::get<1>(*other_it)) {
 	func(std::get<0>(*it), std::get<1>(*it), std::get<1>(*other_it),
@@ -39,6 +40,7 @@ public:
 	return true;
       }
     }
+    assert(size() == other.size());
     return false;
   }
 

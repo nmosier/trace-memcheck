@@ -14,11 +14,9 @@ class Tracker {
 public:
   using BkptCallback = Terminator::BkptCallback;
   using TransformerInfo = Patcher::TransformerInfo;
-  enum class Kind {STACK, SYSCALL, CALL, JCC};
-  
+
   Tracker(Tracee& tracee): tracee(tracee) {}
-  virtual Kind kind() const = 0;
-  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) { abort(); }
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) { abort(); }
   
 protected:
   Tracee& tracee;
@@ -42,13 +40,24 @@ protected:
   FlagChecksum& cksum;
 };
 
+class SequencePoint {
+public:
+  using Callback = Terminator::BkptCallback;
+
+  SequencePoint(const Callback& pre_callback, const Callback& post_callback):
+    pre_callback(pre_callback), post_callback(post_callback) {}
+  
+protected:
+  Callback pre_callback;
+  Callback post_callback;
+};
+
 class StackTracker: public Tracker, public Filler, public Checksummer {
 public:
   StackTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
     Tracker(tracee), Filler(fill), Checksummer(cksum) {}
   
-  virtual Kind kind() const override { return Kind::STACK; }
-  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
   
 private:
   // TODO: Can be optimized.
@@ -115,7 +124,6 @@ class SyscallTracker: public Tracker {
 public:
   SyscallTracker(Tracee& tracee, PageSet& page_set): Tracker(tracee), page_set(page_set) {}
 
-  virtual Kind kind() const override { return Kind::SYSCALL; }
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
 	       const BkptCallback& pre_handler, const BkptCallback& post_handler);
   
@@ -128,8 +136,7 @@ public:
   CallTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
     Tracker(tracee), Filler(fill), Checksummer(cksum) {}
 
-  virtual Kind kind() const override { return Kind::CALL; }
-  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 
 private:
   const BkptCallback call_callback = [this] (auto... args) { return call_handler(args...); };
@@ -143,9 +150,20 @@ class JccTracker: public Tracker, public Checksummer {
 public:
   JccTracker(Tracee& tracee, FlagChecksum& cksum): Tracker(tracee), Checksummer(cksum) {}
 
-  virtual Kind kind() const override { return Kind::JCC; }
-  virtual uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) override;
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 
 private:
   void handler(uint8_t *addr);
+};
+
+class LockTracker: public Tracker, public SequencePoint {
+public:
+  template <typename SequencePointArg>
+  LockTracker(Tracee& tracee, const SequencePointArg& sequence_point):
+    Tracker(tracee), SequencePoint(sequence_point) {}
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info, bool& match);
+  
+private:
+  static constexpr uint8_t LOCK_PREFIX = 0xf0;
 };
