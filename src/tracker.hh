@@ -50,6 +50,22 @@ public:
 protected:
   Callback pre_callback;
   Callback post_callback;
+
+  template <typename Func>
+  void add_pre(uint8_t *addr, const Tracker::TransformerInfo& info, Func func) {
+    info.rb(addr, [this, func] (const auto addr) {
+      func(addr);
+      pre_callback(addr);
+    });
+  }
+
+  template <typename Func>
+  void add_post(uint8_t *addr, const Tracker::TransformerInfo& info, Func func) {
+    info.rb(addr, [this, func] (const auto addr) {
+      func(addr);
+      post_callback(addr);
+    });
+  }
 };
 
 class StackTracker: public Tracker, public Filler, public Checksummer {
@@ -122,7 +138,8 @@ private:
 
 class SyscallTracker: public Tracker {
 public:
-  SyscallTracker(Tracee& tracee, PageSet& page_set): Tracker(tracee), page_set(page_set) {}
+  SyscallTracker(Tracee& tracee, PageSet& page_set):
+    Tracker(tracee), page_set(page_set) {}
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
 	       const BkptCallback& pre_handler, const BkptCallback& post_handler);

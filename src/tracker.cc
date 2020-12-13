@@ -144,8 +144,8 @@ uint8_t *LockTracker::add(uint8_t *addr, Instruction& inst, const TransformerInf
     auto post_bkpt = Instruction::int3(addr);
     addr = info.writer(post_bkpt);
 
-    info.rb(pre_bkpt.pc(), pre_callback);
-    info.rb(post_bkpt.pc(), post_callback);
+    add_pre(pre_bkpt.pc(), info, [] (const auto addr) {});
+    add_post(post_bkpt.pc(), info, [] (const auto addr) {});
   } 
 
   return addr;
