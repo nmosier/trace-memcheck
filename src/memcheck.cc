@@ -96,9 +96,7 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
 
 #if 1
   if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
-    addr = syscall_tracker.add(addr, inst, info, 
-			       util::method_callback(this, &Memcheck::syscall_handler_pre),
-			       util::method_callback(this, &Memcheck::syscall_handler_post));
+    addr = syscall_tracker.add(addr, inst, info);
     return;
   }
 #endif

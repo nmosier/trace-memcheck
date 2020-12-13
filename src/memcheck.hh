@@ -16,7 +16,10 @@ public:
   Memcheck(void):
     tracee(),
     stack_tracker(tracee, 0, cksum),
-    syscall_tracker(tracee, tracked_pages),
+    syscall_tracker(tracee,
+		    SequencePoint([this] (auto addr) { this->syscall_handler_pre(addr); },
+				  [this] (auto addr) { this->syscall_handler_post(addr); }),
+		    tracked_pages),
     call_tracker(tracee, 0, cksum),
     jcc_tracker(tracee, cksum),
     lock_tracker(tracee, SequencePoint([this] (auto addr) { this->lock_handler_pre(addr); },

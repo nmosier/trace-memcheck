@@ -136,13 +136,12 @@ private:
   unsigned long long rv_;
 };
 
-class SyscallTracker: public Tracker {
+class SyscallTracker: public Tracker, public SequencePoint {
 public:
-  SyscallTracker(Tracee& tracee, PageSet& page_set):
-    Tracker(tracee), page_set(page_set) {}
+  SyscallTracker(Tracee& tracee, const SequencePoint& sequence_point, PageSet& page_set):
+    Tracker(tracee), SequencePoint(sequence_point), page_set(page_set) {}
 
-  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
-	       const BkptCallback& pre_handler, const BkptCallback& post_handler);
+  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
   
 private:
   PageSet& page_set;

@@ -117,19 +117,16 @@ StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
   inst_str = ss.str();
 }
 
-uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info,
-			     const BkptCallback& pre_handler, const BkptCallback& post_handler)
+uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info)
 {
-  const auto pre_bkpt_addr = addr;
-  auto pre_bkpt_inst = Instruction::int3(addr);
-  addr = info.writer(pre_bkpt_inst);
+  auto pre_bkpt = Instruction::int3(addr);
+  addr = info.writer(pre_bkpt);
   addr = info.writer(inst);
-  const auto post_bkpt_addr = addr;
-  auto post_bkpt_inst = Instruction::int3(addr);
-  addr = info.writer(post_bkpt_inst);
+  auto post_bkpt = Instruction::int3(addr);
+  addr = info.writer(post_bkpt);
 
-  info.rb(pre_bkpt_addr, pre_handler);
-  info.rb(post_bkpt_addr, post_handler);
+  add_pre(pre_bkpt.pc(), info, [] (const auto addr) {});
+  add_post(post_bkpt.pc(), info, [] (const auto addr) {});
   
   return addr;
 }
