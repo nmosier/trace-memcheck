@@ -19,15 +19,20 @@ public:
     syscall_tracker(tracee,
 		    SequencePoint(taint_state,
 				  [this] (auto addr) { this->advance_round(addr, syscall_tracker); },
-				  [this] (auto addr) { this->start_round(); }),
+				  [this] (auto addr) { this->start_round(); }
+				  ),
 		    tracked_pages,
 		    syscall_args,
-		    *this),
+		    *this
+		    ),
     call_tracker(tracee, 0, cksum),
     jcc_tracker(tracee, cksum),
-    lock_tracker(tracee, SequencePoint(taint_state,
-				       [this] (auto addr) { this->lock_handler_pre(addr); },
-				       [this] (auto addr) { this->lock_handler_post(addr); }))
+    lock_tracker(tracee,
+		 SequencePoint(taint_state,
+			       [this] (auto addr) { this->advance_round(addr, lock_tracker); },
+			       [this] (auto addr) { this->start_round(); }
+			       )
+		 )
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -69,9 +74,6 @@ private:
   void advance_round(uint8_t *addr, SequencePoint& seq_pt);
   void start_round();
   
-  void lock_handler_pre(uint8_t *addr);
-  void lock_handler_post(uint8_t *addr);
-
   void save_state(State& state);
   State save_state();
 

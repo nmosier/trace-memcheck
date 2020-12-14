@@ -241,5 +241,6 @@ void SyscallTracker::post(uint8_t *addr) {
 }
 
 void LockTracker::check() {
-  abort();
+  const auto addr = tracee.get_pc();
+  *g_conf.log << "LOCK: " << Instruction(addr, tracee) << "\n";
 }

@@ -112,6 +112,12 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
   }
 #endif
 
+#if 1
+  bool is_lock;
+  addr = lock_tracker.add(addr, inst, info, is_lock);
+  if (is_lock) { return; }
+#endif
+
   // DEBUG
   if (inst.xed_iclass() == XED_ICLASS_RDTSC) {
     auto bkpt = Instruction::int3(addr);
@@ -186,14 +192,6 @@ void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
 }
 template void Memcheck::advance_round(uint8_t *addr, SyscallTracker& seq_pt);
 template void Memcheck::advance_round(uint8_t *addr, LockTracker& seq_pt);
-
-void Memcheck::lock_handler_pre(uint8_t *addr) {
-  abort();
-}
-
-void Memcheck::lock_handler_post(uint8_t *addr) {
-  abort();
-}
 
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {
