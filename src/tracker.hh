@@ -71,6 +71,49 @@ protected:
   }
 };
 
+template <class Base>
+class SequencePoint_: public Base {
+public:
+  using Callback = Terminator::BkptCallback;
+
+  template <typename... BaseArgs>
+  SequencePoint_(State& taint_state, const Callback& pre_callback, const Callback& post_callback,
+		 BaseArgs&&... base_args):
+    Base(base_args...),
+    taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback)
+  {}
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info, bool match_)
+  {
+    match_ = this->match(inst);
+
+    if (match_) {
+      auto pre_bkpt = Instruction::int3(addr);
+      addr = info.writer(pre_bkpt);
+      info.rb(pre_bkpt.pc(), [this] (const auto addr) {
+	this->pre(addr);
+	pre_callback(addr);
+      });
+      
+      addr = info.writer(inst);
+      
+      auto post_bkpt = Instruction::int3(addr);
+      addr = info.writer(post_bkpt);
+      info.rb(post_bkpt.pc(), [this] (const auto addr) {
+	this->post(addr);
+	post_callback(addr);
+      });
+    }
+    
+    return addr;
+  }
+  
+private:
+  State& taint_state;
+  Callback pre_callback;
+  Callback post_callback;
+};
+
 class StackTracker: public Tracker, public Filler, public Checksummer {
 public:
   StackTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
@@ -209,3 +252,17 @@ public:
 private:
   bool match(const Instruction& inst) const;
 };
+
+class RDTSCTracker_: public Tracker {
+public:
+  RDTSCTracker_(Tracee& tracee): Tracker(tracee) {}
+
+  void check() {}
+  
+protected:
+  bool match(const Instruction& inst) const { return inst.xed_iclass() == XED_ICLASS_RDTSC; }
+  void pre(uint8_t *addr) { std::clog << "RDTSC\n"; }
+  void post(uint8_t *addr) {}
+};
+
+using RDTSCTracker = SequencePoint_<RDTSCTracker_>;

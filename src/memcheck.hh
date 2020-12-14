@@ -38,7 +38,13 @@ public:
 			      [this] (auto addr) { this->advance_round(addr, rtm_tracker); },
 			      [this] (auto addr) { this->start_round(); }
 			      )
-		)
+		),
+    rdtsc_tracker(taint_state,
+		  [this] (auto addr) { this->advance_round(addr, rdtsc_tracker); },
+		  [this] (auto addr) { this->start_round(); },
+		  tracee
+		  )
+    
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -58,6 +64,7 @@ private:
   JccTracker jcc_tracker;
   LockTracker lock_tracker;
   RTMTracker rtm_tracker;
+  RDTSCTracker rdtsc_tracker;
   util::optional<UserMemory> memory;
   
   Maps maps_gen;

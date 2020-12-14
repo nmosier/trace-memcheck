@@ -123,6 +123,12 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
   if (is_lock) { return; }
 #endif
 
+#if 1
+  bool is_rdtsc = false;
+  addr = rdtsc_tracker.add(addr, inst, info, is_rdtsc);
+  if (is_rdtsc) { return; }
+#endif
+
   // DEBUG
   if (inst.xed_iclass() == XED_ICLASS_RDTSC) {
     auto bkpt = Instruction::int3(addr);
@@ -198,6 +204,7 @@ void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
 template void Memcheck::advance_round(uint8_t *addr, SyscallTracker& seq_pt);
 template void Memcheck::advance_round(uint8_t *addr, LockTracker& seq_pt);
 template void Memcheck::advance_round(uint8_t *addr, RTMTracker& seq_pt);
+template void Memcheck::advance_round(uint8_t *addr, RDTSCTracker& seq_pt);
 
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {
