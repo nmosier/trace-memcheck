@@ -32,7 +32,13 @@ public:
 			       [this] (auto addr) { this->advance_round(addr, lock_tracker); },
 			       [this] (auto addr) { this->start_round(); }
 			       )
-		 )
+		 ),
+    rtm_tracker(tracee,
+		SequencePoint(taint_state,
+			      [this] (auto addr) { this->advance_round(addr, rtm_tracker); },
+			      [this] (auto addr) { this->start_round(); }
+			      )
+		)
   {}
   
   bool open(const char *file, char * const argv[]);
@@ -51,6 +57,7 @@ private:
   CallTracker call_tracker;
   JccTracker jcc_tracker;
   LockTracker lock_tracker;
+  RTMTracker rtm_tracker;
   util::optional<UserMemory> memory;
   
   Maps maps_gen;
@@ -94,7 +101,7 @@ private:
   template <typename T>
   using RoundArray = std::array<T, SUBROUNDS>;
 
-  RoundArray<uint8_t> fills = {{0x00, 0xff}};
+  RoundArray<uint8_t> fills = {{0x00, 0x00}};
   RoundArray<State> post_states;
   FlagChecksum cksum;
   RoundArray<FlagChecksum> cksums;
@@ -106,6 +113,6 @@ private:
 constexpr bool FILL_SP_DEC = true;
 constexpr bool FILL_SP_INC = true;
 constexpr bool FILL_CALL = true;
-constexpr bool TAINT_STACK = true;
+constexpr bool TAINT_STACK = false;
 constexpr bool CHANGE_PRE_STATE = true;
 constexpr bool ABORT_ON_TAINT = true;

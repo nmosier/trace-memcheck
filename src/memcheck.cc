@@ -192,6 +192,7 @@ void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
 }
 template void Memcheck::advance_round(uint8_t *addr, SyscallTracker& seq_pt);
 template void Memcheck::advance_round(uint8_t *addr, LockTracker& seq_pt);
+template void Memcheck::advance_round(uint8_t *addr, RTMTracker& seq_pt);
 
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {

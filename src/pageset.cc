@@ -28,9 +28,10 @@ void PageSet::track_range(void *begin, void *end) {
 
 void PageSet::untrack_page(void *pageaddr) {
   const auto res = set.erase(pageaddr);
-  assert(res == 1); (void) res;
-  for (State *state : states) {
-    state->snapshot().remove(pageaddr);
+  if (res) {
+    for (State *state : states) {
+      state->snapshot().remove(pageaddr);
+    }
   }
 }
 

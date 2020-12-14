@@ -244,3 +244,33 @@ void LockTracker::check() {
   const auto addr = tracee.get_pc();
   *g_conf.log << "LOCK: " << Instruction(addr, tracee) << "\n";
 }
+
+bool RTMTracker::match(const Instruction& inst) const {
+  switch (inst.xed_iclass()) {
+  case XED_ICLASS_XBEGIN:
+  case XED_ICLASS_XEND:
+  case XED_ICLASS_XABORT:
+    return true;
+  default:
+    return false;
+  }
+}
+
+// TODO: this is basically a duplicate of other sequence point add()'s...
+uint8_t *RTMTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo& info,
+			 bool& match_) {
+  match_ = match(inst);
+
+  if (match_) {
+    auto pre_bkpt = Instruction::int3(addr);
+    addr = info.writer(pre_bkpt);
+    addr = info.writer(inst);
+    auto post_bkpt = Instruction::int3(addr);
+    addr = info.writer(post_bkpt);
+
+    add_pre(pre_bkpt.pc(), info, [this] (const auto addr) {});
+    add_post(post_bkpt.pc(), info, [this] (const auto addr) {});
+  }
+  
+  return addr;
+}

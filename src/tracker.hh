@@ -196,3 +196,16 @@ public:
 private:
   static constexpr uint8_t LOCK_PREFIX = 0xf0;
 };
+
+class RTMTracker: public Tracker, public SequencePoint {
+public:
+  template <typename SequencePointArg>
+  RTMTracker(Tracee& tracee, const SequencePointArg& sequence_point):
+    Tracker(tracee), SequencePoint(sequence_point) {}
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info, bool& match);
+  void check() {}
+
+private:
+  bool match(const Instruction& inst) const;
+};
