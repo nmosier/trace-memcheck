@@ -298,3 +298,8 @@ Wait, just treat the outcomes of locks as deterministic.
 
 Also problem with Intel RTM (Transatcional Memroy).
 Error soon after XBEGIN. Perhaps should treat XBEGIN/XEND/XABORT as sequence points?
+
+
+---
+
+Errors caused by VFORK, so not a bug in Patcher!

@@ -10,9 +10,9 @@ class PageSet;
 class PageSet {
 public:
   using Set = std::unordered_set<void *>;
-
+  
   PageSet() {} 
-
+  
   void add_maps(Maps& maps_gen);
   void add_state(State& state) { states.push_back(&state); }
   void track_page(void *pageaddr);

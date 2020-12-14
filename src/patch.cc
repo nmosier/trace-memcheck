@@ -205,6 +205,15 @@ void Patcher::run(void) {
 	handle_signal(stopsig);
       }
     } else {
+      if (!WIFEXITED(status)) {
+	if (WIFSIGNALED(status)) {
+	  const auto termsig = WTERMSIG(status);
+	  std::cerr << strsignal(termsig) << ": " << termsig << "\n";
+	} else {
+	  std::cerr << "aborted due to unknown signal\n";
+	}
+	g_conf.abort(tracee);
+      }
       assert(WIFEXITED(status));
       break;
     }

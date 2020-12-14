@@ -30,6 +30,11 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   memory = UserMemory(tracee, PAGESIZE, PROT_READ | PROT_WRITE);
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
+  patcher->signal(SIGSTOP, sigignore);
+  patcher->signal(SIGCONT, sigignore);
+  patcher->signal(SIGINT,  sigignore);
+  patcher->signal(SIGTSTP, sigignore);
+  
   save_state(pre_state);
   init_taint(taint_state);
 

@@ -48,3 +48,9 @@ add_executable(maps-test
   maps-test.cc
   maps.cc
   )
+
+add_executable(jit
+  jit-main.cc
+  $<TARGET_OBJECTS:core_objs>
+  )
+add_dependencies(jit xed)

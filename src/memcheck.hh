@@ -108,11 +108,13 @@ private:
   State taint_state;
 
   friend class SyscallChecker; // TEMPORARY
+
+  static void sigignore(int signal) {}
 };
 
-constexpr bool FILL_SP_DEC = true;
-constexpr bool FILL_SP_INC = true;
-constexpr bool FILL_CALL = true;
-constexpr bool TAINT_STACK = false;
-constexpr bool CHANGE_PRE_STATE = true;
-constexpr bool ABORT_ON_TAINT = true;
+constexpr bool FILL_SP_DEC      = false;
+constexpr bool FILL_SP_INC      = false;
+constexpr bool FILL_CALL        = false;
+constexpr bool TAINT_STACK      = false;
+constexpr bool CHANGE_PRE_STATE = false;
+constexpr bool ABORT_ON_TAINT   = true;
