@@ -1,6 +1,7 @@
 #include <sstream>
 #include "tracker.hh"
 #include "memcheck.hh"
+#include "syscall-check.hh"
 
 uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
     auto bkpt = Instruction::int3(addr);
@@ -125,8 +126,8 @@ uint8_t *SyscallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Tr
   auto post_bkpt = Instruction::int3(addr);
   addr = info.writer(post_bkpt);
 
-  add_pre(pre_bkpt.pc(), info, [] (const auto addr) {});
-  add_post(post_bkpt.pc(), info, [] (const auto addr) {});
+  add_pre(pre_bkpt.pc(), info, [this] (const auto addr) { this->pre(addr); });
+  add_post(post_bkpt.pc(), info, [this] (const auto addr) { this->post(addr); });
   
   return addr;
 }
@@ -146,4 +147,95 @@ uint8_t *LockTracker::add(uint8_t *addr, Instruction& inst, const TransformerInf
   } 
 
   return addr;
+}
+
+void SyscallTracker::pre(uint8_t *addr) {
+  syscall_args.add_call(tracee);
+  *g_conf.log << "syscall " << syscall_args.no() << "\n";
+}
+
+void SyscallTracker::check() {
+  /* make sure args to syscall aren't tainted */
+  SyscallChecker syscall_checker(tracee, taint_state, memcheck.stack_begin(), syscall_args,
+				 memcheck);
+  
+  if (!syscall_checker.pre()) {
+    /* DEBUG: Translate */
+    const auto loc = memcheck.orig_loc(tracee.get_pc());
+    *g_conf.log << loc.first << " " << loc.second << "\n";
+    g_conf.abort(tracee);
+  }
+  
+}
+
+void SyscallTracker::post(uint8_t *addr) {
+  syscall_args.add_ret(tracee);
+
+  switch (syscall_args.no()) {
+  case Syscall::MMAP:
+    {
+      const auto rv = syscall_args.rv<void *>();
+      if (rv != MAP_FAILED) {
+	const int prot = syscall_args.arg<2, int>();
+	if ((prot & PROT_WRITE)) {
+	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
+	  page_set.track_range(rv, (char *) rv + length);
+	}
+      }
+    }
+    break;
+
+  case Syscall::BRK:
+    {
+      const auto rv = syscall_args.rv<void *>();
+      if (rv != nullptr) {
+	const auto endaddr = pagealign_up(syscall_args.arg<0, void *>());
+	if (endaddr != nullptr) {
+	  if (brk == nullptr) {
+	    brk = reinterpret_cast<void *>(tracee.syscall(Syscall::BRK, 0));
+	  }
+	  assert(brk != nullptr);
+	  page_set.track_range(brk, endaddr);
+	}
+	brk = rv;
+      }
+    }
+    break;
+    
+  case Syscall::MREMAP:
+    abort();
+    
+  case Syscall::MUNMAP:
+    {
+      const auto rv = syscall_args.rv<int>();
+      if (rv >= 0) {
+	void *addr = syscall_args.arg<0, void *>();
+	const size_t size = util::align_up(syscall_args.arg<1, size_t>(), PAGESIZE);
+	
+	page_set.untrack_range(addr, (char *) addr + size);
+      }
+    }
+    break;
+
+  case Syscall::MPROTECT:
+    {
+      const auto rv = syscall_args.rv<int>();
+      if (rv >= 0) {
+	void *addr = syscall_args.arg<0, void *>();
+	const size_t len = syscall_args.arg<1, size_t>();
+	const int prot = syscall_args.arg<2, int>();
+	void *end = (char *) addr + len;
+	if ((prot & PROT_WRITE)) {
+	  page_set.track_range(addr, end);
+	} else {
+	  page_set.untrack_range(addr, end);
+	}
+      }
+    }
+    break;
+  }
+
+  SyscallChecker syscall_checker(tracee, taint_state, memcheck.stack_begin(),
+				 syscall_args, memcheck);
+  syscall_checker.post();
 }

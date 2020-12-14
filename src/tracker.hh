@@ -8,6 +8,8 @@
 #include "pageset.hh"
 #include "cksum.hh"
 
+class Memcheck;
+
 constexpr unsigned SHADOW_STACK_SIZE = 128;
 
 class Tracker {
@@ -44,10 +46,11 @@ class SequencePoint {
 public:
   using Callback = Terminator::BkptCallback;
 
-  SequencePoint(const Callback& pre_callback, const Callback& post_callback):
-    pre_callback(pre_callback), post_callback(post_callback) {}
-  
+  SequencePoint(State& taint_state, const Callback& pre_callback, const Callback& post_callback):
+    taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback) {}
+
 protected:
+  State& taint_state;
   Callback pre_callback;
   Callback post_callback;
 
@@ -138,13 +141,22 @@ private:
 
 class SyscallTracker: public Tracker, public SequencePoint {
 public:
-  SyscallTracker(Tracee& tracee, const SequencePoint& sequence_point, PageSet& page_set):
-    Tracker(tracee), SequencePoint(sequence_point), page_set(page_set) {}
+  SyscallTracker(Tracee& tracee, const SequencePoint& sequence_point, PageSet& page_set,
+		 SyscallArgs& syscall_args, Memcheck& memcheck):
+    Tracker(tracee), SequencePoint(sequence_point), page_set(page_set), syscall_args(syscall_args),
+    memcheck(memcheck) {}
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+  void check();
   
 private:
   PageSet& page_set;
+  SyscallArgs& syscall_args;
+  Memcheck& memcheck;
+  void *brk = nullptr;
+
+  void pre(uint8_t *addr);
+  void post(uint8_t *addr);
 };
 
 class CallTracker: public Tracker, public Filler, public Checksummer {

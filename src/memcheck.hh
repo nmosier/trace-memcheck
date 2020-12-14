@@ -17,18 +17,26 @@ public:
     tracee(),
     stack_tracker(tracee, 0, cksum),
     syscall_tracker(tracee,
-		    SequencePoint([this] (auto addr) { this->syscall_handler_pre(addr); },
+		    SequencePoint(taint_state,
+				  [this] (auto addr) { this->syscall_handler_pre(addr); },
 				  [this] (auto addr) { this->syscall_handler_post(addr); }),
-		    tracked_pages),
+		    tracked_pages,
+		    syscall_args,
+		    *this),
     call_tracker(tracee, 0, cksum),
     jcc_tracker(tracee, cksum),
-    lock_tracker(tracee, SequencePoint([this] (auto addr) { this->lock_handler_pre(addr); },
+    lock_tracker(tracee, SequencePoint(taint_state,
+				       [this] (auto addr) { this->lock_handler_pre(addr); },
 				       [this] (auto addr) { this->lock_handler_post(addr); }))
   {}
   
   bool open(const char *file, char * const argv[]);
   bool open(char * const argv[]) { return open(argv[0], argv); }
   void run(void);
+  
+  void *stack_begin(); // TODO: should be private. Fix issue that makes it need to be public.
+  using Loc = std::pair<void *, std::string>;
+  Loc orig_loc(uint8_t *addr);
   
 private:
   Tracee tracee;
@@ -68,15 +76,14 @@ private:
 
   template <typename InputIt>
   void update_taint_state(InputIt begin, InputIt end, State& taint_state);
-  void check_round();
+  template <class SequencePoint>
+  void check_round(SequencePoint& seq_pt);
   void set_state_with_taint(State& state, const State& taint);
-
+  
   void init_taint(State& taint_state);
-
-  void *stack_begin();
-
+  
   SyscallArgs syscall_args;
-
+  
   static constexpr unsigned SUBROUNDS = 2;
   unsigned subround_counter = 0;
   State pre_state;
@@ -90,12 +97,7 @@ private:
   RoundArray<FlagChecksum> cksums;
   State taint_state;
 
-  void *brk = nullptr; // current brk(2) value
-
   friend class SyscallChecker; // TEMPORARY
-
-  using Loc = std::pair<void *, std::string>;
-  Loc orig_loc(uint8_t *addr);
 };
 
 constexpr bool FILL_SP_DEC = true;

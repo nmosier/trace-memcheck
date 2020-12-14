@@ -33,9 +33,6 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   save_state(pre_state);
   init_taint(taint_state);
 
-  /* get brk */
-  brk = reinterpret_cast<void *>(tracee.syscall(Syscall::BRK, 0));
-
   return true;
 }
 
@@ -164,9 +161,6 @@ void *Memcheck::stack_begin() {
 
 
 void Memcheck::syscall_handler_pre(uint8_t *addr) {
-  syscall_args.add_call(tracee);
-  *g_conf.log << "syscall " << syscall_args.no() << "\n";
-  
   save_state(post_states[subround_counter]);
   cksums[subround_counter] = cksum;
   
@@ -181,7 +175,7 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
     assert(save_state() == pre_state);
   } else {
     assert(subround_counter == SUBROUNDS);
-    check_round();
+    check_round(syscall_tracker);
     subround_counter = 0;
   }
 
@@ -220,8 +214,8 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   }
 }
 
-
-void Memcheck::check_round() {
+template <class SequencePoint>
+void Memcheck::check_round(SequencePoint& seq_pt) {
   // TODO: should return bool.
   
   /* get taint mask */
@@ -262,17 +256,8 @@ void Memcheck::check_round() {
     }
   }
 
-  /* make sure args to syscall aren't tainted */
-  SyscallChecker syscall_checker
-    (tracee, taint_state, AddrRange(stack_begin(), static_cast<char *>(tracee.get_sp()) -
-				    SHADOW_STACK_SIZE), syscall_args, *this);
+  seq_pt.check();
 
-  if (!syscall_checker.pre()) {
-    /* DEBUG: Translate */
-    const auto loc = orig_loc(tracee.get_pc());
-    *g_conf.log << loc.first << " " << loc.second << "\n";
-    g_conf.abort(tracee);
-  }
 }
 
 Memcheck::Loc Memcheck::orig_loc(uint8_t *addr) {
@@ -288,86 +273,10 @@ Memcheck::Loc Memcheck::orig_loc(uint8_t *addr) {
 }
 
 void Memcheck::syscall_handler_post(uint8_t *addr) {
-  syscall_args.add_ret(tracee);
-
-  switch (syscall_args.no()) {
-  case Syscall::MMAP:
-    {
-      const auto rv = syscall_args.rv<void *>();
-      if (rv != MAP_FAILED) {
-	const int prot = syscall_args.arg<2, int>();
-	if ((prot & PROT_WRITE)) {
-	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
-	  tracked_pages.track_range(rv, (char *) rv + length);
-	}
-      }
-    }
-    break;
-
-  case Syscall::BRK:
-    {
-      const auto rv = syscall_args.rv<void *>();
-      if (rv != nullptr) {
-	const auto endaddr = pagealign_up(syscall_args.arg<0, void *>());
-	if (endaddr != nullptr) {
-	  assert(brk != nullptr);
-	  tracked_pages.track_range(brk, endaddr);
-	}
-	brk = rv;
-      }
-    }
-    break;
-    
-  case Syscall::MREMAP:
-    abort();
-    
-  case Syscall::MUNMAP:
-    {
-      const auto rv = syscall_args.rv<int>();
-      if (rv >= 0) {
-	void *addr = syscall_args.arg<0, void *>();
-	const size_t size = util::align_up(syscall_args.arg<1, size_t>(), PAGESIZE);
-	
-	tracked_pages.untrack_range(addr, (char *) addr + size);
-      }
-    }
-    break;
-
-  case Syscall::MPROTECT:
-    {
-      const auto rv = syscall_args.rv<int>();
-      if (rv >= 0) {
-	void *addr = syscall_args.arg<0, void *>();
-	const size_t len = syscall_args.arg<1, size_t>();
-	const int prot = syscall_args.arg<2, int>();
-	void *end = (char *) addr + len;
-	if ((prot & PROT_WRITE)) {
-	  tracked_pages.track_range(addr, end);
-	} else {
-	  tracked_pages.untrack_range(addr, end);
-	}
-      }
-    }
-    break;
-  }
-
-  SyscallChecker syscall_checker(tracee, taint_state, AddrRange(stack_begin(), tracee.get_sp()),
-				 syscall_args, *this);
-  syscall_checker.post();
-  
   save_state(pre_state);
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
-
-
-  // DEBUG
-#if 0
-  if (syscall_args.no() == Syscall::GETDENTS) {
-    g_conf.singlestep = true;
-    g_conf.execution_trace = true;
-  }
-#endif
 }
 
 
