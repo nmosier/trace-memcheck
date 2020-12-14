@@ -11,4 +11,4 @@ function(create_test)
   endforeach()
 endfunction()
 
-create_test(bad-fd-read bad-return-value fib)
+create_test(bad-fd-read bad-return-value fib strlen nz)

@@ -8,3 +8,4 @@ maps-test
 tmp
 bak/
 libc.asm
+*.so
