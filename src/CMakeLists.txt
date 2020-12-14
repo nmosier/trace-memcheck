@@ -54,3 +54,8 @@ add_executable(jit
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(jit xed)
+
+add_library(memcheck-libc SHARED
+  memcheck-libc.c
+  )
+
