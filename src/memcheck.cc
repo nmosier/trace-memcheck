@@ -95,39 +95,37 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
     return;
   }
 #endif
-
-#if 1
+  
   if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
     addr = syscall_tracker.add(addr, inst, info);
     return;
   }
-#endif
-
-#if 1
-  if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR || inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
-    addr = call_tracker.add(addr, inst, info);
-    return;
+  
+  if (CALL_TRACKER) {
+    if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR || inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
+      addr = call_tracker.add(addr, inst, info);
+      return;
+    }
   }
-#endif
 
-#if 1
-  if (is_jcc(inst)) {
-    addr = jcc_tracker.add(addr, inst, info);
-    return;
+  if (JCC_TRACKER) {
+    if (is_jcc(inst)) {
+      addr = jcc_tracker.add(addr, inst, info);
+      return;
+    }
   }
-#endif
 
-#if 1
-  bool is_lock;
-  addr = lock_tracker.add(addr, inst, info, is_lock);
-  if (is_lock) { return; }
-#endif
+  if (LOCK_TRACKER) {
+    bool is_lock;
+    addr = lock_tracker.add(addr, inst, info, is_lock);
+    if (is_lock) { return; }
+  }
 
-#if 1
-  bool is_rdtsc = false;
-  addr = rdtsc_tracker.add(addr, inst, info, is_rdtsc);
-  if (is_rdtsc) { return; }
-#endif
+  if (RDTSC_TRACKER) {
+    bool is_rdtsc = false;
+    addr = rdtsc_tracker.add(addr, inst, info, is_rdtsc);
+    if (is_rdtsc) { return; }
+  }
 
   // DEBUG
   if (inst.xed_iclass() == XED_ICLASS_RDTSC) {

@@ -224,6 +224,13 @@ bool SyscallChecker::pre_RT_SIGACTION() {
 PRE_STUB(RT_SIGACTION)
 #endif
 
+bool SyscallChecker::pre_CLOCK_GETTIME() {
+  PRE_DEF(CLOCK_GETTIME);
+  PRE_CHK(CLOCK_GETTIME);
+  PRE_WRITE_TYPE(tp);
+  return true;
+}
+
 bool SyscallChecker::pre_STAT() {
   PRE_DEF(STAT);
   PRE_CHK(STAT);
@@ -629,6 +636,13 @@ void SyscallChecker::post_PIPE() {
   POST_DEF(PIPE);
   if (rv >= 0) {
     POST_WRITE_BUF(pipefd, sizeof(*pipefd) * 2);
+  }
+}
+
+void SyscallChecker::post_CLOCK_GETTIME() {
+  POST_DEF(CLOCK_GETTIME);
+  if (rv >= 0) {
+    POST_WRITE_TYPE(tp);
   }
 }
 

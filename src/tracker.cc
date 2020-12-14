@@ -14,12 +14,8 @@ uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Transf
 void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
   std::stringstream ss;
-  ss << "rdx = " << std::hex << tracee.get_regs().rdx;
-  const auto rdi = tracee.get_regs().rdi;
-  ss << ", rdi = " << (void *) rdi;
-  if (rdi == 0x626dda) {
-    ss << "'" << tracee.string((const char *) rdi) << "'";
-  }
+  ss << "rax=" << std::hex << tracee.get_regs().rax << ", rcx=" << std::hex << tracee.get_regs().rcx
+     << "\n";
   cksum.add(addr, tracee, ss.str());
 }
 
