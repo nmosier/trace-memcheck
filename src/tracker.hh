@@ -191,6 +191,7 @@ public:
     Tracker(tracee), SequencePoint(sequence_point) {}
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info, bool& match);
+  void check();
   
 private:
   static constexpr uint8_t LOCK_PREFIX = 0xf0;

@@ -160,7 +160,8 @@ void *Memcheck::stack_begin() {
 }
 
 
-void Memcheck::syscall_handler_pre(uint8_t *addr) {
+template <class SequencePoint>
+void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
   save_state(post_states[subround_counter]);
   cksums[subround_counter] = cksum;
   
@@ -175,14 +176,16 @@ void Memcheck::syscall_handler_pre(uint8_t *addr) {
     assert(save_state() == pre_state);
   } else {
     assert(subround_counter == SUBROUNDS);
-    check_round(syscall_tracker);
+    check_round(seq_pt);
     subround_counter = 0;
   }
-
+  
   stack_tracker.fill(fills[subround_counter]);
   call_tracker.fill(fills[subround_counter]);
   cksum.clear();
 }
+template void Memcheck::advance_round(uint8_t *addr, SyscallTracker& seq_pt);
+template void Memcheck::advance_round(uint8_t *addr, LockTracker& seq_pt);
 
 void Memcheck::lock_handler_pre(uint8_t *addr) {
   abort();
@@ -201,7 +204,7 @@ void Memcheck::set_state_with_taint(State& state, const State& taint) {
 template <typename InputIt>
 void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state) {
   assert(std::distance(begin, end) >= 2);
-
+  
   auto first = begin++;
 
   assert(std::all_of(begin, end, std::bind(&State::similar, first, std::placeholders::_1)));
@@ -272,7 +275,7 @@ Memcheck::Loc Memcheck::orig_loc(uint8_t *addr) {
   abort();
 }
 
-void Memcheck::syscall_handler_post(uint8_t *addr) {
+void Memcheck::start_round() {
   save_state(pre_state);
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);

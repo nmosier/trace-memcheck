@@ -18,8 +18,8 @@ public:
     stack_tracker(tracee, 0, cksum),
     syscall_tracker(tracee,
 		    SequencePoint(taint_state,
-				  [this] (auto addr) { this->syscall_handler_pre(addr); },
-				  [this] (auto addr) { this->syscall_handler_post(addr); }),
+				  [this] (auto addr) { this->advance_round(addr, syscall_tracker); },
+				  [this] (auto addr) { this->start_round(); }),
 		    tracked_pages,
 		    syscall_args,
 		    *this),
@@ -37,7 +37,7 @@ public:
   void *stack_begin(); // TODO: should be private. Fix issue that makes it need to be public.
   using Loc = std::pair<void *, std::string>;
   Loc orig_loc(uint8_t *addr);
-  
+
 private:
   Tracee tracee;
   util::optional<Patcher> patcher;
@@ -65,9 +65,10 @@ private:
     return (void *) (((uintptr_t) ptr) & ~(mprotect_size - 1));
   }
 
-  void syscall_handler_pre(uint8_t *addr);
-  void syscall_handler_post(uint8_t *addr);
-
+  template <class SequencePoint>
+  void advance_round(uint8_t *addr, SequencePoint& seq_pt);
+  void start_round();
+  
   void lock_handler_pre(uint8_t *addr);
   void lock_handler_post(uint8_t *addr);
 

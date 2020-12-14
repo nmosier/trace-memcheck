@@ -239,3 +239,7 @@ void SyscallTracker::post(uint8_t *addr) {
 				 syscall_args, memcheck);
   syscall_checker.post();
 }
+
+void LockTracker::check() {
+  abort();
+}
