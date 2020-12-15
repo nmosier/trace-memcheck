@@ -49,6 +49,18 @@ void Map::init(char *s) {
   if (*prot_s++ == 'x') {
     prot |= PROT_EXEC;
   }
+
+  flags = 0;
+  switch (*prot_s++) {
+  case 's':
+    flags |= MAP_SHARED;
+    break;
+  case 'p':
+    flags |= MAP_PRIVATE;
+    break;
+  default:
+    abort();
+  }
 }
 
 void Map::init(const char *s) {

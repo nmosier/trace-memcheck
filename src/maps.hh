@@ -16,13 +16,14 @@ struct Map {
   void *begin;
   void *end;
   int prot; // see mmap(2) or mprotect(2)
+  int flags;
   std::string desc;
 
   Map(char *s) { init(s); }
   Map(const char *s) { init(s); }
   Map(const std::string& s) { init(s.c_str()); }
-  Map(void *begin, void *end, int prot, const std::string& desc):
-    begin(begin), end(end), prot(prot), desc(desc) {}
+  Map(void *begin, void *end, int prot, int flags, const std::string& desc):
+    begin(begin), end(end), prot(prot), flags(flags), desc(desc) {}
 
   size_t size() const { return (char *) end - (char *) begin; }
   bool has_addr(const void *addr) const { return begin <= addr && addr < end; }
