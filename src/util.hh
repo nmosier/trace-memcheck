@@ -258,6 +258,10 @@ namespace util {
     }
     return f;
   }
+
+  inline bool implies(bool antecedent, bool consequent) {
+    return !antecedent || consequent;
+  }
   
 }
 	     
