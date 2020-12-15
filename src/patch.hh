@@ -25,6 +25,8 @@ public:
 
   using sighandler_t = std::function<void (int)>;
   void signal(int signum, const sighandler_t& handler);
+  using sigaction_t = std::function<void (int, const siginfo_t&)>;
+  void sigaction(int signum, const sigaction_t& sigaction);
 
   void start();
   void run();
@@ -50,7 +52,7 @@ private:
   ReturnStackBuffer rsb;
   TmpMem tmp_mem;
   Transformer transformer;
-  std::unordered_map<int, sighandler_t> sighandlers;
+  std::unordered_map<int, sigaction_t> sighandlers;
   uint8_t *entry_addr;
   uint8_t old_entry_byte;
 

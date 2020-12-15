@@ -139,8 +139,12 @@ bool Patcher::is_pool_addr(uint8_t *addr) const {
   return addr >= block_pool.begin() && addr < block_pool.end();
 }
 
-void Patcher::signal(int signum, const sighandler_t& handler) {
+void Patcher::sigaction(int signum, const sigaction_t& handler) {
   sighandlers[signum] = handler;
+}
+
+void Patcher::signal(int signum, const sighandler_t& handler) {
+  sigaction(signum, [&handler] (int signum, auto&&... args) { handler(signum); });
 }
 
 void Patcher::run(void) {
@@ -236,7 +240,8 @@ void Patcher::handle_signal(int signum) {
     *g_conf.log << "stopped at inst: " << Decoder::disas(inst).c_str() << '\n';
     g_conf.abort(tracee);
   } else {
-    it->second(signum);
+    auto siginfo = tracee.get_siginfo();
+    it->second(signum, siginfo);
   }
 }
 
