@@ -76,7 +76,6 @@ private:
   static bool is_sp_dec(const Instruction& inst);
   static bool is_jcc(const Instruction& inst);
 
-  void segfault_handler(int signum);
   static constexpr size_t mprotect_bits = 12;
   static_assert(mprotect_bits >= 12, "bits must be greater than page size");
   static constexpr size_t mprotect_size = 1 << mprotect_bits;
@@ -117,19 +116,23 @@ private:
   friend class SyscallChecker; // TEMPORARY
 
   static void sigignore(int signal) {}
-
   void write_maps() const;
   static Memcheck *cur_memcheck;
   static void sigint_handler(int signum);
+  void protect_map(const std::string& name, int prot);
+
+  std::unordered_set<void *> shared_pages;
+  void segfault_handler(int signal);
 };
 
-constexpr bool FILL_SP_DEC      = false;
-constexpr bool FILL_SP_INC      = false;
-constexpr bool FILL_CALL        = false;
-constexpr bool TAINT_STACK      = false;
-constexpr bool CHANGE_PRE_STATE = false;
-constexpr bool ABORT_ON_TAINT   = true;
-constexpr bool CALL_TRACKER     = true;
-constexpr bool JCC_TRACKER      = true;
-constexpr bool LOCK_TRACKER     = true;
-constexpr bool RDTSC_TRACKER    = true;
+constexpr bool FILL_SP_DEC       = false;
+constexpr bool FILL_SP_INC       = false;
+constexpr bool FILL_CALL         = false;
+constexpr bool TAINT_STACK       = false;
+constexpr bool CHANGE_PRE_STATE  = false;
+constexpr bool ABORT_ON_TAINT    = true;
+constexpr bool CALL_TRACKER      = true;
+constexpr bool JCC_TRACKER       = true;
+constexpr bool LOCK_TRACKER      = true;
+constexpr bool RDTSC_TRACKER     = true;
+constexpr bool BLOCK_SHARED_MAPS = true;

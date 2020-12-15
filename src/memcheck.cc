@@ -53,9 +53,14 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher->signal(SIGCONT, sigignore);
   patcher->signal(SIGINT,  sigignore);
   patcher->signal(SIGTSTP, sigignore);
+  patcher->signal(SIGSEGV, [this] (auto addr) { this->segfault_handler(addr); });
   
   save_state(pre_state);
   init_taint(taint_state);
+
+  // TEMP
+  protect_map("[vdso]", PROT_READ);
+  protect_map("[vvar]", PROT_NONE);
 
   return true;
 }
@@ -162,15 +167,6 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
 
 void Memcheck::run() {
   patcher->run();
-}
-
-void Memcheck::segfault_handler(int signum) {
-  const siginfo_t siginfo = tracee.get_siginfo();
-
-  void *fault_addr = siginfo.si_addr;
-  std::cerr << "segfault @ " << fault_addr << std::endl;
-
-  tracee.syscall(Syscall::MPROTECT, (uintptr_t) mprotect_ptr(fault_addr), mprotect_size, PROT_READ | PROT_WRITE);
 }
 
 void Memcheck::save_state(State& state) {
@@ -327,4 +323,24 @@ void Memcheck::init_taint(State& taint_state) {
 void Memcheck::sigint_handler(int signum) {
   cur_memcheck->write_maps();
   std::exit(0);
+}
+
+void Memcheck::protect_map(const std::string& name, int prot) {
+  std::vector<Map> maps;
+  maps_gen.get_maps(std::back_inserter(maps));
+  for (const auto& map : maps) {
+    if (map.desc == name) {
+      tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, (uintptr_t) map.size(), prot);
+      return;
+    }
+  }
+  abort();
+}
+
+void Memcheck::segfault_handler(int signal) {
+  const auto loc = orig_loc(tracee.get_pc());
+  *g_conf.log << loc.first << " " << loc.second << "\n";
+  *g_conf.log << "orig inst: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
+  *g_conf.log << "pool inst: " << Instruction(tracee.get_pc(), tracee) << "\n";
+  g_conf.abort(tracee);
 }
