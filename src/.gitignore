@@ -5,7 +5,11 @@ memcheck.txt
 *.bak
 maps-test
 *.out
-tmp
+tmp*
 bak/
 libc.asm
 *.so
+jit
+.*
+*.asm
+maps
