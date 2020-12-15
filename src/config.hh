@@ -21,11 +21,11 @@ struct Config {
 
   bool set_prediction_mode(const char *s);
 
-  void abort(Tracee& tracee) const;
+  void abort(Tracee& tracee);
 #ifndef NASSERT
-  void assert_(bool pred, Tracee& tracee) const { if (!pred) { abort(tracee); } }
+  void assert_(bool pred, Tracee& tracee) { if (!pred) { abort(tracee); } }
 #else
-  void assert_(bool pred, Tracee& tracee) const {}
+  void assert_(bool pred, Tracee& tracee) {}
 #endif
 
   void ss_syscall(Syscall syscall, unsigned count) { syscall_counts[syscall] = {0, count}; }
