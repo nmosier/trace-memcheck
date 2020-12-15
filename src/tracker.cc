@@ -174,9 +174,15 @@ void SyscallTracker::post(uint8_t *addr) {
       const auto rv = syscall_args.rv<void *>();
       if (rv != MAP_FAILED) {
 	const int prot = syscall_args.arg<2, int>();
-	if ((prot & PROT_WRITE)) {
-	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
-	  page_set.track_range(rv, (char *) rv + length);
+	const int flags = syscall_args.arg<3, int>();
+	// DEBUG: omit shared pages
+	const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
+	if (util::implies(BLOCK_SHARED_MAPS, !(flags & MAP_SHARED))) {
+	  if ((prot & PROT_WRITE)) {
+	    page_set.track_range(rv, (char *) rv + length);
+	  }
+	} else {
+	  tracee.syscall(Syscall::MPROTECT, (uintptr_t) rv, length, PROT_NONE);
 	}
       }
     }
