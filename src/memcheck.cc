@@ -53,7 +53,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher->signal(SIGCONT, sigignore);
   patcher->signal(SIGINT,  sigignore);
   patcher->signal(SIGTSTP, sigignore);
-  patcher->signal(SIGSEGV, [this] (auto addr) { this->segfault_handler(addr); });
+  patcher->sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
   
   save_state(pre_state);
   init_taint(taint_state);
@@ -337,10 +337,11 @@ void Memcheck::protect_map(const std::string& name, int prot) {
   abort();
 }
 
-void Memcheck::segfault_handler(int signal) {
+void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
   const auto loc = orig_loc(tracee.get_pc());
   *g_conf.log << loc.first << " " << loc.second << "\n";
   *g_conf.log << "orig inst: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
   *g_conf.log << "pool inst: " << Instruction(tracee.get_pc(), tracee) << "\n";
+  *g_conf.log << "fault addr: " << siginfo.si_addr << "\n";
   g_conf.abort(tracee);
 }

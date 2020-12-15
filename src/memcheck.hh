@@ -122,7 +122,7 @@ private:
   void protect_map(const std::string& name, int prot);
 
   std::unordered_set<void *> shared_pages;
-  void segfault_handler(int signal);
+  void segfault_handler(int signal, const siginfo_t& siginfo);
 };
 
 constexpr bool FILL_SP_DEC       = false;
