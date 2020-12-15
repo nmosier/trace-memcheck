@@ -5,16 +5,35 @@
 #include "memcheck.hh"
 #include "syscall-check.hh"
 
+void Memcheck::write_maps() const {
+  if (g_conf.map_file) {
+    std::stringstream ss;
+    ss << "/proc/" << tracee.pid() << "/maps";
+    std::ifstream maps_in(ss.str());
+    std::string line;
+    while (std::getline(maps_in, line)) {
+      g_conf.map_file << line << "\n";
+    }
+    g_conf.map_file.close();
+  }
+}
+
+Memcheck *Memcheck::cur_memcheck = nullptr;
+
 bool Memcheck::open(const char *file, char * const argv[]) {
+  cur_memcheck = this;
+  
   const pid_t child = fork();
   if (child == 0) {
     ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
     execvp(file, argv);
     return false;
   }
-  
+
+  signal(SIGINT, sigint_handler);
+
   Decoder::Init();
-  
+
   int status;
   wait(&status);
   assert(stopped_trace(status));
@@ -212,6 +231,8 @@ void Memcheck::set_state_with_taint(State& state, const State& taint) {
 
 template <typename InputIt>
 void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state) {
+  // g_conf.assert_(taint_state.is_zero(), tracee);
+  
   assert(std::distance(begin, end) >= 2);
   
   auto first = begin++;
@@ -224,6 +245,8 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *it; // TODO: could be optimized.
   }
+
+  //  g_conf.assert_(taint_state.is_zero(), tracee);  
 }
 
 template <class SequencePoint>
@@ -299,4 +322,9 @@ void Memcheck::init_taint(State& taint_state) {
   if (TAINT_STACK) {
     taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
   }
+}
+
+void Memcheck::sigint_handler(int signum) {
+  cur_memcheck->write_maps();
+  std::exit(0);
 }

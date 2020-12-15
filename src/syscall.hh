@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <sys/time.h>
 
 #define sa0   int, a0_, sa1
 #define sa1   int, a1_, sa2
@@ -62,6 +63,7 @@
 #define SYS_READLINK READLINK, 89, ssize_t, 3, const char *, pathname, char *, buf, int, bufsiz,
 #define SYS_PIPE PIPE, 22, int, 1, int *, pipefd,
 #define SYS_CLOCK_GETTIME CLOCK_GETTIME, 228, int, 2, clockid_t, clk_id, struct timespec *, tp,
+#define SYS_GETTIMEOFDAY GETTIMEOFDAY, 96, int, 2, struct timeval *, tv, struct timezone *, tz,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -120,6 +122,7 @@
   sysx(e, SYS_READLINK)				\
   sysx(e, SYS_PIPE)				\
   sysx(e, SYS_CLOCK_GETTIME)			\
+  sysx(e, SYS_GETTIMEOFDAY)			\
 
 #define SYSCALL(m, s) sysx(m, s)
 
@@ -140,6 +143,7 @@ enum class Syscall {
 };
 
 const char *to_string(Syscall syscall);
+Syscall to_syscall(const char *s);
 
 inline std::ostream& operator<<(std::ostream& os, Syscall syscall) {
   const char *s = to_string(syscall);

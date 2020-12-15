@@ -84,9 +84,17 @@ void Snapshot::read(const void *begin_, const void *end_, void *buf_) const {
   }
 }
 
+// TODO: debugging screwed this up
 bool Snapshot::is_zero() const {
   return std::all_of(map.begin(), map.end(), [] (const auto& pair) {
     const auto& entry = pair.second;
-    return std::all_of(entry.begin(), entry.end(), [] (const auto elem) { return elem == 0; });
+    return std::all_of(entry.begin(), entry.end(), [&] (const auto& elem) {
+#if 1
+      if (elem != 0) {
+	*g_conf.log << (void *) ((char *) pair.first + (&elem - entry.data())) << "\n";
+      }
+#endif
+      return elem == 0;
+    });
   });
 }

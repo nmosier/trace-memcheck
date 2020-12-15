@@ -90,7 +90,7 @@ bool SyscallChecker::pre() {
     *g_conf.log << "memcheck: tainted system call number\n";
     return false;
   }
-  
+
 #define PRE_TAB(name, ...) case Syscall::name: return pre_##name();
   switch (args.no()) {
     SYSCALLS(PRE_TAB);
@@ -196,7 +196,7 @@ bool SyscallChecker::pre_FSTAT() {
   return true;
 }
 
-#if 0
+#if 1
 bool SyscallChecker::pre_RT_SIGACTION() {
   PRE_DEF(RT_SIGACTION);
   PRE_CHK(RT_SIGACTION);
@@ -447,6 +447,28 @@ bool SyscallChecker::pre_PIPE() {
   return true;
 }
 
+bool SyscallChecker::pre_SET_TID_ADDRESS() {
+  PRE_DEF(SET_TID_ADDRESS);
+  PRE_CHK(SET_TID_ADDRESS);
+  PRE_WRITE_TYPE(tidptr);
+  return true;
+}
+
+bool SyscallChecker::pre_SET_ROBUST_LIST() {
+  PRE_DEF(SET_ROBUST_LIST);
+  PRE_CHK(SET_ROBUST_LIST);
+  PRE_WRITE_TYPE(head);
+  return true;
+}
+
+bool SyscallChecker::pre_GETTIMEOFDAY() {
+  PRE_DEF(GETTIMEOFDAY);
+  PRE_CHK(GETTIMEOFDAY);
+  PRE_WRITE_TYPE(tv);
+  PRE_WRITE_TYPE(tz);
+  return true;
+}
+
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
@@ -466,10 +488,8 @@ PRE_TRUE(BRK)
 PRE_TRUE(FADVISE64)
 
 PRE_STUB(ARCH_PRCTL)
-PRE_STUB(SET_ROBUST_LIST)
 PRE_STUB(FCNTL)
-PRE_STUB(SET_TID_ADDRESS)
-  
+
 PRE_ABORT(MREMAP)
 
 void SyscallChecker::do_write(void *begin, void *end) {
@@ -564,7 +584,7 @@ void SyscallChecker::post_GETRUSAGE() {
   if (rv >= 0) { POST_WRITE_TYPE(usage); }
 }
 
-#if 0
+#if 1
 void SyscallChecker::post_RT_SIGACTION() {
   POST_DEF(RT_SIGACTION);
   if (rv >= 0) {
@@ -646,6 +666,33 @@ void SyscallChecker::post_CLOCK_GETTIME() {
   }
 }
 
+void SyscallChecker::post_SET_TID_ADDRESS() {
+  POST_DEF(SET_TID_ADDRESS);
+  POST_WRITE_TYPE(tidptr);
+}
+
+void SyscallChecker::post_SET_ROBUST_LIST() {
+  POST_DEF(SET_ROBUST_LIST);
+  if (rv == 0) {
+    POST_WRITE_TYPE(head);
+  }
+}
+
+void SyscallChecker::post_RT_SIGPROCMASK() {
+  POST_DEF(RT_SIGPROCMASK);
+  if (rv >= 0) {
+    POST_WRITE_TYPE(oldset);
+  }
+}
+
+void SyscallChecker::post_GETTIMEOFDAY() {
+  POST_DEF(GETTIMEOFDAY);
+  if (rv >= 0) {
+    POST_WRITE_TYPE(tv);
+    POST_WRITE_TYPE(tz);
+  }
+}
+
 POST_TRUE(OPEN)
 POST_TRUE(CLOSE)
 POST_TRUE(MMAP)
@@ -684,9 +731,6 @@ POST_STUB(FCNTL)
 POST_ABORT(ARCH_PRCTL)
 POST_ABORT(EXIT_GROUP)
 POST_ABORT(MREMAP)
-POST_ABORT(SET_TID_ADDRESS)
-POST_ABORT(SET_ROBUST_LIST)
-POST_ABORT(RT_SIGPROCMASK)
 POST_ABORT(STATFS)
 POST_ABORT(FACCESSAT)
 POST_ABORT(GETTID)

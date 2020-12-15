@@ -262,8 +262,7 @@ public:
 protected:
   bool match(const Instruction& inst) const { return inst.xed_iclass() == XED_ICLASS_RDTSC; }
   void pre(uint8_t *addr) {
-    // std::clog << "RDTSC\n";
-    tracee.gdb();
+    std::clog << "RDTSC\n";
   }
   void post(uint8_t *addr) {}
 };

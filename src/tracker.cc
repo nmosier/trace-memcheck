@@ -148,6 +148,7 @@ uint8_t *LockTracker::add(uint8_t *addr, Instruction& inst, const TransformerInf
 void SyscallTracker::pre(uint8_t *addr) {
   syscall_args.add_call(tracee);
   *g_conf.log << "syscall " << syscall_args.no() << "\n";
+  g_conf.add_syscall(syscall_args.no());
 }
 
 void SyscallTracker::check() {
