@@ -10,3 +10,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
 int gettimeofday(struct timeval *tv, struct timezone *tz) {
   return (int) syscall(SYS_gettimeofday, tv, tz);
 }
+
+time_t time(time_t *tloc) {
+  return (time_t) syscall(SYS_time, tloc);
+}
