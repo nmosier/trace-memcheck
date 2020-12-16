@@ -268,3 +268,16 @@ protected:
 };
 
 using RDTSCTracker = SequencePoint_<RDTSCTracker_>;
+
+class SharedMemSeqPt {
+public:
+  SharedMemSeqPt(Tracee& tracee, Memcheck& memcheck, State& taint_state):
+    tracee(tracee), memcheck(memcheck), taint_state(taint_state) {}
+
+  void check();
+  
+private:
+  Tracee& tracee;
+  Memcheck& memcheck;
+  State& taint_state;
+};

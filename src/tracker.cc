@@ -14,8 +14,9 @@ uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Transf
 void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
   std::stringstream ss;
-  ss << "rax=" << std::hex << tracee.get_regs().rax << ", rcx=" << std::hex << tracee.get_regs().rcx
-     << "\n";
+  ss << "edx=" << std::hex << tracee.get_regs().rdx << " "
+    ;
+  
   cksum.add(addr, tracee, ss.str());
 }
 
@@ -276,4 +277,110 @@ uint8_t *RTMTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo
   }
   
   return addr;
+}
+
+void SharedMemSeqPt::check() {
+  const auto inst = Instruction(tracee.get_pc(), tracee);
+  const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
+  const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
+
+  const auto aligned_fault = reinterpret_cast<uintptr_t>(pagealign(tracee.get_siginfo().si_addr));
+  *g_conf.log << "aligned_fault = " << (void *) aligned_fault << "\n";
+  if ((int) tracee.syscall(Syscall::MPROTECT, aligned_fault, PAGESIZE, PROT_READ) < 0) {
+    *g_conf.log << "MPROTECT: failed\n";
+    g_conf.abort(tracee);
+  }
+  const auto status = tracee.singlestep();
+
+  tracee.assert_stopsig(status, SIGTRAP); (void) status;
+  
+  tracee.syscall(Syscall::MPROTECT, aligned_fault, PAGESIZE, PROT_NONE);  
+  
+  (void) mem_written;
+  (void) mem_read;
+
+  /* check mem address for taint */
+  const auto nmemops = inst.xed_nmemops();
+  if (nmemops == 1) {
+    const auto base_reg = inst.xed_base_reg();
+    const auto index_reg = inst.xed_index_reg();
+    if (base_reg != XED_REG_INVALID) {
+      if (taint_state.reg(base_reg) != 0) {
+	*g_conf.log << "memcheck: memory access address depends on uninitialized base register\n";
+	g_conf.abort(tracee);
+      }
+    }
+    if (index_reg != XED_REG_INVALID) {
+      if (taint_state.reg(index_reg) != 0) {
+	*g_conf.log << "memcheck: memory access address depends on uninitialized index register\n";
+	g_conf.abort(tracee);
+      }
+    }
+  } else {
+    assert(nmemops == 2);
+    const std::array<xed_operand_enum_t, 2> ops = {XED_OPERAND_BASE0, XED_OPERAND_BASE1};
+    for (const auto op : ops) {
+      const auto base_reg = inst.xed_reg(op);
+      if (base_reg != XED_REG_INVALID) {
+	if (taint_state.reg(base_reg) != 0) {
+	  *g_conf.log << "memcheck: memory access depends on uninitialized base register\n";
+	}
+      }
+    }
+  }
+  
+  switch (inst.xed_iform()) {
+    /* 0 REGS, FLAGS WRITTEN */
+  case XED_IFORM_CMP_MEMv_IMMb:
+  case XED_IFORM_CMP_MEMv_IMMz:
+  case XED_IFORM_CMP_MEMb_IMMb_80r7:
+  case XED_IFORM_REPE_CMPSB:
+    taint_state.regs().eflags = 0;
+    break;
+
+    /* 1 REG WRITTEN, FLAGS IGNORED */
+  case XED_IFORM_MOVZX_GPRv_MEMw:
+  case XED_IFORM_MOVZX_GPRv_MEMb:
+    {
+      const auto reg = inst.xed_reg();
+      const auto enc_reg = xed_get_largest_enclosing_register(reg);
+      const auto bits = xed_get_register_width_bits64(reg);
+      assert(bits == 32); (void) bits;
+      taint_state.reg(enc_reg) = 0;
+    }
+    break;
+
+  case XED_IFORM_MOVDQA_XMMdq_MEMdq:
+    {
+      const auto reg = inst.xed_reg();
+      assert(xed_reg_class(reg) == XED_REG_CLASS_XMM);
+      const auto xmm = reg - XED_REG_XMM0;
+      std::fill(taint_state.xmm_begin(xmm), taint_state.xmm_end(xmm), 0);
+    }
+    break;
+
+  case XED_IFORM_MOVLPD_XMMsd_MEMq:
+    {
+      const auto reg = inst.xed_reg();
+      const auto xmm = reg - XED_REG_XMM0;
+      const auto begin = taint_state.xmm_begin(xmm);
+      std::fill(begin, begin + 8, 0);
+    }
+    break;
+
+  case XED_IFORM_MOVHPD_XMMsd_MEMq:
+    {
+      const auto reg = inst.xed_reg();
+      const auto xmm = reg - XED_REG_XMM0;
+      const auto begin = taint_state.xmm_begin(xmm);
+      std::fill(begin + 8, begin + 16, 0);
+    }
+    break;
+
+  default:
+    std::cerr << inst.xed_iform_str() << "\n";
+    abort();    
+  }
+
+  memcheck.start_round();
 }
