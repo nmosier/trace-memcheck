@@ -4,6 +4,7 @@
 #include <sstream>
 #include "memcheck.hh"
 #include "syscall-check.hh"
+#include "flags.hh"
 
 void Memcheck::write_maps() const {
   if (g_conf.map_file) {
@@ -258,8 +259,15 @@ void Memcheck::check_round(SequencePoint& seq_pt) {
       l.diff(r, [this] (const auto addr,
 			const auto& flags1, const auto& flags2,
 			const auto& data1, const auto& data2) {
-	*g_conf.log << "JCC MISMATCH @ " << (void *) addr << ", flags " << std::hex
-		    << flags1 << " vs " << std::hex << flags2 << "\n";
+	*g_conf.log << "JCC MISMATCH @ " << (void *) addr << ", flags ";
+	for (auto flag : FlagSet(flags1)) {
+	  *g_conf.log << flag << " ";
+	}
+	*g_conf.log << "vs ";
+	for (auto flag : FlagSet(flags2)) {
+	  *g_conf.log << flag << " ";
+	}
+	*g_conf.log << "\n";
 	const auto loc = this->orig_loc(addr);
 	*g_conf.log << loc.first << " " << loc.second << "\n";
 	*g_conf.log << "orig: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
