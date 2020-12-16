@@ -13,3 +13,5 @@ jit
 .*
 *.asm
 maps
+maps
+jit
