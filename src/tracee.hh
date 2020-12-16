@@ -89,6 +89,10 @@ public:
   std::ostream& cat_maps(std::ostream& os) const;
 
   const char *filename() const { return command; }
+
+  void assert_stopsig(int status, int expect);
+
+  std::ostream& xmm_print(std::ostream& os, unsigned idx);
   
 private:
   pid_t pid_;
@@ -101,6 +105,7 @@ private:
 
   void cache_regs();
   void cache_fpregs();
+  void invalidate_caches();
 
   size_t string(const char *addr, std::vector<char>& buf);
 };

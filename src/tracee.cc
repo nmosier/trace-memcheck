@@ -15,6 +15,7 @@
 #include "tracee.hh"
 #include "util.hh"
 #include "decoder.hh"
+#include "config.hh"
 
 void Tracee::open(pid_t pid, const char *command) {
   pid_ = pid;
@@ -145,8 +146,13 @@ void Tracee::set_pc(void *pc) {
   set_regs(regs);
 }
 
-int Tracee::singlestep(void) {
+void Tracee::invalidate_caches() {
   regs_good_ = false;
+  fpregs_good_ = false;
+}
+
+int Tracee::singlestep(void) {
+  invalidate_caches();
   ptrace(PTRACE_SINGLESTEP, pid(), nullptr, nullptr);
   int status;
   wait(&status);
@@ -154,7 +160,7 @@ int Tracee::singlestep(void) {
 }
 
 int Tracee::cont(void) {
-  regs_good_ = false;
+  invalidate_caches();
   ptrace(PTRACE_CONT, pid(), nullptr, nullptr);
   int status;
   wait(&status);
@@ -335,4 +341,32 @@ void Tracee::set_fpregs(const user_fpregs_struct& fpregs) {
   fpregs_ = fpregs;
   ptrace(PTRACE_SETFPREGS, pid(), nullptr, &fpregs_);
   fpregs_good_ = true;
+}
+
+void Tracee::assert_stopsig(int status, int expect) {
+  if (WIFSTOPPED(status)) {
+    if (WSTOPSIG(status) != expect) {
+      *g_conf.log << "Tracee::assert_stopsig: unexpected stop signal '"
+		  << strsignal(WSTOPSIG(status)) << "'\n";
+      g_conf.abort(*this);
+    }
+  } else {
+    if (WIFSIGNALED(status)) {
+      *g_conf.log << "Tracee::assert_stopsig: unexpected signal '"
+		  << strsignal(WTERMSIG(status)) << "'\n";
+      g_conf.abort(*this);
+    } else {
+      *g_conf.log << "Tracee::assert_stopsig: unknown status " << status << "\n";
+      g_conf.abort(*this);
+    }
+  }
+}
+
+std::ostream& Tracee::xmm_print(std::ostream& os, unsigned idx) {
+  const auto begin = (uint8_t *) get_fpregs().xmm_space + idx * 16;
+  const auto end = begin + 16;
+  for (auto it = begin; it != end; ++it) {
+    os << std::hex << (unsigned) *it;
+  }
+  return os;
 }
