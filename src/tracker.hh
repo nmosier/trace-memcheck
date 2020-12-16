@@ -19,7 +19,7 @@ public:
 
   Tracker(Tracee& tracee): tracee(tracee) {}
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) { abort(); }
-  
+
 protected:
   Tracee& tracee;
 };

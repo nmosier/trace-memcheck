@@ -14,8 +14,13 @@ uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Transf
 void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
   std::stringstream ss;
-  ss << "edx=" << std::hex << tracee.get_regs().rdx << " "
-    ;
+  if (JCC_RECORD_REGS) {
+    ss << tracee.get_regs();
+  }
+  uint64_t val;
+  if (tracee.try_read(&val, sizeof(val), (void *) 0x65bab8)) {
+    ss << "*(uint64_t*)0x65bab8=" << (void *) val;
+  }
   
   cksum.add(addr, tracee, ss.str());
 }
@@ -150,6 +155,14 @@ void SyscallTracker::pre(uint8_t *addr) {
   syscall_args.add_call(tracee);
   *g_conf.log << "syscall " << syscall_args.no() << "\n";
   g_conf.add_syscall(syscall_args.no());
+
+  // TODO: Perhaps this should be done in the SyscallTracker's initialization?
+  switch (syscall_args.no()) {
+  case Syscall::BRK:
+    if (brk == nullptr) {
+      brk = (void *) tracee.syscall(Syscall::BRK, (uintptr_t) nullptr);
+    }
+  }
 }
 
 void SyscallTracker::check() {
@@ -195,11 +208,10 @@ void SyscallTracker::post(uint8_t *addr) {
       if (rv != nullptr) {
 	const auto endaddr = pagealign_up(syscall_args.arg<0, void *>());
 	if (endaddr != nullptr) {
-	  if (brk == nullptr) {
-	    brk = reinterpret_cast<void *>(tracee.syscall(Syscall::BRK, 0));
-	  }
 	  assert(brk != nullptr);
 	  page_set.track_range(brk, endaddr);
+	  std::clog << "BRK: tracking range from " << (void *) brk << " to " << (void *) endaddr
+		    << "\n";
 	}
 	brk = rv;
       }
