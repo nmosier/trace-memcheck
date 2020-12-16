@@ -280,4 +280,16 @@ private:
   Tracee& tracee;
   Memcheck& memcheck;
   State& taint_state;
+
+  void read(xed_reg_enum_t reg) const;
+  void write(xed_reg_enum_t reg);
+  void read_write(xed_reg_enum_t reg) { read(reg); write(reg); }
+
+  void read_flags(uint32_t mask) const;
+  void write_flags(uint32_t mask);
+  void taint_flags(uint32_t mask);
+
+  static uint64_t mask(xed_reg_enum_t reg, bool read);
+  static uint64_t mask_read(xed_reg_enum_t reg) { return mask(reg, true); }
+  static uint64_t mask_write(xed_reg_enum_t reg) { return mask(reg, false); }
 };

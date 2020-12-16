@@ -1,7 +1,11 @@
 #include <sstream>
+extern "C" {
+#include <xed/xed-interface.h>
+}
 #include "tracker.hh"
 #include "memcheck.hh"
 #include "syscall-check.hh"
+#include "flags.hh"
 
 uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
     auto bkpt = Instruction::int3(addr);
@@ -291,6 +295,59 @@ uint8_t *RTMTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo
   return addr;
 }
 
+uint64_t SharedMemSeqPt::mask(xed_reg_enum_t reg, bool read) {
+  switch (xed_gpr_reg_class(reg)) {
+  case XED_REG_CLASS_GPR64: return 0xffffffffffffffff;
+  case XED_REG_CLASS_GPR32:
+    return read ? 0x00000000ffffffff : 0xffffffffffffffff;
+  case XED_REG_CLASS_GPR16: return 0x000000000000ffff;
+  case XED_REG_CLASS_GPR8:
+    switch (reg) {
+    case XED_REG_AH:
+    case XED_REG_CH:
+    case XED_REG_DH:
+    case XED_REG_BH:
+      return 0x000000000000ff00;
+    default: return 0x00000000000000ff;
+    }
+  default: abort();
+  }
+}
+
+void SharedMemSeqPt::read(xed_reg_enum_t reg) const {
+  assert(reg != XED_REG_INVALID);
+
+  const auto encreg = xed_get_largest_enclosing_register(reg);
+  const uint64_t val64 = taint_state.reg(encreg);
+  
+  if ((val64 & mask_read(reg)) != 0) {
+    *g_conf.log << "memcheck: read from tainted register " << xed_reg_enum_t2str(reg) << "\n";
+    g_conf.abort(tracee);
+  }
+}
+
+void SharedMemSeqPt::write(xed_reg_enum_t reg) {
+  assert(reg != XED_REG_INVALID);
+  taint_state.reg(xed_get_largest_enclosing_register(reg)) &= ~mask_write(reg);
+}
+
+void SharedMemSeqPt::read_flags(uint32_t mask) const {
+  if ((taint_state.regs().eflags & mask) != 0) {
+    *g_conf.log << "memcheck: instruction uses tainted flags\n";
+    g_conf.abort(tracee);
+  }
+}
+
+void SharedMemSeqPt::write_flags(uint32_t mask) {
+  taint_state.regs().eflags &= ~mask;
+}
+
+void SharedMemSeqPt::taint_flags(uint32_t mask) {
+  if (TAINT_FLAGS) {
+    taint_state.regs().eflags |= mask;
+  }
+}
+
 void SharedMemSeqPt::check() {
   const auto inst = Instruction(tracee.get_pc(), tracee);
   const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
@@ -347,21 +404,22 @@ void SharedMemSeqPt::check() {
   case XED_IFORM_CMP_MEMv_IMMz:
   case XED_IFORM_CMP_MEMb_IMMb_80r7:
   case XED_IFORM_REPE_CMPSB:
-    taint_state.regs().eflags = 0;
+    write_flags(status_flags);
     break;
 
     /* 1 REG WRITTEN, FLAGS IGNORED */
   case XED_IFORM_MOVZX_GPRv_MEMw:
   case XED_IFORM_MOVZX_GPRv_MEMb:
+  case XED_IFORM_MOVSXD_GPRv_MEMz:
+  case XED_IFORM_MOV_GPRv_MEMv:
     {
       const auto reg = inst.xed_reg();
       const auto enc_reg = xed_get_largest_enclosing_register(reg);
-      const auto bits = xed_get_register_width_bits64(reg);
-      assert(bits == 32); (void) bits;
       taint_state.reg(enc_reg) = 0;
     }
     break;
 
+  case XED_IFORM_MOVDQU_XMMdq_MEMdq:
   case XED_IFORM_MOVDQA_XMMdq_MEMdq:
     {
       const auto reg = inst.xed_reg();
@@ -387,6 +445,17 @@ void SharedMemSeqPt::check() {
       const auto begin = taint_state.xmm_begin(xmm);
       std::fill(begin + 8, begin + 16, 0);
     }
+    break;
+
+  case XED_IFORM_DIV_MEMv:
+    read_write(XED_REG_RAX);
+    read_write(XED_REG_RDX);
+    taint_flags(status_flags);
+    break;
+
+  case XED_IFORM_ADD_GPRv_MEMv:
+    read_write(inst.xed_reg0());
+    write_flags(status_flags);
     break;
 
   default:
