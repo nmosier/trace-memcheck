@@ -484,3 +484,13 @@ PCRelDisp::PCRelDisp(uint8_t *pc, uint8_t *iend, uint8_t *dst): Data(pc) {
   emplace_data(reinterpret_cast<const uint8_t *>(&diff),
 	       reinterpret_cast<const uint8_t *>(&diff + 1));
 }
+
+#if 0
+unsigned Instruction::xed_nregops() const {
+  const auto nops = xed_nops();
+  const auto nmemops = xed_nmemops();
+  assert(nops >= nmemops);
+  return nops - nmemops;
+}
+// THIS doesn't work properly
+#endif
