@@ -469,6 +469,15 @@ bool SyscallChecker::pre_GETTIMEOFDAY() {
   return true;
 }
 
+bool SyscallChecker::pre_TIME() {
+  PRE_DEF(TIME);
+  PRE_CHK(TIME);
+  if (tloc != nullptr) {
+    PRE_WRITE_TYPE(tloc);
+  }
+  return true;
+}
+
 PRE_TRUE(MMAP)
 PRE_TRUE(CLOSE)
 PRE_TRUE(MPROTECT)
@@ -693,6 +702,15 @@ void SyscallChecker::post_GETTIMEOFDAY() {
   if (rv >= 0) {
     POST_WRITE_TYPE(tv);
     POST_WRITE_TYPE(tz);
+  }
+}
+
+void SyscallChecker::post_TIME() {
+  POST_DEF(TIME);
+  if (rv >= 0) {
+    if (tloc != nullptr) {
+      POST_WRITE_TYPE(tloc);
+    }
   }
 }
 
