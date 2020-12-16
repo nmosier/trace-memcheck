@@ -308,6 +308,11 @@ void Memcheck::start_round() {
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
+
+  if (ASSERT_TAINT_ZERO) {
+    assert(taint_state.is_zero());
+  }
+  
 }
 
 
@@ -338,10 +343,26 @@ void Memcheck::protect_map(const std::string& name, int prot) {
 }
 
 void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
+  // DEBUG
+  g_conf.singlestep = true;
+  g_conf.execution_trace = true;
+  
   const auto loc = orig_loc(tracee.get_pc());
   *g_conf.log << loc.first << " " << loc.second << "\n";
   *g_conf.log << "orig inst: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
   *g_conf.log << "pool inst: " << Instruction(tracee.get_pc(), tracee) << "\n";
   *g_conf.log << "fault addr: " << siginfo.si_addr << "\n";
-  g_conf.abort(tracee);
+  // g_conf.abort(tracee);
+
+#if 0
+  // TEMP DEBUG
+  std::cerr << "xmm0="; pre_state.xmm_print(std::cerr, 0) << "\n";
+  std::cerr << "xmm1="; pre_state.xmm_print(std::cerr, 1) << "\n";
+  std::cerr << "xmm2="; pre_state.xmm_print(std::cerr, 2) << "\n";
+#endif
+
+  // EXPERIMENTAL
+  // will need to determine which permissions to use
+  SharedMemSeqPt seq_pt(tracee, *this, taint_state);
+  advance_round(tracee.get_pc(), seq_pt);
 }

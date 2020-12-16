@@ -114,6 +114,7 @@ private:
   State taint_state;
 
   friend class SyscallChecker; // TEMPORARY
+  friend class SharedMemSeqPt; // TEMPORARY
 
   static void sigignore(int signal) {}
   void write_maps() const;
@@ -136,3 +137,4 @@ constexpr bool JCC_TRACKER       = true;
 constexpr bool LOCK_TRACKER      = true;
 constexpr bool RDTSC_TRACKER     = true;
 constexpr bool BLOCK_SHARED_MAPS = true;
+constexpr bool ASSERT_TAINT_ZERO = true;
