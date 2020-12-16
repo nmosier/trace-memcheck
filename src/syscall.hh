@@ -64,6 +64,7 @@
 #define SYS_PIPE PIPE, 22, int, 1, int *, pipefd,
 #define SYS_CLOCK_GETTIME CLOCK_GETTIME, 228, int, 2, clockid_t, clk_id, struct timespec *, tp,
 #define SYS_GETTIMEOFDAY GETTIMEOFDAY, 96, int, 2, struct timeval *, tv, struct timezone *, tz,
+#define SYS_TIME TIME, 201, time_t, 1, time_t *, tloc,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -123,6 +124,7 @@
   sysx(e, SYS_PIPE)				\
   sysx(e, SYS_CLOCK_GETTIME)			\
   sysx(e, SYS_GETTIMEOFDAY)			\
+  sysx(e, SYS_TIME)				\
 
 #define SYSCALL(m, s) sysx(m, s)
 
