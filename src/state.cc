@@ -175,3 +175,30 @@ std::ostream& State::xmm_print(std::ostream& os, unsigned idx) const {
   }
   return os;
 }
+
+std::ostream& operator<<(std::ostream& os, const user_regs_struct& regs) {
+  os << "{";
+#define ENTRY(reg) os << #reg << "=" << std::hex << regs.reg << " "
+ENTRY(rax);
+ENTRY(rbx);
+ENTRY(rcx);
+ENTRY(rdx);
+ENTRY(rdi);
+ENTRY(rsi);
+ENTRY(rsp);
+ENTRY(rbp);
+ENTRY(rip);
+ENTRY(r8);
+ENTRY(r9);
+ENTRY(r10);
+ENTRY(r11);
+ENTRY(r12);
+ENTRY(r13);
+ENTRY(r14);
+ENTRY(r15);
+ENTRY(eflags);
+#undef ENTRY
+ os << "}";
+ return os;
+}
+			 

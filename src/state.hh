@@ -99,6 +99,7 @@ user_fpregs_struct& operator^=(user_fpregs_struct& acc, const user_fpregs_struct
 bool operator==(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
 bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
 
+std::ostream& operator<<(std::ostream& os, const user_regs_struct& regs);
 
 #if STATE_MISMATCH_INFO
 # define STATE_MISMATCH_PRED(pred)		\
@@ -106,3 +107,4 @@ bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
 #else
 # define STATE_MISMATCH_PRED(pred) (pred)
 #endif
+
