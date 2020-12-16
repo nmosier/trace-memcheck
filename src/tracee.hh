@@ -25,6 +25,7 @@ public:
   int fd() const { return fd_; }
 
   void read(void *to, size_t count, const void *from);
+  bool try_read(void *to, size_t count, const void *from);
 
   template <typename OutputIt>
   void read(OutputIt begin, OutputIt end, const void *from) {

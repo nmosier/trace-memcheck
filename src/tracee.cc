@@ -76,6 +76,11 @@ void Tracee::read(void *to, size_t count, const void *from) {
 #endif
 }
 
+bool Tracee::try_read(void *to, size_t count, const void *from) {
+  const ssize_t bytes_read = pread(fd(), to, count, reinterpret_cast<off_t>(from));
+  return bytes_read >= 0 && static_cast<size_t>(bytes_read) == count;
+}
+
 void Tracee::write(const void *from, size_t count, void *to) const {
   const ssize_t bytes_written = pwrite(fd(), from, count, (off_t) to);
   if (bytes_written < 0) {
