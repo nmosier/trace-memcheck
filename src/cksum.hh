@@ -6,6 +6,7 @@
 #include <string>
 #include <cstdint>
 #include "tracee.hh"
+#include "settings.hh"
 
 template <typename Cksum, typename Data>
 class Checksum {
@@ -34,7 +35,9 @@ public:
 	 it != end() && other_it != other.end();
 	 ++it, ++other_it) {
       assert(std::get<0>(*it) == std::get<0>(*other_it));
-      if (std::get<1>(*it) != std::get<1>(*other_it)) {
+      if (std::get<1>(*it) != std::get<1>(*other_it) ||
+	  !util::implies(CKSUM_REQUIRE_DATA_EQ, std::get<2>(*it) == std::get<2>(*other_it))
+	  ) {
 	func(std::get<0>(*it), std::get<1>(*it), std::get<1>(*other_it),
 	     std::get<2>(*it), std::get<2>(*other_it));
 	return true;
