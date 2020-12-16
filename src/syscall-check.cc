@@ -511,6 +511,9 @@ void SyscallChecker::post() {
     SYSCALLS(POST_TAB);
   }
 #undef POST_TAB
+
+  /* mark RAX as untainted */
+  taint_state.regs().rax = 0;
 }
 
 #define POST_DEF2(name, val, rv_t, ...)					\
