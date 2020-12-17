@@ -28,3 +28,26 @@ private:
   size_t size_;
   user_ptr_t<char> user_map;
 };
+
+template <typename T>
+class UserAllocator {
+public:
+  UserAllocator(T *begin, T *end): ptr_(begin), end_(end) {}
+
+  auto rem() { return end_ - ptr_; }
+  uint8_t *peek() const { return ptr_; }
+
+  template <typename Size>
+  uint8_t *alloc(Size size) {
+    if (rem() < size) {
+      abort();
+    }
+    const auto res = ptr_;
+    ptr_ += size;
+    return res;
+  }
+  
+private:
+  T *ptr_;
+  T *end_;
+};
