@@ -41,7 +41,7 @@ bool SyscallChecker::check_write(void *begin, size_t size) const {
 
 bool SyscallChecker::pre() {
   /* make sure syscall number not tainted */
-  if (static_cast<int>(taint_state.regs().rax)) {
+  if (static_cast<int>(taint_state.gpregs().rax())) {
     *g_conf.log << "memcheck: tainted system call number\n";
     return false;
   }
@@ -485,7 +485,7 @@ void SyscallChecker::post() {
 #undef POST_TAB
 
   /* mark RAX as untainted */
-  taint_state.regs().rax = 0;
+  taint_state.gpregs().rax() = 0;
 }
 
 #define POST_DEF2(name, val, rv_t, ...)					\

@@ -318,7 +318,7 @@ void SharedMemSeqPt::read(xed_reg_enum_t reg) const {
   assert(reg != XED_REG_INVALID);
 
   const auto encreg = xed_get_largest_enclosing_register(reg);
-  const uint64_t val64 = taint_state.reg(encreg);
+  const uint64_t val64 = taint_state.gpregs().reg(encreg);
   
   if ((val64 & mask_read(reg)) != 0) {
     *g_conf.log << "memcheck: read from tainted register " << xed_reg_enum_t2str(reg) << "\n";
@@ -328,23 +328,23 @@ void SharedMemSeqPt::read(xed_reg_enum_t reg) const {
 
 void SharedMemSeqPt::write(xed_reg_enum_t reg) {
   assert(reg != XED_REG_INVALID);
-  taint_state.reg(xed_get_largest_enclosing_register(reg)) &= ~mask_write(reg);
+  taint_state.gpregs().reg(xed_get_largest_enclosing_register(reg)) &= ~mask_write(reg);
 }
 
 void SharedMemSeqPt::read_flags(uint32_t mask) const {
-  if ((taint_state.regs().eflags & mask) != 0) {
+  if ((taint_state.gpregs().eflags() & mask) != 0) {
     *g_conf.log << "memcheck: instruction uses tainted flags\n";
     g_conf.abort(tracee);
   }
 }
 
 void SharedMemSeqPt::write_flags(uint32_t mask) {
-  taint_state.regs().eflags &= ~mask;
+  taint_state.gpregs().eflags() &= ~mask;
 }
 
 void SharedMemSeqPt::taint_flags(uint32_t mask) {
   if (TAINT_FLAGS) {
-    taint_state.regs().eflags |= mask;
+    taint_state.gpregs().eflags() |= mask;
   }
 }
 
@@ -374,13 +374,13 @@ void SharedMemSeqPt::check() {
     const auto base_reg = inst.xed_base_reg();
     const auto index_reg = inst.xed_index_reg();
     if (base_reg != XED_REG_INVALID) {
-      if (taint_state.reg(base_reg) != 0) {
+      if (taint_state.gpregs().reg(base_reg) != 0) {
 	*g_conf.log << "memcheck: memory access address depends on uninitialized base register\n";
 	g_conf.abort(tracee);
       }
     }
     if (index_reg != XED_REG_INVALID) {
-      if (taint_state.reg(index_reg) != 0) {
+      if (taint_state.gpregs().reg(index_reg) != 0) {
 	*g_conf.log << "memcheck: memory access address depends on uninitialized index register\n";
 	g_conf.abort(tracee);
       }
@@ -391,7 +391,7 @@ void SharedMemSeqPt::check() {
     for (const auto op : ops) {
       const auto base_reg = inst.xed_reg(op);
       if (base_reg != XED_REG_INVALID) {
-	if (taint_state.reg(base_reg) != 0) {
+	if (taint_state.gpregs().reg(base_reg) != 0) {
 	  *g_conf.log << "memcheck: memory access depends on uninitialized base register\n";
 	}
       }
@@ -415,7 +415,7 @@ void SharedMemSeqPt::check() {
     {
       const auto reg = inst.xed_reg();
       const auto enc_reg = xed_get_largest_enclosing_register(reg);
-      taint_state.reg(enc_reg) = 0;
+      taint_state.gpregs().reg(enc_reg) = 0;
     }
     break;
 

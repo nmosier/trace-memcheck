@@ -30,9 +30,9 @@
 [ ] Move running logic memcheck -> patcher
 [ ] Write alternative of 'writer' function that accepts rvalue reference
 [ ] Improve maps
-[ ] Use valarray?
 [ ] Rename Map -> PageMap
 [ ] Include type of sequence point encountered (SYSCALL, LOCK, RTM, SHARED MEM ACCESS, RDTSC)
 [X] Fix single-stepping + shared mem bug
 [ ] Restructure singlestep loop in patch.cc
-[ ] Option to assert all registers equal in JCC.
+[X] Option to assert all registers equal in JCC.
+[ ] 

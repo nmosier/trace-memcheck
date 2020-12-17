@@ -29,3 +29,12 @@ unsigned long long GPRegisters::reg(xed_reg_enum_t xed_reg) const {
 unsigned long long& GPRegisters::reg(xed_reg_enum_t xed_reg) {
   return regs_.*reg_ptr(xed_reg);
 }
+
+std::ostream& operator<<(std::ostream& os, const GPRegisters& gpregs) {
+  os << "{";
+#define ENTRY(reg) os << #reg << "=" << std::hex << gpregs.regs_.reg << " ";
+  GPREGISTERS(ENTRY);
+#undef ENTRY
+  os << "}";
+  return os;
+}

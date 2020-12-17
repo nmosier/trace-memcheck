@@ -7,6 +7,7 @@
 #include "patch.hh"
 #include "pageset.hh"
 #include "cksum.hh"
+#include "regs.hh"
 
 class Memcheck;
 
@@ -151,34 +152,34 @@ public:
 
   static constexpr unsigned MAX_ARGS = 6;
 
-  Syscall no() const { return static_cast<Syscall>(regs_.rax); }
+  Syscall no() const { return static_cast<Syscall>(regs_.rax()); }
   
   template <unsigned N, typename Arg>
   Arg arg() const {
-    constexpr unsigned long long user_regs_struct::* map[MAX_ARGS] =
-      {&user_regs_struct::rdi,
-       &user_regs_struct::rsi,
-       &user_regs_struct::rdx,
-       &user_regs_struct::r10,
-       &user_regs_struct::r8,
-       &user_regs_struct::r9,
+    constexpr unsigned long long (GPRegisters::*map[MAX_ARGS])() const = 
+      {&GPRegisters::rdi,
+       &GPRegisters::rsi,
+       &GPRegisters::rdx,
+       &GPRegisters::r10,
+       &GPRegisters::r8,
+       &GPRegisters::r9,
       };
-    return (Arg) (regs_.*map[N]);
+    return (Arg) (regs_.*map[N])();
   }
 
   template <typename RV>
   RV rv() const { return (RV) rv_; }
 
-  void add_call(const user_regs_struct& regs) { regs_ = regs; }
-  void add_call(Tracee& tracee) { add_call(tracee.get_regs()); }
+  template <typename... Args>
+  void add_call(Args&&... args) { regs_ = GPRegisters(args...); }
   
   void add_ret(unsigned long long rv) { rv_ = rv; }
   void add_ret(Tracee& tracee) { add_ret(tracee.get_regs().rax); }
 
-  const user_regs_struct& regs() const { return regs_; }
+  const GPRegisters& regs() const { return regs_; }
   
 private:
-  user_regs_struct regs_;
+  GPRegisters regs_;
   unsigned long long rv_;
 };
 

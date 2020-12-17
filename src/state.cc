@@ -4,25 +4,8 @@
 
 #include "state.hh"
 
-user_regs_struct operator^(const user_regs_struct& lhs, const user_regs_struct& rhs) {
-  user_regs_struct res = lhs;
-  return res ^= rhs;
-}
-
-user_regs_struct& operator^=(user_regs_struct& acc, const user_regs_struct& other) {
-  using unit_t = unsigned long long;
-  static_assert(sizeof(user_regs_struct) % sizeof(unit_t) == 0,
-		"size of user_regs_struct must be multiple of unit_t");
-  std::transform((const unit_t *) &acc,
-		 (const unit_t *) (&acc + 1),
-		 (const unit_t *) &other,
-		 (unit_t *) &acc,
-		 std::bit_xor<unit_t>());
-  return acc;
-}
-
 State& State::operator^=(const State& other) {
-  regs_ ^= other.regs_;
+  gpregs_ ^= other.gpregs_;
   fpregs_ ^= other.fpregs_;
   snapshot_ ^= other.snapshot_;
   return *this;
@@ -67,15 +50,15 @@ bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
 }
 
 void State::restore(Tracee& tracee) const {
-  tracee.set_regs(regs_);
+  gpregs_.restore(tracee);
   tracee.set_fpregs(fpregs_);
   snapshot_.restore(tracee);
 }
 
 bool State::operator==(const State& other) const {
-  return STATE_MISMATCH_PRED(regs_ == other.regs_) &&
-    STATE_MISMATCH_PRED(fpregs_ == other.fpregs_) &&
-    STATE_MISMATCH_PRED(snapshot_ == other.snapshot_);
+  return gpregs_ == other.gpregs_ &&
+    fpregs_ == other.fpregs_ &&
+    snapshot_ == other.snapshot_;
 }
 
 bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs) {
@@ -87,14 +70,14 @@ bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs) {
 }
 
 void State::zero() {
-  std::fill(regs_begin(), regs_end(), 0);
+  gpregs_.zero();
   std::fill(fpregs_begin(), fpregs_end(), 0);
   snapshot_.zero();
 }
 
 State& State::operator|=(const State& other) {
   assert(similar(other));
-  std::transform(regs_begin(), regs_end(), other.regs_begin(), regs_begin(), std::bit_or<reg_t>());
+  gpregs_ |= other.gpregs_;
   std::transform(fpregs_begin(), fpregs_end(), other.fpregs_begin(), fpregs_begin(),
 		 std::bit_or<fpreg_t>());
   snapshot_ |= other.snapshot_;
@@ -130,41 +113,12 @@ std::string State::string(const void *addr) const {
 }
 
 bool State::is_zero() const {
-  const auto is_zero = [] (const auto val) { return val == 0; };
-  if (!std::all_of(regs_begin(), regs_end(), is_zero)) { return false; }
-  if (!std::all_of(fpregs_begin(), fpregs_end(), is_zero)) { return false; }
+  if (!gpregs_.is_zero()) { return false; }
+  if (!std::all_of(fpregs_begin(), fpregs_end(), [] (const auto val) { return val == 0; })) {
+    return false;
+  }
   if (!snapshot().is_zero()) { return false; }
   return true;
-}
-
-unsigned long long user_regs_struct::*State::get_reg_ptr(xed_reg_enum_t xed_reg) {
-  switch (xed_reg) {
-  case XED_REG_RAX: return &user_regs_struct::rax;
-  case XED_REG_RBX: return &user_regs_struct::rbx;
-  case XED_REG_RCX: return &user_regs_struct::rcx;
-  case XED_REG_RDX: return &user_regs_struct::rdx;
-  case XED_REG_RDI: return &user_regs_struct::rdi;
-  case XED_REG_RSI: return &user_regs_struct::rsi;
-  case XED_REG_RSP: return &user_regs_struct::rsp;
-  case XED_REG_RBP: return &user_regs_struct::rbp;
-  case XED_REG_R8 : return &user_regs_struct::r8 ;
-  case XED_REG_R9 : return &user_regs_struct::r9 ;
-  case XED_REG_R10: return &user_regs_struct::r10;
-  case XED_REG_R11: return &user_regs_struct::r11;
-  case XED_REG_R12: return &user_regs_struct::r12;
-  case XED_REG_R13: return &user_regs_struct::r13;
-  case XED_REG_R14: return &user_regs_struct::r14;
-  case XED_REG_R15: return &user_regs_struct::r15;
-  default: abort();
-  }
-}
-
-unsigned long long& State::reg(xed_reg_enum_t xed_reg) {
-  return regs().*get_reg_ptr(xed_reg);
-}
-
-unsigned long long State::reg(xed_reg_enum_t xed_reg) const {
-  return regs().*get_reg_ptr(xed_reg);
 }
 
 std::ostream& State::xmm_print(std::ostream& os, unsigned idx) const {
@@ -176,29 +130,4 @@ std::ostream& State::xmm_print(std::ostream& os, unsigned idx) const {
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const user_regs_struct& regs) {
-  os << "{";
-#define ENTRY(reg) os << #reg << "=" << std::hex << regs.reg << " "
-ENTRY(rax);
-ENTRY(rbx);
-ENTRY(rcx);
-ENTRY(rdx);
-ENTRY(rdi);
-ENTRY(rsi);
-ENTRY(rsp);
-ENTRY(rbp);
-ENTRY(rip);
-ENTRY(r8);
-ENTRY(r9);
-ENTRY(r10);
-ENTRY(r11);
-ENTRY(r12);
-ENTRY(r13);
-ENTRY(r14);
-ENTRY(r15);
-ENTRY(eflags);
-#undef ENTRY
- os << "}";
- return os;
-}
 			 

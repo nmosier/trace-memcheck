@@ -11,7 +11,7 @@ public:
   SyscallChecker(Tracee& tracee, State& taint_state, void *stack_begin, const SyscallArgs& args,
 		 const Memcheck& memcheck):
     tracee(tracee), taint_state(taint_state), stack_range(stack_begin, tracee.get_sp()), args(args),
-    taint_args(taint_state.regs()), memcheck(memcheck) {}
+    taint_args(taint_state.gpregs()), memcheck(memcheck) {}
 
   bool pre();
   void post();
@@ -61,7 +61,7 @@ private:
   void print_regs() const {
     *g_conf.log << args.no() << ": ";
     for (const auto& state : memcheck.post_states) {
-      const SyscallArgs args(state.regs());
+      const SyscallArgs args(state.gpregs());
       *g_conf.log << args.arg<N, T>() << " ";
     }
     *g_conf.log << "\n";

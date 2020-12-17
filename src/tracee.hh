@@ -54,7 +54,7 @@ public:
 
   std::ostream& dump(std::ostream& os, const void *ptr, size_t count);
 
-  const user_regs_struct& get_regs(void);
+  const user_regs_struct& get_regs();
   void get_regs(user_regs_struct& regs);
   void set_regs(const user_regs_struct& regs);
 
