@@ -17,39 +17,6 @@ State State::operator^(const State& other) const {
   return res ^= other;
 }
 
-// NOTE: res CAN be equal to lhs or rhs
-template <template <class> class Binop>
-void binop(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs, user_fpregs_struct& res) {
-  using Unit = uint64_t;
-  static_assert(sizeof(user_fpregs_struct) % sizeof(Unit) == 0,
-		"size of unit must divide size of fpregs");
-  const auto cbegin = [] (const user_fpregs_struct& fpregs) {
-    return reinterpret_cast<const Unit *>(&fpregs);
-  };
-  const auto begin = [] (user_fpregs_struct& fpregs) { return reinterpret_cast<Unit *>(&fpregs); };
-  const auto cend = [] (const auto& fpregs) {
-    return reinterpret_cast<const Unit *>(&fpregs + 1);
-  };
-  // const auto end = [] (auto& fpregs) { return static_cast<Unit *>(&fpregs + 1); };
-  std::transform(cbegin(lhs), cend(lhs), cbegin(rhs), begin(res), Binop<Unit>());
-}
-
-user_fpregs_struct operator^(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
-  user_fpregs_struct res;
-  binop<std::bit_xor>(lhs, rhs, res);
-  return res;
-}
-user_fpregs_struct& operator^=(user_fpregs_struct& acc, const user_fpregs_struct& other) {
-  binop<std::bit_xor>(acc, other, acc);
-  return acc;
-}
-bool operator==(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
-  return std::memcmp(&lhs, &rhs, sizeof(user_fpregs_struct)) == 0;
-}
-bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
-  return !(lhs == rhs);
-}
-
 void State::restore(Tracee& tracee) const {
   gpregs_.restore(tracee);
   fpregs_.restore(tracee);
@@ -60,14 +27,6 @@ bool State::operator==(const State& other) const {
   return gpregs_ == other.gpregs_ &&
     fpregs_ == other.fpregs_ &&
     snapshot_ == other.snapshot_;
-}
-
-bool operator==(const user_regs_struct& lhs, const user_regs_struct& rhs) {
-  return memcmp(&lhs, &rhs, sizeof(user_regs_struct)) == 0;
-}
-
-bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs) {
-  return !(lhs == rhs);
 }
 
 void State::zero() {
