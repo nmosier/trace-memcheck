@@ -31,6 +31,7 @@ private:
   bool check_read(const void *begin, size_t size) const {
     return check_read(begin, static_cast<const char *>(begin) + size);
   }
+  
   bool check_read(const char *s);
 
   bool check_write(void *begin, void *end) const;

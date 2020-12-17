@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <linux/futex.h>
 #include <sys/un.h>
+#include <netinet/in.h>
 #include "syscall-check.hh"
 
 static constexpr size_t constexpr_strlen(const char *begin) {
@@ -285,28 +286,35 @@ bool SyscallChecker::pre_CONNECT() {
   PRE_DEF(CONNECT);
   PRE_CHK(CONNECT);
 
-#if 1
+  PRE_READ_TYPE(&addr->sa_family);
+  
+  
   // TODO OPTIM: Faster to just get SA_FAMILY field
-  struct sockaddr sa;
-  read_struct(addr, sa);
-  switch (sa.sa_family) {
+  sa_family_t sa_family;
+  read_struct(&addr->sa_family, sa_family);
+  switch (sa_family) {
   case AF_LOCAL:
     // case AF_UNIX:
     {
       // TODO: Correctness -- clamp to size
       const auto sun = reinterpret_cast<const struct sockaddr_un *>(addr);
       const auto sun_path = reinterpret_cast<const char *>(&sun->sun_path);
-      check_read(sun_path);
+      PRE_READ_STRING(sun_path);
+    }
+    break;
+
+  case AF_INET:
+    {
+      const auto sin = reinterpret_cast<const struct sockaddr_in *>(addr);
+      PRE_READ_TYPE(sin);
     }
     break;
     
   default:
-    std::cerr << "SyscallChecker::pre_CONNECT: unkown sa_family " << sa.sa_family << "\n";
+    std::cerr << "SyscallChecker::pre_CONNECT: unkown sa_family " << sa_family << "\n";
     abort();
   }
-#else
-  PRE_READ_BUF(addr, addrlen);
-#endif
+
   return true;
 }
 
