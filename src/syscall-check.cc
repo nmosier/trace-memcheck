@@ -9,6 +9,7 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <linux/futex.h>
+#include <sys/un.h>
 #include "syscall-check.hh"
 
 static constexpr size_t constexpr_strlen(const char *begin) {
@@ -283,7 +284,29 @@ bool SyscallChecker::pre_GETXATTR() {
 bool SyscallChecker::pre_CONNECT() {
   PRE_DEF(CONNECT);
   PRE_CHK(CONNECT);
+
+#if 1
+  // TODO OPTIM: Faster to just get SA_FAMILY field
+  struct sockaddr sa;
+  read_struct(addr, sa);
+  switch (sa.sa_family) {
+  case AF_LOCAL:
+    // case AF_UNIX:
+    {
+      // TODO: Correctness -- clamp to size
+      const auto sun = reinterpret_cast<const struct sockaddr_un *>(addr);
+      const auto sun_path = reinterpret_cast<const char *>(&sun->sun_path);
+      check_read(sun_path);
+    }
+    break;
+    
+  default:
+    std::cerr << "SyscallChecker::pre_CONNECT: unkown sa_family " << sa.sa_family << "\n";
+    abort();
+  }
+#else
   PRE_READ_BUF(addr, addrlen);
+#endif
   return true;
 }
 
@@ -301,8 +324,8 @@ bool SyscallChecker::pre_POLL() {
 
   /* read only some fields in the array */
   for (nfds_t i = 0; i < nfds; ++i) {
-    PRE_READ_BUF(&fds[i].fd, &fds[i].events + 1);
-    PRE_READ_TYPE(&fds[i].revents);
+    PRE_READ_TYPE(&fds[i].fd);
+    PRE_READ_TYPE(&fds[i].events);
   }
 
   return true;
@@ -314,8 +337,21 @@ bool SyscallChecker::pre_RECVMSG() {
   PRE_READ_TYPE(msg);
   struct msghdr msg_;
   read_struct(msg, msg_);
-  PRE_READ_BUF(msg_.msg_name, msg_.msg_namelen);
-  *g_conf.log << "memcheck: warning: RECVMSG: stub\n";
+
+  if (msg_.msg_name != nullptr) {
+    PRE_WRITE_BUF(msg_.msg_name, msg_.msg_namelen);
+  }
+
+  for (size_t i = 0; i < msg_.msg_iovlen; ++i) {
+    const auto iov_ptr = &msg_.msg_iov[i];
+    PRE_READ_TYPE(iov_ptr);
+    struct iovec iov;
+    read_struct(iov_ptr, iov);
+    PRE_WRITE_BUF(iov.iov_base, iov.iov_len);
+  }
+  
+  PRE_WRITE_BUF(msg_.msg_control, msg_.msg_controllen);
+
   return true;
 }
 
@@ -714,6 +750,28 @@ void SyscallChecker::post_TIME() {
   }
 }
 
+void SyscallChecker::post_RECVMSG() {
+  POST_DEF(RECVMSG);
+  if (rv >= 0) {
+    struct msghdr msg_;
+    read_struct(msg, msg_);
+
+    if (msg_.msg_name != nullptr) {
+      POST_WRITE_BUF(msg_.msg_name, msg_.msg_namelen);
+    }
+
+    for (size_t i = 0; i < msg_.msg_iovlen; ++i) {
+      const auto iov_ptr = &msg_.msg_iov[i];
+      struct iovec iov;
+      read_struct(iov_ptr, iov);
+      POST_WRITE_BUF(iov.iov_base, iov.iov_len);
+    }
+
+    POST_WRITE_BUF(msg_.msg_control, msg_.msg_controllen);
+  }
+  
+}
+
 POST_TRUE(OPEN)
 POST_TRUE(CLOSE)
 POST_TRUE(MMAP)
@@ -733,6 +791,7 @@ POST_TRUE(SETSOCKOPT)
 POST_TRUE(LSEEK)
 POST_TRUE(FADVISE64)
 POST_TRUE(SETRLIMIT)
+POST_TRUE(SENDTO)
 
 POST_STAT(STAT)
 POST_STAT(LSTAT)
@@ -744,8 +803,6 @@ POST_GETXATTR(GETXATTR)
 POST_GETNAME(GETSOCKNAME)
 POST_GETNAME(GETPEERNAME)
 
-POST_STUB(SENDTO)
-POST_STUB(RECVMSG)
 POST_STUB(BRK)
 POST_STUB(FCNTL)
 
