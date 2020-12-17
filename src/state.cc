@@ -52,7 +52,7 @@ bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
 
 void State::restore(Tracee& tracee) const {
   gpregs_.restore(tracee);
-  tracee.set_fpregs(fpregs_);
+  fpregs_.restore(tracee);
   snapshot_.restore(tracee);
 }
 
@@ -72,15 +72,14 @@ bool operator!=(const user_regs_struct& lhs, const user_regs_struct& rhs) {
 
 void State::zero() {
   gpregs_.zero();
-  std::fill(fpregs_begin(), fpregs_end(), 0);
+  fpregs_.zero();
   snapshot_.zero();
 }
 
 State& State::operator|=(const State& other) {
   assert(similar(other));
   gpregs_ |= other.gpregs_;
-  std::transform(fpregs_begin(), fpregs_end(), other.fpregs_begin(), fpregs_begin(),
-		 std::bit_or<fpreg_t>());
+  fpregs_ |= other.fpregs_;
   snapshot_ |= other.snapshot_;
   return *this;
 }
@@ -115,20 +114,10 @@ std::string State::string(const void *addr) const {
 
 bool State::is_zero() const {
   if (!gpregs_.is_zero()) { return false; }
-  if (!std::all_of(fpregs_begin(), fpregs_end(), [] (const auto val) { return val == 0; })) {
-    return false;
-  }
+  if (!fpregs_.is_zero()) { return false; }
   if (!snapshot().is_zero()) { return false; }
   return true;
 }
 
-std::ostream& State::xmm_print(std::ostream& os, unsigned idx) const {
-  auto xmm_it = xmm_end(idx);
-  while (xmm_it != xmm_begin(idx)) {
-    --xmm_it;
-    os << std::hex << (unsigned) *xmm_it;
-  }
-  return os;
-}
 
 			 

@@ -3,6 +3,11 @@
 #include <algorithm>
 #include <functional>
 #include <sys/user.h>
+#include <iomanip>
+#include <cassert>
+extern "C" {
+#include <xed/xed-interface.h>
+}
 
 #include "tracee.hh"
 
@@ -109,6 +114,8 @@ public:
   bool is_zero() const {
     return std::all_of(begin(), end(), [] (auto val) { return val == 0; });
   }
+  void zero_lower() { std::fill(begin(), begin() + size() / 2, 0); }
+  void zero_upper() { std::fill(begin() + size() / 2, end(), 0); }
 
 private:
   using pointer = value_type *;
@@ -129,9 +136,23 @@ private:
   constexpr iterator end() { return buf_ + size(); }
   constexpr const_iterator begin() const { return buf_; }
   constexpr const_iterator end() const { return buf_ + size(); }
+  constexpr auto rbegin() { return std::make_reverse_iterator(begin()); }
+  constexpr auto rend() { return std::make_reverse_iterator(end()); }
+  constexpr auto rbegin() const { return std::make_reverse_iterator(begin()); }
+  constexpr auto rend() const { return std::make_reverse_iterator(end()); }
   
   friend class FPRegisters;
+  template <typename vt>
+  friend std::ostream& operator<<(std::ostream& os, const XMMRegister<vt>& xmm);
 };
+
+template <typename value_type>
+std::ostream& operator<<(std::ostream& os, const XMMRegister<value_type>& xmm) {
+  for (auto rit = xmm.rbegin(); rit != xmm.rend(); ++rit) {
+    os << std::hex << std::setfill('0') << std::setw(sizeof(value_type) * 2) << *rit;
+  }
+  return os;
+}
 
 class FPRegisters: public Registers<FPRegisters, user_fpregs_struct> {
 public:
@@ -141,9 +162,11 @@ public:
 
   template <typename... Args>
   FPRegisters(Args&&... args): Registers(args...) {}
-  
+
   XMM xmm(unsigned idx) { return XMM(xmm_ptr(idx)); }
   CXMM xmm(unsigned idx) const { return CXMM(xmm_ptr(idx)); }
+  XMM xmm(xed_reg_enum_t reg) { return xmm(xed_idx(reg)); }
+  CXMM xmm(xed_reg_enum_t reg) const { return xmm(xed_idx(reg)); }
   
 private:
   XMM::pointer xmm_ptr(unsigned idx) {
@@ -153,6 +176,11 @@ private:
   CXMM::pointer xmm_ptr(unsigned idx) const {
     return reinterpret_cast<CXMM::pointer>(reinterpret_cast<const char *>(regs_.xmm_space) +
 					   idx * CXMM::bytes);
+  }
+
+  static unsigned xed_idx(xed_reg_enum_t reg) {
+    assert(xed_reg_class(reg) == XED_REG_CLASS_XMM);
+    return reg - XED_REG_XMM0;
   }
 };
 

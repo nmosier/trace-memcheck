@@ -8,6 +8,7 @@
 #include "pageset.hh"
 #include "cksum.hh"
 #include "regs.hh"
+#include "flags.hh"
 
 class Memcheck;
 
@@ -287,8 +288,11 @@ private:
   void read_write(xed_reg_enum_t reg) { read(reg); write(reg); }
 
   void read_flags(uint32_t mask) const;
+  void read_flags(Flag f) const { read_flags(static_cast<uint32_t>(f)); }
   void write_flags(uint32_t mask);
+  void write_flags(Flag f) { write_flags(static_cast<uint32_t>(f)); }
   void taint_flags(uint32_t mask);
+  void taint_flags(Flag f) { taint_flags(static_cast<uint32_t>(f)); }
 
   static uint64_t mask(xed_reg_enum_t reg, bool read);
   static uint64_t mask_read(xed_reg_enum_t reg) { return mask(reg, true); }

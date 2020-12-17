@@ -423,27 +423,21 @@ void SharedMemSeqPt::check() {
   case XED_IFORM_MOVDQA_XMMdq_MEMdq:
     {
       const auto reg = inst.xed_reg();
-      assert(xed_reg_class(reg) == XED_REG_CLASS_XMM);
-      const auto xmm = reg - XED_REG_XMM0;
-      std::fill(taint_state.xmm_begin(xmm), taint_state.xmm_end(xmm), 0);
+      taint_state.fpregs().xmm(reg).zero();
     }
     break;
 
   case XED_IFORM_MOVLPD_XMMsd_MEMq:
     {
       const auto reg = inst.xed_reg();
-      const auto xmm = reg - XED_REG_XMM0;
-      const auto begin = taint_state.xmm_begin(xmm);
-      std::fill(begin, begin + 8, 0);
+      taint_state.fpregs().xmm(reg).zero_lower();
     }
     break;
 
   case XED_IFORM_MOVHPD_XMMsd_MEMq:
     {
       const auto reg = inst.xed_reg();
-      const auto xmm = reg - XED_REG_XMM0;
-      const auto begin = taint_state.xmm_begin(xmm);
-      std::fill(begin + 8, begin + 16, 0);
+      taint_state.fpregs().xmm(reg).zero_upper();
     }
     break;
 
@@ -454,10 +448,17 @@ void SharedMemSeqPt::check() {
     break;
 
   case XED_IFORM_ADD_GPRv_MEMv:
+  case XED_IFORM_SUB_GPRv_MEMv:
     read_write(inst.xed_reg0());
     write_flags(status_flags);
     break;
 
+  case XED_IFORM_AND_GPRv_MEMv:
+    read_write(inst.xed_reg0());
+    write_flags(Flag::OF | Flag::CF | Flag::SF | Flag::ZF | Flag::PF);
+    taint_flags(Flag::AF);
+    break;
+    
   default:
     std::cerr << inst.xed_iform_str() << "\n";
     abort();    

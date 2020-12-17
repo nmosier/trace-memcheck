@@ -19,23 +19,17 @@ public:
 
   const GPRegisters& gpregs() const { return gpregs_; }
   GPRegisters& gpregs() { return gpregs_; }
-  const user_fpregs_struct& fpregs() const { return fpregs_; }
-  user_fpregs_struct& fpregs() { return fpregs_; }
+  const FPRegisters& fpregs() const { return fpregs_ ;}
+  FPRegisters& fpregs() { return fpregs_; }
   Snapshot& snapshot() { return snapshot_; }
   const Snapshot& snapshot() const { return snapshot_; }
 
-  uint8_t *xmm_begin(unsigned idx) { return (uint8_t *) fpregs().xmm_space + idx * 16; }
-  uint8_t *xmm_end(unsigned idx) { return (uint8_t *) fpregs().xmm_space + (idx + 1) * 16; }
-  const uint8_t *xmm_begin(unsigned idx) const { return (uint8_t *) fpregs().xmm_space + idx * 16; }
-  const uint8_t *xmm_end(unsigned idx) const {
-    return (uint8_t *) fpregs().xmm_space + (idx + 1) * 16;
-  }
   std::ostream& xmm_print(std::ostream& os, unsigned idx) const;
 
   template <typename InputIt>
   void save(Tracee& tracee, InputIt begin, InputIt end) {
     gpregs_.save(tracee);
-    tracee.get_fpregs(fpregs_);
+    fpregs_.save(tracee);
     snapshot_.save(begin, end, tracee);
   }
 
@@ -66,24 +60,8 @@ public:
   std::ostream& dump(std::ostream& os, const void *begin, const void *end) const;
 
 private:
-  using fpreg_t = uint64_t;
-  
   GPRegisters gpregs_;
-  user_fpregs_struct fpregs_;
+  FPRegisters fpregs_;
   Snapshot snapshot_;
-
-  // TODO: REmove once FPRegisters is written
-  const fpreg_t *fpregs_begin() const { return reinterpret_cast<const fpreg_t *>(&fpregs_); }
-  fpreg_t *fpregs_begin() { return reinterpret_cast<fpreg_t *>(&fpregs_); }
-  const fpreg_t *fpregs_end() const { return reinterpret_cast<const fpreg_t *>(&fpregs_ + 1); }
-  fpreg_t *fpregs_end() { return reinterpret_cast<fpreg_t *>(&fpregs_ + 1); }
-
-  static unsigned long long user_regs_struct::*get_reg_ptr(xed_reg_enum_t xed_reg);
 };
-
-
-user_fpregs_struct operator^(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
-user_fpregs_struct& operator^=(user_fpregs_struct& acc, const user_fpregs_struct& other);
-bool operator==(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
-bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs);
 
