@@ -1,10 +1,10 @@
 #pragma once
 
-constexpr bool FILL_SP_DEC           = false;
-constexpr bool FILL_SP_INC           = false;
-constexpr bool FILL_CALL             = false;
+constexpr bool FILL_SP_DEC           = true;
+constexpr bool FILL_SP_INC           = true;
+constexpr bool FILL_CALL             = true;
 constexpr bool TAINT_STACK           = true;
-constexpr bool TAINT_FLAGS           = false;
+constexpr bool TAINT_FLAGS           = true;
 constexpr bool CHANGE_PRE_STATE      = true;
 constexpr bool ABORT_ON_TAINT        = false;
 constexpr bool CALL_TRACKER          = true;
