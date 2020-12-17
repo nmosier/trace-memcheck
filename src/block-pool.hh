@@ -1,9 +1,11 @@
 #pragma once
 
 #include <iostream>
+#include <cassert>
 #include "usermem.hh"
-#include "tracee.hh"
-#include "inst.hh"
+
+class Tracee;
+class Blob;
 
 class BlockPool {
 public:
@@ -28,7 +30,12 @@ public:
     return write_insts(addr, c.begin(), c.end());
   }
 
-  uint8_t *alloc(size_t size);
+  uint8_t *alloc(size_t size) {
+    assert(alloc_ptr + size <= mem.end<uint8_t>());
+    uint8_t *ptr = alloc_ptr;
+    alloc_ptr += size;
+    return ptr;
+  }
   uint8_t *peek(void) const { return alloc_ptr; }
 
   uint8_t *begin() const { return mem.begin<uint8_t>(); }

@@ -187,32 +187,6 @@ bool Block::classify_inst(xed_iclass_enum_t iclass) {
   }
 }
 
-uint8_t *BlockPool::alloc(size_t size) {
-  assert(alloc_ptr + size <= mem.end<uint8_t>());
-  uint8_t *ptr = alloc_ptr;
-  alloc_ptr += size;
-  return ptr;
-}
-
-std::ostream& BlockPool::print(std::ostream& os) const {
-  uint8_t *begin = mem.begin<uint8_t>();
-  size_t size = peek() - begin;
-  uint8_t *buf = (uint8_t *) malloc(size);
-  assert(buf != nullptr);
-  for (uint8_t *it = buf; it < buf + size; ) {
-    Instruction inst(it, tracee);
-    os << inst << std::endl;
-    it += inst.size();
-  }
-  return os;
-}
-
-uint8_t *BlockPool::write_inst(uint8_t *addr, Blob& inst) {
-  inst.relocate(addr);
-  tracee.write(inst);
-  return addr + inst.size();
-}
-
 void Block::jump_to(void) const {
   tracee_.set_pc(pool_addr());
 }
