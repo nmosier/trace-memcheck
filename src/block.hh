@@ -16,7 +16,6 @@ extern "C" {
 }
 
 #include "tracee.hh"
-#include "usermem.hh"
 #include "inst.hh"
 #include "patch-fwd.hh"
 #include "block-fwd.hh"

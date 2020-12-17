@@ -3,10 +3,10 @@
 class Decoder;
 
 #include <string>
+#include <iostream>
 extern "C" {
 #include <xed/xed-interface.h>
 }
-#include "tracee.hh"
 #include "inst.hh"
 
 class Decoder {

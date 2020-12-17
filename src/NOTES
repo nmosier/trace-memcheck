@@ -303,3 +303,7 @@ Error soon after XBEGIN. Perhaps should treat XBEGIN/XEND/XABORT as sequence poi
 ---
 
 Errors caused by VFORK, so not a bug in Patcher!
+
+----
+
+Create in-core variable with fill value.

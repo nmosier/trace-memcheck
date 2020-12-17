@@ -7,7 +7,6 @@ class Memcheck;
 #include "util.hh"
 #include "patch.hh"
 #include "maps.hh"
-#include "snapshot.hh"
 #include "state.hh"
 #include "pageset.hh"
 #include "settings.hh"

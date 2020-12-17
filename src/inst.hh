@@ -13,6 +13,7 @@ extern "C" {
 #include <xed/xed-interface.h>
 }
 #include "decoder.hh"
+#include "tracee.hh"
 
 class Blob {
 public:

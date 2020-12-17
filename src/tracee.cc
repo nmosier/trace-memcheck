@@ -115,38 +115,38 @@ void Tracee::cache_fpregs() {
   }
 }
 
-void Tracee::get_regs(user_regs_struct& regs) {
+void Tracee::get_gpregs(user_regs_struct& regs) {
   cache_regs();
-  regs = get_regs();
+  regs = get_gpregs();
 }
 
-const user_regs_struct& Tracee::get_regs(void) {
+const user_regs_struct& Tracee::get_gpregs() {
   cache_regs();
   return regs_;
 }
 
-void Tracee::set_regs(const user_regs_struct& regs) {
+void Tracee::set_gpregs(const user_regs_struct& regs) {
   regs_ = regs; // TODO: Check if not equal?
   regs_good_ = true;
   ptrace(PTRACE_SETREGS, pid(), nullptr, &regs);
 }
 
 void *Tracee::get_sp(void) {
-  return (void *) get_regs().rsp;
+  return (void *) get_gpregs().rsp;
 }
 
 void Tracee::set_sp(void *sp) {
-  auto regs = get_regs();
+  auto regs = get_gpregs();
   regs.rsp = reinterpret_cast<uintptr_t>(sp);
   set_regs(regs);
 }
 
 uint8_t *Tracee::get_pc(void) {
-  return (uint8_t *) get_regs().rip;
+  return (uint8_t *) get_gpregs().rip;
 }
 
 void Tracee::set_pc(void *pc) {
-  auto regs = get_regs();
+  auto regs = get_gpregs();
   regs.rip = (uintptr_t) pc;
   set_regs(regs);
 }
@@ -173,7 +173,7 @@ int Tracee::cont(void) {
 }
 
 void Tracee::syscall(user_regs_struct& regs) {
-  const user_regs_struct saved_regs = get_regs();
+  const user_regs_struct saved_regs = get_gpregs();
   set_regs(regs);
   void *pc = (void *) regs.rip;
   const uint8_t syscall[] = {0x0f, 0x05};
@@ -193,7 +193,7 @@ void Tracee::syscall(user_regs_struct& regs) {
 
 uintptr_t Tracee::syscall(Syscall syscallno, uintptr_t a0, uintptr_t a1, uintptr_t a2,
 			  uintptr_t a3, uintptr_t a4, uintptr_t a5) {
-  user_regs_struct regs = get_regs();
+  user_regs_struct regs = get_gpregs();
   regs.rax = static_cast<unsigned>(syscallno);
   regs.rdi = a0;
   regs.rsi = a1;

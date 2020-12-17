@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 #include <memory>
-#include "decoder.hh"
+
 #include "tracee.hh"
 #include "patch-fwd.hh"
 #include "block.hh"

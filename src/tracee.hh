@@ -14,10 +14,13 @@ class Tracee;
 
 class Tracee {
 public:
-  Tracee(void): fd_(-1) {}
+  Tracee(): fd_(-1) {}
   Tracee(pid_t pid, const char *command) { open(pid, command); }
-  ~Tracee(void);
+  ~Tracee();
 
+  bool good() const { return fd_ >= 0; }
+  operator bool() const { return good(); }
+  
   void open(pid_t pid, const char *command);
   void close(void);
   
@@ -54,13 +57,18 @@ public:
 
   std::ostream& dump(std::ostream& os, const void *ptr, size_t count);
 
-  const user_regs_struct& get_regs();
-  void get_regs(user_regs_struct& regs);
-  void set_regs(const user_regs_struct& regs);
-
+  const user_regs_struct& get_gpregs();
+  void get_gpregs(user_regs_struct& regs); 
+  void set_gpregs(const user_regs_struct& regs);
+  
   const user_fpregs_struct& get_fpregs();
   void get_fpregs(user_fpregs_struct& fpregs);
   void set_fpregs(const user_fpregs_struct& fpregs);
+
+  void get_regs(user_regs_struct& gpregs) { get_gpregs(gpregs); }
+  void get_regs(user_fpregs_struct& fpregs) { get_fpregs(fpregs); }
+  void set_regs(const user_regs_struct& gpregs) { set_gpregs(gpregs); }
+  void set_regs(const user_fpregs_struct& fpregs) { set_fpregs(fpregs); }
   
   uint8_t *get_pc(void);
   void set_pc(void *pc);
@@ -68,7 +76,7 @@ public:
   void set_sp(void *sp);
   void get_siginfo(siginfo_t& siginfo);
   siginfo_t get_siginfo();
-  auto get_flags() { return get_regs().eflags; }
+  auto get_flags() { return get_gpregs().eflags; }
   
   int singlestep(void);
   int cont(void);

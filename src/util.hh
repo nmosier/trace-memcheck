@@ -262,6 +262,26 @@ namespace util {
   inline bool implies(bool antecedent, bool consequent) {
     return !antecedent || consequent;
   }
+
+  template <template <class> class Binop, class Container>
+  Container& binop_fixed(const Container& l, const Container& r, Container& res) {
+    constexpr auto size = Container::size(); (void) size; // require constexpr size member function
+    std::transform(l.begin(), l.end(), r.begin(), res.begin(),
+		   Binop<typename Container::value_type>());
+    return res;
+  }
+
+  template <template <class> class Binop, class Container>
+  Container binop_fixed(const Container& l, const Container& r) {
+    Container res;
+    return binop_fixed<Binop>(l, r);
+  }
+
+  template <class Container>
+  bool equal_fixed(const Container& l, const Container& r) {
+    constexpr auto size = Container::size(); (void) size;
+    return std::equal(l.begin(), l.end(), r.begin());
+  }
   
 }
 	     

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <vector>
+#include <cstring>
 
 #include "state.hh"
 
@@ -43,7 +44,7 @@ user_fpregs_struct& operator^=(user_fpregs_struct& acc, const user_fpregs_struct
   return acc;
 }
 bool operator==(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
-  return memcmp(&lhs, &rhs, sizeof(user_fpregs_struct)) == 0;
+  return std::memcmp(&lhs, &rhs, sizeof(user_fpregs_struct)) == 0;
 }
 bool operator!=(const user_fpregs_struct& lhs, const user_fpregs_struct& rhs) {
   return !(lhs == rhs);

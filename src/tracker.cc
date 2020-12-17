@@ -19,7 +19,7 @@ void JccTracker::handler(uint8_t *addr) {
   /* checksum flags */
   std::stringstream ss;
   if (JCC_RECORD_REGS) {
-    ss << tracee.get_regs();
+    ss << tracee.get_gpregs();
   }
   uint64_t val;
   if (tracee.try_read(&val, sizeof(val), (void *) 0x65bab8)) {

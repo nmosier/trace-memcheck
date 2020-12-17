@@ -174,7 +174,7 @@ public:
   void add_call(Args&&... args) { regs_ = GPRegisters(args...); }
   
   void add_ret(unsigned long long rv) { rv_ = rv; }
-  void add_ret(Tracee& tracee) { add_ret(tracee.get_regs().rax); }
+  void add_ret(Tracee& tracee) { add_ret(tracee.get_gpregs().rax); }
 
   const GPRegisters& regs() const { return regs_; }
   
