@@ -10,7 +10,10 @@ template <class Derived, class regs_struct>
 class Registers {
 public:
   Registers(const regs_struct& regs): regs_(regs) {}
-  Registers(Tracee& tracee): regs_(tracee.get_regs()) {}
+  Registers(Tracee& tracee) { save(tracee); }
+
+  void save(Tracee& tracee) { tracee.get_regs(regs_); }
+  void restore(Tracee& tracee) const { tracee.set_regs(regs_); }
 
   void zero() { std::fill(begin(), end(), 0); }
   bool is_zero() const { return std::all_of(begin(), end(), [] (auto val) { return val == 0; }); }
@@ -78,16 +81,11 @@ private:
   m(r15)					\
   m(eflags)					\
 
-  
 
 class GPRegisters: public Registers<GPRegisters, user_regs_struct> {
 public:
   template <typename... Args>
   GPRegisters(Args&&... args): Registers(args...) {}
-
-  // TODO: Rewrite itnerface for Tracee so that this can be lifted up to Registers<> classs
-  void save(Tracee& tracee) { regs_ = tracee.get_regs(); }
-  void restore(Tracee& tracee) const { tracee.set_regs(regs_); }
 
   unsigned long long reg(xed_reg_enum_t xed_reg) const;
   unsigned long long& reg(xed_reg_enum_t xed_reg);
@@ -104,12 +102,58 @@ private:
   friend std::ostream& operator<<(std::ostream& os, const GPRegisters& gpregs);
 };
 
-class FPRegisters: public Registers<FPRegisters, user_fpregs_struct> {
+template <typename value_type>
+class XMMRegister {
 public:
-  template <typename... Args>
-  FPRegisters(Args&&... args): Registers(args...) {}
+  void zero() { std::fill(begin(), end(), 0); }
+  bool is_zero() const {
+    return std::all_of(begin(), end(), [] (auto val) { return val == 0; });
+  }
 
 private:
+  using pointer = value_type *;
+  using const_pointer = const value_type *;
+  using reference = value_type&;
+  using const_reference = const value_type&;
+  using iterator = pointer;
+  using const_iterator = const_pointer;
+
+  static constexpr auto bytes = 16; // 16 bytes in XMM
+  static_assert(bytes % sizeof(value_type) == 0, "sizeof(value_type) doesn't divide sizeof(XMM)");
+  pointer buf_;
+
+  constexpr XMMRegister(pointer buf): buf_(buf) {}
+
+  static constexpr auto size() { return bytes / sizeof(value_type); }
+  constexpr iterator begin() { return buf_; }
+  constexpr iterator end() { return buf_ + size(); }
+  constexpr const_iterator begin() const { return buf_; }
+  constexpr const_iterator end() const { return buf_ + size(); }
+  
+  friend class FPRegisters;
+};
+
+class FPRegisters: public Registers<FPRegisters, user_fpregs_struct> {
+public:
+  using xmm_value_type = std::remove_extent<decltype(user_fpregs_struct::xmm_space)>::type;
+  using XMM = XMMRegister<xmm_value_type>;
+  using CXMM = XMMRegister<const xmm_value_type>;
+
+  template <typename... Args>
+  FPRegisters(Args&&... args): Registers(args...) {}
+  
+  XMM xmm(unsigned idx) { return XMM(xmm_ptr(idx)); }
+  CXMM xmm(unsigned idx) const { return CXMM(xmm_ptr(idx)); }
+  
+private:
+  XMM::pointer xmm_ptr(unsigned idx) {
+    return reinterpret_cast<XMM::pointer>
+      (reinterpret_cast<char *>(regs_.xmm_space) + idx * XMM::bytes);
+  }
+  CXMM::pointer xmm_ptr(unsigned idx) const {
+    return reinterpret_cast<CXMM::pointer>(reinterpret_cast<const char *>(regs_.xmm_space) +
+					   idx * CXMM::bytes);
+  }
 };
 
 std::ostream& operator<<(std::ostream& os, const GPRegisters& gpregs);
