@@ -111,8 +111,11 @@ private:
   RoundArray<uint8_t> fills = {{0x00, 0xff}};
   RoundArray<State> post_states;
   FlagChecksum cksum;
-  RoundArray<FlagChecksum> cksums;
+  RoundArray<FlagChecksum> bkpt_cksums;
+  RoundArray<uint32_t> incore_cksums;
   State taint_state;
+
+  uint8_t cur_fill() const { return fills[subround_counter]; }
 
   friend class SyscallChecker; // TEMPORARY
   friend class SharedMemSeqPt; // TEMPORARY
@@ -126,6 +129,16 @@ private:
   std::unordered_set<void *> shared_pages;
   void segfault_handler(int signal, const siginfo_t& siginfo);
 
-  void assert_taint_zero() const { assert(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero())); }
+  void assert_taint_zero() const {
+    assert(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()));
+  }
+
+  template <typename InputIt>
+  void check_checksums(InputIt begin, InputIt end, const char *desc = nullptr);
+
+  template <typename Container>
+  void check_checksums(const Container& container, const char *desc = nullptr) {
+    return check_checksums(container.begin(), container.end(), desc);
+  }
 };
 
