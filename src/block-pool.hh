@@ -10,7 +10,9 @@ class Blob;
 class BlockPool {
 public:
   BlockPool(Tracee& tracee, size_t size):
-    tracee(tracee), mem(tracee, size, PROT_READ | PROT_EXEC), alloc_ptr(mem.begin<uint8_t>()) {}
+    tracee(tracee), mem(tracee, size, PROT_READ | PROT_EXEC),
+    allocator(mem.begin<uint8_t>(), mem.end<uint8_t>())
+  {}
 
   std::ostream& print(std::ostream& os) const;
   std::ostream& operator<<(std::ostream& os) const { return print(os); }
@@ -30,21 +32,18 @@ public:
     return write_insts(addr, c.begin(), c.end());
   }
 
-  uint8_t *alloc(size_t size) {
-    assert(alloc_ptr + size <= mem.end<uint8_t>());
-    uint8_t *ptr = alloc_ptr;
-    alloc_ptr += size;
-    return ptr;
-  }
-  uint8_t *peek(void) const { return alloc_ptr; }
+  uint8_t *peek() const { return allocator.peek(); }
+  
+  template <typename Size>
+  uint8_t *alloc(Size size) { return allocator.alloc(size); }
 
+  // TODO: Remove these?
   uint8_t *begin() const { return mem.begin<uint8_t>(); }
   uint8_t *end() const { return mem.end<uint8_t>(); }
   
 private:
   Tracee& tracee;
   UserMemory mem;
-  uint8_t *alloc_ptr;
-
+  UserAllocator<uint8_t> allocator;
 };
 

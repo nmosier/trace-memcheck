@@ -57,7 +57,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher->sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
   
   save_state(pre_state);
-  init_taint(taint_state);
+  init_taint(taint_state, true); // also taint shadow stack
 
   // TEMP
   protect_map("[vdso]", PROT_READ);
@@ -237,7 +237,7 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   assert(std::all_of(begin, end, std::bind(&State::similar, first, std::placeholders::_1)));
   
   /* taint stack */
-  init_taint(taint_state); // TODO: Could be optimized.
+  init_taint(taint_state, false); // TODO: Could be optimized.
 
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *it; // TODO: could be optimized.
@@ -321,12 +321,13 @@ void Memcheck::start_round() {
 }
 
 
-void Memcheck::init_taint(State& taint_state) {
+void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
   /* taint memory below stack */
   save_state(taint_state); // TODO: optimize
   taint_state.zero();
   if (TAINT_STACK) {
-    taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE, -1);
+    const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
+    taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - padding, -1);
   }
 }
 

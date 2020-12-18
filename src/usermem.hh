@@ -32,22 +32,22 @@ private:
 template <typename T>
 class UserAllocator {
 public:
-  UserAllocator(T *begin, T *end): ptr_(begin), end_(end) {}
+  UserAllocator(T *begin, T *end): ptr(begin), end(end) {}
 
-  auto rem() { return end_ - ptr_; }
-  uint8_t *peek() const { return ptr_; }
+  size_t rem() { return end - ptr; }
+  T *peek() const { return ptr; }
 
   template <typename Size>
-  uint8_t *alloc(Size size) {
+  T *alloc(Size size) {
     if (rem() < size) {
-      abort();
+      std::abort();
     }
-    const auto res = ptr_;
-    ptr_ += size;
+    const auto res = ptr;
+    ptr += size;
     return res;
   }
   
 private:
-  T *ptr_;
-  T *end_;
+  T *ptr;
+  T *end;
 };

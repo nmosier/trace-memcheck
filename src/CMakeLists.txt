@@ -20,6 +20,7 @@ add_library(core_objs STATIC
   block-term.cc
   rsb.cc
   config.cc
+  block-pool.cc
   )
 add_dependencies(core_objs xed)
 

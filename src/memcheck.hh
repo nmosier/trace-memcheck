@@ -66,6 +66,7 @@ private:
   RTMTracker rtm_tracker;
   RDTSCTracker rdtsc_tracker;
   util::optional<UserMemory> memory;
+  void *fill_ptr = nullptr; // user memory pointer
   
   Maps maps_gen;
   PageSet tracked_pages;
@@ -96,7 +97,7 @@ private:
   void check_round(SequencePoint& seq_pt);
   void set_state_with_taint(State& state, const State& taint);
   
-  void init_taint(State& taint_state);
+  void init_taint(State& taint_state, bool taint_shadow_stack);
   
   SyscallArgs syscall_args;
   
@@ -107,7 +108,7 @@ private:
   template <typename T>
   using RoundArray = std::array<T, SUBROUNDS>;
 
-  RoundArray<uint8_t> fills = {{0x00, 0x00}};
+  RoundArray<uint8_t> fills = {{0x00, 0xff}};
   RoundArray<State> post_states;
   FlagChecksum cksum;
   RoundArray<FlagChecksum> cksums;
