@@ -116,10 +116,9 @@ private:
   Callback post_callback;
 };
 
-class StackTracker: public Tracker, public Filler, public Checksummer {
+class StackTracker: public Tracker, public Filler {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
-    Tracker(tracee), Filler(fill), Checksummer(cksum) {}
+  StackTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
   
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
   
@@ -204,10 +203,9 @@ private:
   void post(uint8_t *addr);
 };
 
-class CallTracker: public Tracker, public Filler, public Checksummer {
+class CallTracker: public Tracker, public Filler {
 public:
-  CallTracker(Tracee& tracee, uint8_t fill, FlagChecksum& cksum):
-    Tracker(tracee), Filler(fill), Checksummer(cksum) {}
+  CallTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
 
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 

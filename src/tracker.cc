@@ -51,9 +51,6 @@ void StackTracker::post_handler(uint8_t *addr) {
       tracee.fill(fill(), pre_sp - SHADOW_STACK_SIZE, post_sp - SHADOW_STACK_SIZE);
     }
   }
-
-  // DEBUG
-  cksum.add(addr, tracee.get_flags());
 }
 
 uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
@@ -100,9 +97,6 @@ void CallTracker::call_handler(uint8_t *addr) const {
   if (FILL_CALL) {
     tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
   }
-
-  /* DEBUG: checksum */
-  cksum.add(addr, tracee.get_flags());
 }
 
 void CallTracker::ret_handler(uint8_t *addr) const {
@@ -111,9 +105,6 @@ void CallTracker::ret_handler(uint8_t *addr) const {
   if (FILL_CALL) {
     tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp); // TODO: is this ok that it doesn't taint the return address?
   }
-
-  /* DEBUG: Checksum */
-  cksum.add(addr, tracee.get_flags());
 }
 
 

@@ -47,7 +47,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   tracked_pages.add_state(taint_state);
   tracked_pages.add_maps(maps_gen);
 
-  memory = UserMemory(tracee, PAGESIZE, PROT_READ | PROT_WRITE);
+  vars = MemcheckVariables(tracee);
   
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
   patcher->signal(SIGSTOP, sigignore);

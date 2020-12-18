@@ -10,12 +10,13 @@ class Memcheck;
 #include "state.hh"
 #include "pageset.hh"
 #include "settings.hh"
+#include "memcheck-vars.hh"
 
 class Memcheck {
 public:
   Memcheck(void):
     tracee(),
-    stack_tracker(tracee, 0, cksum),
+    stack_tracker(tracee, 0),
     syscall_tracker(tracee,
 		    SequencePoint(taint_state,
 				  [this] (auto addr) { this->advance_round(addr, syscall_tracker); },
@@ -25,7 +26,7 @@ public:
 		    syscall_args,
 		    *this
 		    ),
-    call_tracker(tracee, 0, cksum),
+    call_tracker(tracee, 0),
     jcc_tracker(tracee, cksum),
     lock_tracker(tracee,
 		 SequencePoint(taint_state,
@@ -65,8 +66,7 @@ private:
   LockTracker lock_tracker;
   RTMTracker rtm_tracker;
   RDTSCTracker rdtsc_tracker;
-  util::optional<UserMemory> memory;
-  void *fill_ptr = nullptr; // user memory pointer
+  util::optional<MemcheckVariables> vars;
   
   Maps maps_gen;
   PageSet tracked_pages;
