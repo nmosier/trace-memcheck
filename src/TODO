@@ -35,4 +35,6 @@
 [X] Fix single-stepping + shared mem bug
 [ ] Restructure singlestep loop in patch.cc
 [X] Option to assert all registers equal in JCC.
-[ ] 
+[ ] rename Memcheck::{cksum -> bkpt_cksum}
+[ ] Define Memcheck::cur_post_states()
+[ ] Add boundary checks on all subround counter accesses.

@@ -10,7 +10,7 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
 		   const InsertBlock& ib, const Transformer& transformer)
 {
-  Block *block = new Block(tracee, orig_addr, block_pool);
+  Block *block = new Block(tracee, orig_addr);
   uint8_t *it = orig_addr;
   
   block->pool_addr_ = block_pool.peek();

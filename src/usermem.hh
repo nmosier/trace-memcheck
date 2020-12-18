@@ -24,7 +24,6 @@ public:
   user_ptr_t<T> end() const { return reinterpret_cast<user_ptr_t<T>>(begin<char>() + size()); }
 
 private:
-  Tracee& tracee;
   size_t size_;
   user_ptr_t<char> user_map;
 };

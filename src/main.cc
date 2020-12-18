@@ -18,11 +18,6 @@
 #include "config.hh"
 #include "memcheck.hh"
 
-static inline bool stopped_trace(int status) {
-  return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
-  
-}
-
 int main(int argc, char *argv[]) {
   const auto usage = [=] (FILE *f) {
     const char *usage =

@@ -48,7 +48,7 @@ private:
   static constexpr size_t mprotect_bits = 12;
   static_assert(mprotect_bits >= 12, "bits must be greater than page size");
   static constexpr size_t mprotect_size = 1 << mprotect_bits;
-  static constexpr void *mprotect_ptr(void *ptr) {
+  static void *mprotect_ptr(void *ptr) {
     return (void *) (((uintptr_t) ptr) & ~(mprotect_size - 1));
   }
 
@@ -132,4 +132,3 @@ private:
     return check_checksums(container.begin(), container.end(), desc);
   }
 };
-

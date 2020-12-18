@@ -307,3 +307,17 @@ Errors caused by VFORK, so not a bug in Patcher!
 ----
 
 Create in-core variable with fill value.
+
+-----
+
+Refactor round advancement API.
+
+start_round() currently starts a new round.
+advance_round() goes to the next subround.
+
+Need:
+ - start_subround()
+ - next_subround()
+ - start_round()
+ - check_round()
+ - next_round()

@@ -18,11 +18,6 @@
 #include "patch.hh"
 #include "config.hh"
 
-static inline bool stopped_trace(int status) {
-  return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
-  
-}
-
 static void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
   (void) addr;
   addr = info.writer(inst);

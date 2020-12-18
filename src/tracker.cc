@@ -322,9 +322,9 @@ uint8_t *RTMTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo
     addr = info.writer(inst);
     auto post_bkpt = Instruction::int3(addr);
     addr = info.writer(post_bkpt);
-
-    add_pre(pre_bkpt.pc(), info, [this] (const auto addr) {});
-    add_post(post_bkpt.pc(), info, [this] (const auto addr) {});
+    
+    add_pre(pre_bkpt.pc(), info, [] (const auto addr) {});
+    add_post(post_bkpt.pc(), info, [] (const auto addr) {});
   }
   
   return addr;

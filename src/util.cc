@@ -25,7 +25,7 @@ void single_step_print(Tracee& tracee, size_t count) {
     }
     uint8_t *pc = tracee.get_pc();
     Instruction inst(pc, tracee);
-    fprintf(stderr, "ss pc = %p, iform = %s\n", tracee.get_pc(),
+    fprintf(stderr, "ss pc = %p, iform = %s\n", (void *) tracee.get_pc(),
 	    xed_iform_enum_t2str(inst.xed_iform()));
   }
 }
