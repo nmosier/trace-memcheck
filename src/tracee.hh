@@ -46,10 +46,22 @@ public:
   void write(const std::array<T,N>& from, void *to) {
     write(from.data(), from.size() * sizeof(T), to);
   }
+
+  template <typename T>
+  void write_type(T val, T *addr) {
+    write(&val, sizeof(val), addr);
+  }
+
+  template <typename T>
+  T read_type(const T *addr) {
+    T val;
+    read(&val, sizeof(val), addr);
+    return val;
+  }
   
   void write(const Blob& inst) const;
-
-  void fill(uint8_t val, size_t count, void *to) const;
+	      
+	      void fill(uint8_t val, size_t count, void *to) const;
   void fill(uint8_t val, void *to_begin, void *to_end) const;
 
   size_t strlen(const char *addr);
