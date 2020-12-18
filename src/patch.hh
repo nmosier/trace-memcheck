@@ -31,6 +31,8 @@ public:
   void start();
   void run();
 
+  uint64_t **tmp_rsp() const { return tmp_mem.rsp(); } // TODO: Should these even be allowed?
+
   /* find the original address of an instruction in a block */
   uint8_t *orig_block_addr(uint8_t *addr) const;
   
