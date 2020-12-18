@@ -15,3 +15,6 @@ constexpr bool BLOCK_SHARED_MAPS     = true;
 constexpr bool ASSERT_TAINT_ZERO     = false;
 constexpr bool JCC_RECORD_REGS       = false;
 constexpr bool CKSUM_REQUIRE_DATA_EQ = false;
+
+constexpr bool JCC_TRACKER_INCORE    = true;
+constexpr bool JCC_TRACKER_BKPT      = false;
