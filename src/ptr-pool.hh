@@ -6,12 +6,12 @@
 class PointerPool {
 public:
   PointerPool(Tracee& tracee, size_t size):
-    tracee(tracee), mem(tracee, size, PROT_READ), alloc_ptr(mem.begin<uintptr_t>()) {}
+    tracee(tracee),
+    mem(tracee, size, PROT_READ),
+    allocator(mem.begin<uintptr_t>(), mem.end<uintptr_t>())
+  {}
 
-  uintptr_t *alloc() {
-    assert(alloc_ptr < mem.end<uintptr_t>());
-    return alloc_ptr++;
-  }
+  uintptr_t *alloc() { return allocator.alloc(1U); }
 
   uintptr_t *add(uintptr_t val) {
     uintptr_t *ptr = alloc();
@@ -22,6 +22,5 @@ public:
 private:
   Tracee& tracee;
   UserMemory mem;
-  uintptr_t *alloc_ptr;
-
+  UserAllocator<uintptr_t> allocator;
 };
