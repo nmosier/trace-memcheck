@@ -36,6 +36,7 @@ add_executable(memcheck
   tracker.cc
   pageset.cc
   regs.cc
+  memcheck-vars.cc
   $<TARGET_OBJECTS:core_objs>
   )
 add_dependencies(memcheck xed)
