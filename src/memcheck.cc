@@ -42,13 +42,17 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   tracee.open(child, file);
   // TODO: open patcher
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
+
+  vars = MemcheckVariables(tracee);
+  jcc_tracker.set_vars(vars->jcc_cksum_ptr(), patcher->tmp_rsp());
+  
   patcher->start();
+
   maps_gen.open(child);
   tracked_pages.add_state(taint_state);
   tracked_pages.add_maps(maps_gen);
+   
 
-  vars = MemcheckVariables(tracee);
-  
   // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
   patcher->signal(SIGSTOP, sigignore);
   patcher->signal(SIGCONT, sigignore);
@@ -62,6 +66,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   // TEMP
   protect_map("[vdso]", PROT_READ);
   protect_map("[vvar]", PROT_NONE);
+
+  vars->init_for_subround(cur_fill());
 
   return true;
 }
@@ -194,7 +200,13 @@ void *Memcheck::stack_begin() {
 template <class SequencePoint>
 void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
   save_state(post_states[subround_counter]);
-  cksums[subround_counter] = cksum;
+  
+  if (JCC_TRACKER_BKPT) {
+    bkpt_cksums[subround_counter] = cksum;
+  }
+  if (JCC_TRACKER_INCORE) {
+    incore_cksums[subround_counter] = vars->jcc_cksum_val();
+  }
   
   ++subround_counter;
   
@@ -211,9 +223,10 @@ void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
     subround_counter = 0;
   }
   
-  stack_tracker.fill(fills[subround_counter]);
-  call_tracker.fill(fills[subround_counter]);
+  stack_tracker.fill(cur_fill());
+  call_tracker.fill(cur_fill());
   cksum.clear();
+  vars->init_for_subround(cur_fill());
 }
 template void Memcheck::advance_round(uint8_t *addr, SyscallTracker& seq_pt);
 template void Memcheck::advance_round(uint8_t *addr, LockTracker& seq_pt);
@@ -254,8 +267,9 @@ void Memcheck::check_round(SequencePoint& seq_pt) {
   update_taint_state(post_states.begin(), post_states.end(), taint_state);
 
   // TODO: DEBUG:
-  {
-    util::for_each_pair(cksums.begin(), cksums.end(), [this] (const auto& l, const auto& r) {
+  if (JCC_TRACKER_BKPT) {
+    util::for_each_pair(bkpt_cksums.begin(), bkpt_cksums.end(),
+			[this] (const auto& l, const auto& r) {
       l.diff(r, [this] (const auto addr,
 			const auto& flags1, const auto& flags2,
 			const auto& data1, const auto& data2) {
@@ -279,24 +293,42 @@ void Memcheck::check_round(SequencePoint& seq_pt) {
       });
     });
 
-    if (!util::all_equal(cksums.begin(), cksums.end())) {
-      *g_conf.log << "memcheck: condition jump maps differ\n";
-      if (ABORT_ON_TAINT) {
-	abort();
-      }
-    }
+    check_checksums(bkpt_cksums, "BKPT");
+    
   }
 
-  /* ensure eflags cksum same */
-  if (!util::all_equal(cksums.begin(), cksums.end())) {
-    *g_conf.log << "memcheck: conditional jump checksums differ\n";
+  if (JCC_TRACKER_INCORE) {
+    check_checksums(incore_cksums, "INCORE");
+  }
+
+  if (JCC_TRACKER_INCORE && JCC_TRACKER_BKPT) {
+    /* ensure cksums agree */
+    if (!std::equal(bkpt_cksums.begin(), bkpt_cksums.end(), incore_cksums.begin(),
+		    incore_cksums.end(),
+		    [] (const auto& bkpt_cksum, auto incore_cksum) {
+		      return bkpt_cksum.cksum() == incore_cksum;
+		    }))
+      {
+	*g_conf.log << "JCC incore and bkpt checksums disagree\n";
+	g_conf.abort(tracee);
+      }
+  }
+
+  seq_pt.check();
+}
+
+template <typename InputIt>
+void Memcheck::check_checksums(InputIt begin, InputIt end, const char *desc) {
+  if (!util::all_equal(begin, end)) {
+    *g_conf.log << "memcheck: conditional jump checksums differ";
+    if (desc) {
+      *g_conf.log << " (" << desc << ")";
+    }
+    *g_conf.log << "\n";
     if (ABORT_ON_TAINT) {
       g_conf.abort(tracee);
     }
   }
-
-  seq_pt.check();
-
 }
 
 Memcheck::Loc Memcheck::orig_loc(uint8_t *addr) {
@@ -318,6 +350,13 @@ void Memcheck::start_round() {
   }
 
   assert_taint_zero();
+
+  /* TODO: If the advance_round()/start_round() API were written correctly, 
+   * this wouldn't be necessary */
+  vars->init_for_subround(cur_fill()); 
+  
+  // DEBUG
+  assert(vars->jcc_cksum_val() == 0U);
 }
 
 
