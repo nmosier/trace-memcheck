@@ -14,39 +14,7 @@ class Memcheck;
 
 class Memcheck {
 public:
-  Memcheck(void):
-    tracee(),
-    stack_tracker(tracee, 0),
-    syscall_tracker(tracee,
-		    SequencePoint(taint_state,
-				  [this] (auto addr) { this->advance_round(addr, syscall_tracker); },
-				  [this] (auto addr) { this->start_round(); }
-				  ),
-		    tracked_pages,
-		    syscall_args,
-		    *this
-		    ),
-    call_tracker(tracee, 0),
-    jcc_tracker(tracee, cksum),
-    lock_tracker(tracee,
-		 SequencePoint(taint_state,
-			       [this] (auto addr) { this->advance_round(addr, lock_tracker); },
-			       [this] (auto addr) { this->start_round(); }
-			       )
-		 ),
-    rtm_tracker(tracee,
-		SequencePoint(taint_state,
-			      [this] (auto addr) { this->advance_round(addr, rtm_tracker); },
-			      [this] (auto addr) { this->start_round(); }
-			      )
-		),
-    rdtsc_tracker(taint_state,
-		  [this] (auto addr) { this->advance_round(addr, rdtsc_tracker); },
-		  [this] (auto addr) { this->start_round(); },
-		  tracee
-		  )
-    
-  {}
+  Memcheck(void);
   
   bool open(const char *file, char * const argv[]);
   bool open(char * const argv[]) { return open(argv[0], argv); }
@@ -84,17 +52,22 @@ private:
     return (void *) (((uintptr_t) ptr) & ~(mprotect_size - 1));
   }
 
-  template <class SequencePoint>
-  void advance_round(uint8_t *addr, SequencePoint& seq_pt);
+  /* Round API */
   void start_round();
-  
+  void stop_round();
+  template <typename SequencePoint> void check_round(SequencePoint& seq_pt);
+  void start_subround();
+  bool next_subround();
+  void stop_subround();
+
+  template <typename SequencePoint> void sequence_point_handler_pre(SequencePoint& seq_pt);
+  void sequence_point_handler_post();
+
   void save_state(State& state);
   State save_state();
 
   template <typename InputIt>
   void update_taint_state(InputIt begin, InputIt end, State& taint_state);
-  template <class SequencePoint>
-  void check_round(SequencePoint& seq_pt);
   void set_state_with_taint(State& state, const State& taint);
   
   void init_taint(State& taint_state, bool taint_shadow_stack);

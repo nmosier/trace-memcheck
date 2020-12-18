@@ -6,6 +6,49 @@
 #include "syscall-check.hh"
 #include "flags.hh"
 
+Memcheck::Memcheck():
+  tracee(),
+  stack_tracker(tracee, 0),
+  syscall_tracker(tracee,
+		  SequencePoint(taint_state,
+				[this] (auto addr) {
+				  this->sequence_point_handler_pre(syscall_tracker);
+				},
+				[this] (auto addr) { this->start_round(); }
+				),
+		  tracked_pages,
+		  syscall_args,
+		  *this
+		  ),
+  call_tracker(tracee, 0),
+  jcc_tracker(tracee, cksum),
+  lock_tracker(tracee,
+	       SequencePoint(taint_state,
+			     [this] (auto addr) {
+			       this->sequence_point_handler_pre(lock_tracker);
+			     },
+			     [this] (auto addr) { this->start_round(); }
+			     )
+	       ),
+  rtm_tracker(tracee,
+	      SequencePoint(taint_state,
+			    [this] (auto addr) {
+			      this->sequence_point_handler_pre(rtm_tracker);
+			    },
+			    [this] (auto addr) { this->start_round(); }
+			    )
+	      ),
+  rdtsc_tracker(taint_state,
+		[this] (auto addr) {
+		  this->sequence_point_handler_pre(rdtsc_tracker);
+		},
+		[this] (auto addr) { this->start_round(); },
+		tracee
+		)
+    
+{}
+  
+
 void Memcheck::write_maps() const {
   if (g_conf.map_file) {
     std::stringstream ss;
@@ -173,6 +216,7 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
 }
 
 void Memcheck::run() {
+  start_round();
   patcher->run();
 }
 
@@ -197,41 +241,6 @@ void *Memcheck::stack_begin() {
 }
 
 
-template <class SequencePoint>
-void Memcheck::advance_round(uint8_t *addr, SequencePoint& seq_pt) {
-  save_state(post_states[subround_counter]);
-  
-  if (JCC_TRACKER_BKPT) {
-    bkpt_cksums[subround_counter] = cksum;
-  }
-  if (JCC_TRACKER_INCORE) {
-    incore_cksums[subround_counter] = vars->jcc_cksum_val();
-  }
-  
-  ++subround_counter;
-  
-  if (subround_counter < SUBROUNDS) {
-    if (!CHANGE_PRE_STATE) {
-      pre_state.restore(tracee);
-    } else {
-      set_state_with_taint(pre_state, taint_state);
-    }
-    assert(save_state() == pre_state);
-  } else {
-    assert(subround_counter == SUBROUNDS);
-    check_round(seq_pt);
-    subround_counter = 0;
-  }
-  
-  stack_tracker.fill(cur_fill());
-  call_tracker.fill(cur_fill());
-  cksum.clear();
-  vars->init_for_subround(cur_fill());
-}
-template void Memcheck::advance_round(uint8_t *addr, SyscallTracker& seq_pt);
-template void Memcheck::advance_round(uint8_t *addr, LockTracker& seq_pt);
-template void Memcheck::advance_round(uint8_t *addr, RTMTracker& seq_pt);
-template void Memcheck::advance_round(uint8_t *addr, RDTSCTracker& seq_pt);
 
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {
@@ -343,20 +352,68 @@ Memcheck::Loc Memcheck::orig_loc(uint8_t *addr) {
   abort();
 }
 
-void Memcheck::start_round() {
+void Memcheck::start_subround() {
+  if (!CHANGE_PRE_STATE) {
+    pre_state.restore(tracee);
+  } else {
+    set_state_with_taint(pre_state, taint_state);
+  }
+  
+  stack_tracker.fill(cur_fill());
+  call_tracker.fill(cur_fill());
+  cksum.clear(); // TODO: rename cksum -> cksum
+  vars->init_for_subround(cur_fill());
+}
+
+void Memcheck::stop_subround() {
+  save_state(post_states[subround_counter]);
+
+  if (JCC_TRACKER_BKPT) {
+    bkpt_cksums[subround_counter] = cksum;
+  }
+  if (JCC_TRACKER_INCORE) {
+    incore_cksums[subround_counter] = vars->jcc_cksum_val();
+  }
+}
+
+// returns whether next subround exists
+bool Memcheck::next_subround() {
+  stop_subround();
+  ++subround_counter;
+  const bool success = subround_counter < SUBROUNDS;
+  if (success) {
+    start_subround();
+  }
+  return success;
+}
+
+void Memcheck::start_round() {  
+  subround_counter = 0;
   save_state(pre_state);
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
-
-  assert_taint_zero();
-
-  /* TODO: If the advance_round()/start_round() API were written correctly, 
-   * this wouldn't be necessary */
-  vars->init_for_subround(cur_fill()); 
+  start_subround();
   
-  // DEBUG
+  assert_taint_zero();
   assert(vars->jcc_cksum_val() == 0U);
+}
+
+void Memcheck::stop_round() {
+  // TODO
+}
+
+template <typename SequencePoint>
+void Memcheck::sequence_point_handler_pre(SequencePoint& seq_pt) {
+  const bool has_next_subround = next_subround();
+  if (!has_next_subround) {
+    stop_round();
+    check_round(seq_pt);
+  }
+}
+
+void Memcheck::sequence_point_handler_post() {
+  start_round();
 }
 
 
@@ -403,5 +460,5 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
   // EXPERIMENTAL
   // will need to determine which permissions to use
   SharedMemSeqPt seq_pt(tracee, *this, taint_state);
-  advance_round(tracee.get_pc(), seq_pt);
+  sequence_point_handler_pre(seq_pt);
 }
