@@ -6,6 +6,8 @@
 #include "syscall-check.hh"
 #include "flags.hh"
 
+const Memcheck::RoundArray<uint8_t> Memcheck::fills = {{0x00, 0xff}};
+
 Memcheck::Memcheck():
   tracee(),
   stack_tracker(tracee, 0),
@@ -366,13 +368,13 @@ void Memcheck::start_subround() {
 }
 
 void Memcheck::stop_subround() {
-  save_state(post_states[subround_counter]);
+  save_state(cur_post_state());
 
   if (JCC_TRACKER_BKPT) {
-    bkpt_cksums[subround_counter] = cksum;
+    cur_bkpt_cksum() = cksum;
   }
   if (JCC_TRACKER_INCORE) {
-    incore_cksums[subround_counter] = vars->jcc_cksum_val();
+    cur_incore_cksum() = vars->jcc_cksum_val();
   }
 }
 

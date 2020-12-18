@@ -81,14 +81,32 @@ private:
   template <typename T>
   using RoundArray = std::array<T, SUBROUNDS>;
 
-  RoundArray<uint8_t> fills = {{0x00, 0xff}};
+  static const RoundArray<uint8_t> fills;
   RoundArray<State> post_states;
   FlagChecksum cksum;
   RoundArray<FlagChecksum> bkpt_cksums;
   RoundArray<uint32_t> incore_cksums;
   State taint_state;
 
-  uint8_t cur_fill() const { return fills[subround_counter]; }
+  template <typename T>
+  const T& cur(const RoundArray<T>& arr) const {
+    assert(subround_counter < SUBROUNDS);
+    return arr[subround_counter];
+  }
+
+  template <typename T>
+  T& cur(RoundArray<T>& arr) {
+    assert(subround_counter < SUBROUNDS);
+    return arr[subround_counter];
+  }
+
+  uint8_t cur_fill() const { return cur(fills); }
+  const State& cur_post_state() const { return cur(post_states); }
+  State& cur_post_state() { return cur(post_states); }
+  const FlagChecksum& cur_bkpt_cksum() const { return cur(bkpt_cksums); }
+  FlagChecksum& cur_bkpt_cksum() { return cur(bkpt_cksums); }
+  uint32_t cur_incore_cksum() const { return cur(incore_cksums); }
+  uint32_t& cur_incore_cksum() { return cur(incore_cksums); }
 
   friend class SyscallChecker; // TEMPORARY
   friend class SharedMemSeqPt; // TEMPORARY
