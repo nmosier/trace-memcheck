@@ -221,10 +221,21 @@ class JccTracker: public Tracker, public Checksummer {
 public:
   JccTracker(Tracee& tracee, FlagChecksum& cksum): Tracker(tracee), Checksummer(cksum) {}
 
+  void set_vars(uint32_t *cksum_ptr, uint64_t **tmp_rsp) {
+    cksum_ptr_ = cksum_ptr;
+    tmp_rsp_ = tmp_rsp;
+  }
+  
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 
 private:
+  uint32_t *cksum_ptr_ = nullptr;
+  uint64_t **tmp_rsp_ = nullptr;
+  
   void handler(uint8_t *addr);
+  
+  uint8_t *add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_bkpt(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 };
 
 class LockTracker: public Tracker, public SequencePoint {

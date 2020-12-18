@@ -6,13 +6,56 @@ extern "C" {
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
+#include "settings.hh"
 
 uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
-    auto bkpt = Instruction::int3(addr);
-    addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
-    addr = info.writer(inst);
-    return addr;
+  static_assert(JCC_TRACKER_INCORE || JCC_TRACKER_BKPT, "");
+  
+  if (JCC_TRACKER_INCORE) {
+    addr = add_incore(addr, inst, info);
+  }
+  if (JCC_TRACKER_BKPT) {
+    addr = add_bkpt(addr, inst, info);
+  }
+
+  addr = info.writer(inst);
+
+  return addr;
+}
+
+uint8_t *JccTracker::add_bkpt(uint8_t *addr, Instruction& inst,
+			      const Patcher::TransformerInfo& info) {
+  auto bkpt = Instruction::int3(addr);
+  addr = info.writer(bkpt);
+  info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+  return addr;
+}
+
+uint8_t *JccTracker::add_incore(uint8_t *addr, Instruction& inst,
+				const Patcher::TransformerInfo& info) {
+  static const Data::Content content =
+    {0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c,
+     0xd1, 0xc8, 0x03, 0x04, 0x24, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87,
+     0x05, 0x00, 0x00, 0x00, 0x00};
+  static Data data(nullptr, content);
+
+  // TODO: Put this in the instructions/patcher library
+  // also check that dst is in range (w/i 4GB)
+  const auto put_relbr = [addr] (unsigned at, unsigned ref, auto dst) {
+    assert(at + 4 <= data.size());
+    *reinterpret_cast<int32_t *>(data.data() + at) =
+      reinterpret_cast<uint8_t *>(dst) - (addr + ref);
+  };
+
+  data.relocate(addr); // TODO: Shouldn't be necessary
+  put_relbr(0x03, 0x07, cksum_ptr_);
+  put_relbr(0x0a, 0x0e, tmp_rsp_);
+  put_relbr(0x18, 0x1c, tmp_rsp_);
+  put_relbr(0x1f, 0x23, cksum_ptr_);
+
+  addr = info.writer(data);
+
+  return addr;
 }
 
 void JccTracker::handler(uint8_t *addr) {
@@ -21,12 +64,13 @@ void JccTracker::handler(uint8_t *addr) {
   if (JCC_RECORD_REGS) {
     ss << tracee.get_gpregs();
   }
-  uint64_t val;
-  if (tracee.try_read(&val, sizeof(val), (void *) 0x65bab8)) {
-    ss << "*(uint64_t*)0x65bab8=" << (void *) val;
-  }
-  
   cksum.add(addr, tracee, ss.str());
+
+  if (JCC_TRACKER_INCORE) {
+    const auto incore_cksum = tracee.read_type(cksum_ptr_);
+    const auto bkpt_cksum = cksum.cksum();
+    assert(incore_cksum == bkpt_cksum);
+  }
 }
 
 void StackTracker::pre_handler(uint8_t *addr) {
