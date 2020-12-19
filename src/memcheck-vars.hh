@@ -26,6 +26,9 @@ public:
   uint64_t ** const * tmp_rsp_ptr_ptr() const { return &tmp_rsp_ptr_; }
   uint64_t *tmp_rsp_val() { return read_type(tmp_rsp_ptr_); }
 
+  uint64_t ** const * prev_sp_ptr_ptr() const { return &prev_sp_ptr_; }
+  uint64_t *prev_sp_val() { return read_type(prev_sp_ptr_); }
+
   // call when each subround start
   void init_for_subround(uint8_t fill);
   
@@ -37,6 +40,7 @@ private:
   uint8_t *fill_ptr_; // so tracee knows what to fill with
   uint32_t *jcc_cksum_ptr_; // conditional branch flags checksum
   uint64_t **tmp_rsp_ptr_; // tmp rsp
+  uint64_t **prev_sp_ptr_;
 
   template <typename T> void write_type(T val, T *addr) { tracee->write_type(val, addr); }
   template <typename T> T read_type(const T *addr) { return tracee->read_type(addr); }

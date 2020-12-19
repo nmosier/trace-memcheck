@@ -12,7 +12,7 @@ Memcheck::Memcheck():
   tracee(),
   patcher(),
   vars(),
-  stack_tracker(tracee, 0),
+  stack_tracker(tracee, 0, vars),
   syscall_tracker(tracee,
 		  SequencePoint(taint_state,
 				[this] (auto addr) {

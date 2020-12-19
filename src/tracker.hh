@@ -34,14 +34,8 @@ public:
   uint8_t fill() const { return fill_; }
   void fill(uint8_t newfill) { fill_ = newfill; }
 
-  void set_fill_ptr(uint8_t *fill_ptr) { fill_ptr_ = fill_ptr; }
-
-protected:
-  const auto& fill_ptr() { return fill_ptr_; }
-  
 private:
   uint8_t fill_;
-  const uint8_t *fill_ptr_ = nullptr;
 };
 
 class Checksummer {
@@ -125,7 +119,7 @@ private:
 
 class StackTracker: public Tracker, public Filler {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill);
+  StackTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars);
   
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
   
@@ -142,9 +136,14 @@ private:
   using BkptCallback = Terminator::BkptCallback;
 
   Map map;
+  std::shared_ptr<Elem> tmp_elem;
+  uint64_t ** const * prev_sp_ptr_ptr;
 
   using PreMC = MachineCode<0x07, 1>;
   PreMC pre_mc;
+
+  using PostMC = MachineCode<62, 5>;
+  PostMC post_mc;
   
   const BkptCallback pre_callback = [this] (auto... args) { return pre_handler(args...); };
   const BkptCallback post_callback = [this] (auto... args) { return post_handler(args...); };
@@ -152,7 +151,10 @@ private:
   void pre_handler(uint8_t *addr);
   void post_handler(uint8_t *addr);
 
-  uint8_t *add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_bkpt_pre(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_bkpt_post(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_incore_pre(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_incore_post(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 };
 
 class SyscallArgs {

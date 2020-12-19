@@ -9,6 +9,7 @@ void MemcheckVariables::open(Tracee& tracee, const Patcher& patcher) {
   fill_ptr_ = reinterpret_cast<uint8_t *>(allocator.alloc());
   jcc_cksum_ptr_ = reinterpret_cast<uint32_t *>(allocator.alloc());
   tmp_rsp_ptr_ = patcher.tmp_rsp();
+  prev_sp_ptr_ = reinterpret_cast<uint64_t **>(allocator.alloc());
 }
 
 void MemcheckVariables::init_for_subround(uint8_t fill) {

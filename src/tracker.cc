@@ -54,34 +54,38 @@ void JccTracker::handler(uint8_t *addr) {
   }
 }
 
-StackTracker::StackTracker(Tracee& tracee, uint8_t fill):
+StackTracker::StackTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars):
   Tracker(tracee),
   Filler(fill),
+  prev_sp_ptr_ptr(vars.prev_sp_ptr_ptr()),
   pre_mc(PreMC::Content{0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00},
-	 PreMC::Relbrs{PreMC::Relbr(0x03, 0x07, &fill_ptr())}
-	 )
-#if 0
-  ,
-  post_mc(PostMc::Content{
+	 PreMC::Relbrs{PreMC::Relbr(0x03, 0x07, vars.prev_sp_ptr_ptr())}
+	 ),
+  post_mc(PostMC::Content{
     0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x50, 0x57, 0x56, 0x48, 0x8b, 0x3d, 0x00, 0x00,
     0x00, 0x00, 0x48, 0x8b, 0x35, 0x00, 0x00, 0x00, 0x00, 0x48, 0x39, 0xf7, 0x7c, 0x03, 0x48, 0x87,
     0xfe, 0x8a, 0x05, 0x00, 0x00, 0x00, 0x00, 0xeb, 0x05, 0x88, 0x07, 0x48, 0xff, 0xc7, 0x48, 0x39,
     0xf7, 0x7c, 0xf6, 0x5e, 0x5f, 0x58, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00
   },
     PostMC::Relbrs{
-      PostMC::Relbr(0x03, 0x07, &tmp_rsp_ptr_),
-      PostMC::Relbr(0x0e, 0x12, &prev_sp_)
+      PostMC::Relbr(0x03, 0x07, vars.tmp_rsp_ptr_ptr()),
+      PostMC::Relbr(0x0e, 0x12, vars.prev_sp_ptr_ptr()),
+      PostMC::Relbr(0x15, 0x19, vars.tmp_rsp_ptr_ptr()),
+      PostMC::Relbr(0x23, 0x27, vars.fill_ptr_ptr()),
+      PostMC::Relbr(0x3a, 0x3e, vars.tmp_rsp_ptr_ptr())
+    }
     )
-    
-    3e
-#endif
-{
-}
+{}
 
 void StackTracker::pre_handler(uint8_t *addr) {
   const auto it = map.find(addr);
   assert(it != map.end());
   it->second->sp = tracee.get_sp();
+
+  if (STACK_TRACKER_INCORE) {
+    /* make sure prev SP agrees */
+    assert(tracee.read_type(*prev_sp_ptr_ptr) == it->second->sp);
+  }
 }
 
 void StackTracker::post_handler(uint8_t *addr) {
@@ -89,6 +93,19 @@ void StackTracker::post_handler(uint8_t *addr) {
   assert(it != map.end());
   const auto post_sp = static_cast<char *>(tracee.get_sp());
   const auto pre_sp = static_cast<char *>(it->second->sp);
+
+  if (STACK_TRACKER_INCORE) {
+    static_assert(FILL_SP_DEC && FILL_SP_INC, "STACK_TRACKER_INCORE doesn't support configuration");
+    const auto begin = std::min(pre_sp, post_sp);
+    const auto end = std::max(pre_sp, post_sp);
+    const auto size = end - begin;
+    std::vector<uint8_t> buf(size);
+    tracee.read(buf.begin(), buf.end(), begin);
+    const auto eq = std::all_of(buf.begin(), buf.end(), [this] (auto byte) {
+      return byte == this->fill();
+    });
+    assert(eq); (void) eq;
+  }
 
   if (FILL_SP_DEC) {
     if (post_sp < pre_sp) {
@@ -100,32 +117,60 @@ void StackTracker::post_handler(uint8_t *addr) {
       tracee.fill(fill(), pre_sp - SHADOW_STACK_SIZE, post_sp - SHADOW_STACK_SIZE);
     }
   }
+
 }
 
-uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
-  auto elem = std::make_shared<Elem>(inst);
-  
-  const auto pre_addr = addr;
-  auto pre_bkpt = Instruction::int3(addr);
-  addr = info.writer(pre_bkpt);
+uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  if (STACK_TRACKER_INCORE) {
+    addr = add_incore_pre(addr, inst, info);
+  }
+  if (STACK_TRACKER_BKPT) {
+    addr = add_bkpt_pre(addr, inst, info);
+  }
+
   addr = info.writer(inst);
-  const auto post_addr = addr;
-  auto post_bkpt = Instruction::int3(addr);
-  addr = info.writer(post_bkpt);
-
-  info.rb(pre_addr, pre_callback);
-  info.rb(post_addr, post_callback);
-
-  map.emplace(pre_addr, elem);
-  map.emplace(post_addr, elem);
   
+  if (STACK_TRACKER_INCORE) {
+    addr = add_incore_post(addr, inst, info);
+  }
+  if (STACK_TRACKER_BKPT) {
+    addr = add_bkpt_post(addr, inst, info);
+  }
+
   return addr;
 }
 
-uint8_t *StackTracker::add_incore(uint8_t *addr, Instruction& inst,
-					const TransformerInfo& info) {
-  // TODO
-  abort();
+uint8_t *StackTracker::add_bkpt_pre(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  tmp_elem = std::make_shared<Elem>(inst);
+  auto pre_bkpt = Instruction::int3(addr);
+  addr = info.writer(pre_bkpt);
+  const auto pre_addr = pre_bkpt.pc();
+  info.rb(pre_addr, pre_callback);
+  map.emplace(pre_addr, tmp_elem);
+  return addr;
+}
+
+uint8_t *StackTracker::add_bkpt_post(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  auto post_bkpt = Instruction::int3(addr);
+  addr = info.writer(post_bkpt);
+  const auto post_addr = post_bkpt.pc();
+  info.rb(post_addr, post_callback);
+  map.emplace(post_addr, tmp_elem);
+  return addr;
+}
+
+uint8_t *StackTracker::add_incore_pre(uint8_t *addr, Instruction& inst, const TransformerInfo& info)
+{
+  pre_mc.patch(addr);
+  addr = info.writer(pre_mc);
+  return addr;
+}
+
+uint8_t *StackTracker::add_incore_post(uint8_t *addr, Instruction& inst, const TransformerInfo& info)
+{
+  post_mc.patch(addr);
+  addr = info.writer(post_mc);
+  return addr;
 }
 
 uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
