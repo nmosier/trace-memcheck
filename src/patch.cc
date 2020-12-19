@@ -117,7 +117,7 @@ void Patcher::start() {
   static const uint8_t bkpt = 0xcc;
   tracee.write(&bkpt, 1, entry_addr);
 
-  const auto status = tracee.cont();
+  const auto status = tracee.cont(); (void) status;
   assert(WIFSTOPPED(status));
   assert(WSTOPSIG(status) == SIGTRAP);
   assert(tracee.get_pc() == entry_addr + 1);
