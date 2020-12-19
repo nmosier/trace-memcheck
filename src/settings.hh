@@ -17,4 +17,4 @@ constexpr bool JCC_RECORD_REGS       = false;
 constexpr bool CKSUM_REQUIRE_DATA_EQ = false;
 
 constexpr bool JCC_TRACKER_INCORE    = true;
-constexpr bool JCC_TRACKER_BKPT      = false;
+constexpr bool JCC_TRACKER_BKPT      = true;

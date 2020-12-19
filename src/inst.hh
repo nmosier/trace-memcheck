@@ -243,7 +243,12 @@ public:
   struct Relbr {
     unsigned at;
     unsigned ref;
-    void * const & dst;
+    const void * const *dst;
+
+    template <typename T>
+    Relbr(unsigned at, unsigned ref, const T * const *dst):
+      at(at), ref(ref), dst(reinterpret_cast<const void * const *>(dst))
+    {}
   };
   using Relbrs = std::array<Relbr, NRELBRS>;
 
@@ -270,7 +275,7 @@ private:
   void put_relbr(uint8_t *addr, const Relbr& relbr) {
     assert(relbr.at + 4 <= size());
     *reinterpret_cast<int32_t *>(binary.data() + relbr.at) =
-      static_cast<uint8_t *>(relbr.dst) - (addr + relbr.ref);
+      static_cast<const uint8_t *>(*relbr.dst) - (addr + relbr.ref);
   }
 
   void patch_noreloc(uint8_t *addr) {

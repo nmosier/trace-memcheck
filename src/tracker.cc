@@ -33,20 +33,8 @@ uint8_t *JccTracker::add_bkpt(uint8_t *addr, Instruction& inst,
 
 uint8_t *JccTracker::add_incore(uint8_t *addr, Instruction& inst,
 				const Patcher::TransformerInfo& info) {
-  static const MC::Content bytes = 
-    {0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c,
-     0xd1, 0xc8, 0x03, 0x04, 0x24, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87,
-     0x05, 0x00, 0x00, 0x00, 0x00};
-  static const MC::Relbrs relbrs = 
-    {MC::Relbr {0x03, 0x07, (void *) cksum_ptr_},
-     MC::Relbr {0x0a, 0x0e, (void *) tmp_rsp_},
-     MC::Relbr {0x18, 0x1c, (void *) tmp_rsp_},
-     MC::Relbr {0x1f, 0x23, (void *) cksum_ptr_},
-    };
-  static MC code(bytes, relbrs);
-  
-  code.patch(addr);
-  addr = info.writer(code);
+  post_code.patch(addr);
+  addr = info.writer(post_code);
 
   return addr;
 }
@@ -64,6 +52,15 @@ void JccTracker::handler(uint8_t *addr) {
     const auto bkpt_cksum = cksum.cksum();
     assert(incore_cksum == bkpt_cksum);
   }
+}
+
+StackTracker::StackTracker(Tracee& tracee, uint8_t fill):
+  Tracker(tracee),
+  Filler(fill),
+  pre_mc(PreMC::Content{0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00},
+	 PreMC::Relbrs{PreMC::Relbr(0x03, 0x07, &fill_ptr())}
+	 )
+{
 }
 
 void StackTracker::pre_handler(uint8_t *addr) {

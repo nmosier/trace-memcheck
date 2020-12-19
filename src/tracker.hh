@@ -33,10 +33,10 @@ public:
   uint8_t fill() const { return fill_; }
   void fill(uint8_t newfill) { fill_ = newfill; }
 
-  void set_fill_ptr(const uint8_t *fill_ptr) { fill_ptr_ = fill_ptr; }
+  void set_fill_ptr(uint8_t *fill_ptr) { fill_ptr_ = fill_ptr; }
 
 protected:
-  const uint8_t *fill_ptr() { return fill_ptr_; }
+  const auto& fill_ptr() { return fill_ptr_; }
   
 private:
   uint8_t fill_;
@@ -122,9 +122,17 @@ private:
   Callback post_callback;
 };
 
+#if 0
+template <unsigned NBYTES, unsigned NRELBRS>
+class Incore {
+public:
+private:
+};
+#endif
+
 class StackTracker: public Tracker, public Filler {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
+  StackTracker(Tracee& tracee, uint8_t fill);
   
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
   
@@ -142,6 +150,9 @@ private:
 
   Map map;
 
+  using PreMC = MachineCode<0x07, 1>;
+  PreMC pre_mc;
+  
   const BkptCallback pre_callback = [this] (auto... args) { return pre_handler(args...); };
   const BkptCallback post_callback = [this] (auto... args) { return post_handler(args...); };
 
@@ -235,10 +246,10 @@ public:
 		0x9c, 0xd1, 0xc8, 0x03, 0x04, 0x24, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,
 		0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00
 	      },
-	      MC::Relbrs {MC::Relbr {0x03, 0x07, (void *) cksum_ptr_},
-		MC::Relbr {0x0a, 0x0e, (void *) tmp_rsp_},
-		MC::Relbr {0x18, 0x1c, (void *) tmp_rsp_},
-		MC::Relbr {0x1f, 0x23, (void *) cksum_ptr_},
+      MC::Relbrs {MC::Relbr {0x03, 0x07, &cksum_ptr_},
+		MC::Relbr {0x0a, 0x0e, &tmp_rsp_},
+		MC::Relbr {0x18, 0x1c, &tmp_rsp_},
+		MC::Relbr {0x1f, 0x23, &cksum_ptr_},
 	      })
   {}
 
