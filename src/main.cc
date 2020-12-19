@@ -38,6 +38,8 @@ int main(int argc, char *argv[]) {
       "           legal values: 'none', 'iclass', 'iform'\n"		\
       " --ss-syscall=<syscall>,<count>\n"				\
       "           single-step after <count> invokations of syscall\n"	\
+      " --no-preload\n"							\
+      "           disable setting of LD_PRELOAD to custom libc\n"	\
       ""
       ;
     fprintf(f, usage, argv[0]);
@@ -50,10 +52,12 @@ int main(int argc, char *argv[]) {
   enum Option {
     PREDICTION_MODE = 256,
     SS_SYSCALL,
+    NO_PRELOAD,
   };
   const struct option longopts[] =
     {{"prediction-mode", 1, nullptr, PREDICTION_MODE},
      {"ss-syscall", true, nullptr, SS_SYSCALL},
+     {"no-preload", true, nullptr, NO_PRELOAD},
      {nullptr, 0, nullptr, 0},
     };
   int optchar;
@@ -125,6 +129,10 @@ int main(int argc, char *argv[]) {
 	}
 	g_conf.ss_syscall(syscall, std::stoul(count));
       }
+      break;
+
+    case NO_PRELOAD:
+      g_conf.preload = false;
       break;
       
     default:

@@ -18,6 +18,7 @@ struct Config {
   bool dump_jcc_info;
   std::ostream *log = &std::clog;
   std::ofstream map_file;
+  bool preload = true;
 
   bool set_prediction_mode(const char *s);
 
