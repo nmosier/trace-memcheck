@@ -71,6 +71,18 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   
   const pid_t child = fork();
   if (child == 0) {
+    if (g_conf.preload) {
+      char *dirname = get_current_dir_name();
+      if (dirname == nullptr) {
+	std::perror("get_current_dir_name");
+	std::abort();
+      }
+      std::stringstream ss;
+      ss << dirname << "/" << "libmemcheck-libc.so";
+      setenv("LD_PRELOAD", ss.str().c_str(), true);
+      assert(getenv("LD_PRELOAD") != nullptr);
+    }
+    
     ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
     execvp(file, argv);
     return false;
