@@ -174,23 +174,15 @@ uint8_t *StackTracker::add_incore_post(uint8_t *addr, Instruction& inst, const T
 }
 
 uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
-  const auto iclass = inst.xed_iclass();
-  const auto bkpt_addr = addr;
+  assert(inst.xed_iclass() == XED_ICLASS_CALL_NEAR);
   auto bkpt = Instruction::int3(addr);
   addr = info.writer(bkpt);
+  info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
   addr = info.writer(inst);
-
-  if (iclass == XED_ICLASS_CALL_NEAR) {
-    info.rb(bkpt_addr, call_callback);
-  } else {
-    assert(iclass == XED_ICLASS_RET_NEAR);
-    info.rb(bkpt_addr, ret_callback);
-  }
-
   return addr;
 }
 
-void CallTracker::call_handler(uint8_t *addr) const {
+void CallTracker::handler(uint8_t *addr) {
   /* mark [stack_begin, rsp - 8) as tainted */
   const auto sp = static_cast<char *>(tracee.get_sp());
 
@@ -199,14 +191,22 @@ void CallTracker::call_handler(uint8_t *addr) const {
   }
 }
 
-void CallTracker::ret_handler(uint8_t *addr) const {
-  const auto sp = static_cast<char *>(tracee.get_sp());
-
-  if (FILL_CALL) {
-    tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp); // TODO: is this ok that it doesn't taint the return address?
-  }
+uint8_t *RetTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+  assert(inst.xed_iclass() == XED_ICLASS_RET_NEAR);
+  auto bkpt = Instruction::int3(addr);
+  addr = info.writer(bkpt);
+  info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+  addr = info.writer(inst);
+  return addr;
 }
 
+void RetTracker::handler(uint8_t *addr) {
+  const auto sp = static_cast<char *>(tracee.get_sp());
+  if (FILL_RET) {
+    // TODO: is this ok that it doesn't taint the return address?    
+    tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp);
+  }
+}
 
 StackTracker::Elem::Elem(const Instruction& inst): orig_addr(inst.pc())
 {

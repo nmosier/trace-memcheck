@@ -224,12 +224,19 @@ public:
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 
 private:
-  const BkptCallback call_callback = [this] (auto... args) { return call_handler(args...); };
-  const BkptCallback ret_callback = [this] (auto... args) { return ret_handler(args...); };
-
-  void call_handler(uint8_t *addr) const;
-  void ret_handler(uint8_t *addr) const;
+  void handler(uint8_t *addr);
 };
+
+class RetTracker: public Tracker, public Filler {
+public:
+  RetTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
+
+  uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+
+private:
+  void handler(uint8_t *addr);
+};
+
 
 class JccTracker: public Tracker, public Checksummer {
 public:

@@ -31,6 +31,7 @@ private:
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
   CallTracker call_tracker;
+  RetTracker ret_tracker;
   JccTracker jcc_tracker;
   LockTracker lock_tracker;
   RTMTracker rtm_tracker;

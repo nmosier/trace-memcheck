@@ -25,6 +25,7 @@ Memcheck::Memcheck():
 		  *this
 		  ),
   call_tracker(tracee, 0),
+  ret_tracker(tracee, 0),
   jcc_tracker(tracee, cksum, vars),
   lock_tracker(tracee,
 	       SequencePoint(taint_state,
@@ -189,14 +190,21 @@ void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::Tran
     addr = syscall_tracker.add(addr, inst, info);
     return;
   }
-  
+
   if (CALL_TRACKER) {
-    if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR || inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
+    if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR) {
       addr = call_tracker.add(addr, inst, info);
       return;
     }
   }
 
+  if (RET_TRACKER) {
+    if (inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
+      addr = ret_tracker.add(addr, inst, info);
+      return;
+    }
+  }
+  
   if (JCC_TRACKER) {
     if (is_jcc(inst)) {
       addr = jcc_tracker.add(addr, inst, info);

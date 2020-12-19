@@ -3,11 +3,13 @@
 constexpr bool FILL_SP_DEC           = true;
 constexpr bool FILL_SP_INC           = true;
 constexpr bool FILL_CALL             = true;
+constexpr bool FILL_RET              = true;
 constexpr bool TAINT_STACK           = true;
 constexpr bool TAINT_FLAGS           = true;
 constexpr bool CHANGE_PRE_STATE      = true;
 constexpr bool ABORT_ON_TAINT        = false;
 constexpr bool CALL_TRACKER          = true;
+constexpr bool RET_TRACKER           = true;
 constexpr bool JCC_TRACKER           = true;
 constexpr bool LOCK_TRACKER          = true;
 constexpr bool RDTSC_TRACKER         = true;
