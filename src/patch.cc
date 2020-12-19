@@ -50,7 +50,10 @@ bool Patcher::patch(uint8_t *start_pc) {
 
   /* create block */
   return Block::Create(start_pc, tracee, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
-		       block_transformer);
+		       block_transformer,
+		       [this] (...) { pre_syscall_handler(); },
+		       [this] (...) { post_syscall_handler(); }
+		       );
 }
 
 void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
@@ -264,4 +267,12 @@ uint8_t *Patcher::orig_block_addr(uint8_t *addr) const {
   assert(it != map.begin());
   --it;
   return it->second;
+}
+
+void Patcher::pre_syscall_handler() {
+  std::clog << "pre syscall\n";
+}
+
+void Patcher::post_syscall_handler() {
+  std::clog << "post syscall\n";
 }

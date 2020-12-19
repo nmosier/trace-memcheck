@@ -34,11 +34,14 @@ public:
   using InsertBlock = std::function<void (uint8_t *, Block *)>;
   using Writer = std::function<uint8_t *(Blob&)>;
   using Transformer = std::function<void (uint8_t *, Instruction& inst, const Writer&)>;
+  using BkptCallback = Terminator::BkptCallback;
 
   static bool Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		     const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-		     const InsertBlock& ib, const Transformer& transformer);
+		     const InsertBlock& ib, const Transformer& transformer,
+		     const BkptCallback& syscall_pre, const BkptCallback& syscall_post
+		     );
     
   uint8_t *orig_addr() const { return orig_addr_; }
   uint8_t *pool_addr() const { return pool_addr_; }

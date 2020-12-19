@@ -28,10 +28,10 @@ public:
   void signal(int signum, const sighandler_t& handler);
   using sigaction_t = std::function<void (int, const siginfo_t&)>;
   void sigaction(int signum, const sigaction_t& sigaction);
-
+  
   void start();
   void run();
-
+  
   uint64_t **tmp_rsp() const { return tmp_mem.rsp(); } // TODO: Should these even be allowed?
 
   /* find the original address of an instruction in a block */
@@ -72,4 +72,6 @@ private:
   void handle_bkpt(uint8_t *bkpt_addr);
   void handle_signal(int signum);
 
+  void pre_syscall_handler();
+  void post_syscall_handler();
 };

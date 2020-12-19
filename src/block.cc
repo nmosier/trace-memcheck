@@ -8,7 +8,8 @@
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
-		   const InsertBlock& ib, const Transformer& transformer)
+		   const InsertBlock& ib, const Transformer& transformer,
+		   const BkptCallback& syscall_pre, const BkptCallback& syscall_post)
 {
   Block *block = new Block(tracee, orig_addr);
   uint8_t *it = orig_addr;
@@ -53,7 +54,16 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
       block->terminator_ = std::unique_ptr<Terminator>
 	(Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst, tracee, lb, pb, rb, rsb, *block));
       return nullptr; // rv shouldn't matter
-    }    
+    }
+
+    const bool is_syscall = (inst->xed_iclass() == XED_ICLASS_SYSCALL);
+    
+    /* if is syscall, add breakpoint for checking maps */
+    if (is_syscall) {
+      auto syscall_pre_bkpt = Instruction::int3(newit);
+      append(syscall_pre_bkpt);
+      rb(syscall_pre_bkpt.pc(), syscall_pre);
+    }
 
     /* relocate */
     if (inst->pc() != newit) {
@@ -67,6 +77,13 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
     
     /* write instruction */
     append(*inst);
+
+    if (is_syscall) {
+      auto syscall_post_bkpt = Instruction::int3(newit);
+      append(syscall_post_bkpt);
+      rb(syscall_post_bkpt.pc(), syscall_post);
+    }
+    
     return newit;
   };
   
