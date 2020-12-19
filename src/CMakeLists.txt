@@ -21,6 +21,7 @@ add_library(core_objs STATIC
   rsb.cc
   config.cc
   block-pool.cc
+  romcache.cc
   )
 add_dependencies(core_objs xed)
 

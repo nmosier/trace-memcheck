@@ -9,8 +9,14 @@
 #include "config.hh"
 
 Patcher::Patcher(Tracee& tracee, const Transformer& transformer):
-  tracee(tracee), block_pool(tracee, block_pool_size), ptr_pool(tracee, ptr_pool_size),
-  rsb(tracee, rsb_size), tmp_mem(tracee, tmp_size), transformer(transformer) {}
+  tracee(tracee),
+  cache(tracee),
+  block_pool(tracee, block_pool_size),
+  ptr_pool(tracee, ptr_pool_size),
+  rsb(tracee, rsb_size),
+  tmp_mem(tracee, tmp_size),
+  transformer(transformer)
+{}
 
 bool Patcher::patch(uint8_t *start_pc) {
   const auto lb = [&] (uint8_t *addr) -> uint8_t * {
@@ -200,9 +206,11 @@ void Patcher::run(void) {
 	  }
 	} else {
 	  bkpt_pc = tracee.get_pc() - 1;
+#ifndef NASSERT
 	  uint8_t pc_byte;
 	  tracee.read(&pc_byte, 1, bkpt_pc);
 	  assert(pc_byte == 0xcc);
+#endif
 	  handle_bkpt(bkpt_pc);
 	}
       } else {

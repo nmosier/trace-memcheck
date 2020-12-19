@@ -321,3 +321,7 @@ Need:
  - start_round()
  - check_round()
  - next_round()
+
+------
+
+Need patcher to track mapped regions as well.

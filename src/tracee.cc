@@ -157,6 +157,14 @@ int Tracee::cont(void) {
   return status;
 }
 
+int Tracee::cont_syscall() {
+  invalidate_caches();
+  ptrace(PTRACE_SYSCALL, pid(), nullptr, nullptr);
+  int status;
+  wait(&status);
+  return status;
+}
+
 void Tracee::syscall(user_regs_struct& regs) {
   const user_regs_struct saved_regs = get_gpregs();
   set_regs(regs);

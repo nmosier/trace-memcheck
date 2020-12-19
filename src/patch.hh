@@ -10,6 +10,7 @@
 #include "block-term.hh"
 #include "rsb.hh"
 #include "tmp-mem.hh"
+#include "romcache.hh"
 
 class Patcher {
 public:
@@ -47,6 +48,7 @@ private:
   static constexpr size_t tmp_size = 0x1000;
   
   Tracee& tracee;
+  ROMCache cache;
   BlockMap block_map;
   BkptMap bkpt_map;
   BlockPool block_pool;

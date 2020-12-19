@@ -92,6 +92,7 @@ public:
   
   int singlestep(void);
   int cont(void);
+  int cont_syscall();
 
   void syscall(user_regs_struct& regs);
 
