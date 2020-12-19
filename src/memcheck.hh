@@ -27,6 +27,7 @@ public:
 private:
   Tracee tracee;
   util::optional<Patcher> patcher;
+  MemcheckVariables vars;
   StackTracker stack_tracker;
   SyscallTracker syscall_tracker;
   CallTracker call_tracker;
@@ -34,7 +35,6 @@ private:
   LockTracker lock_tracker;
   RTMTracker rtm_tracker;
   RDTSCTracker rdtsc_tracker;
-  util::optional<MemcheckVariables> vars;
   
   Maps maps_gen;
   PageSet tracked_pages;

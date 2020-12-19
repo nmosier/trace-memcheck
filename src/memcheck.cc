@@ -10,6 +10,8 @@ const Memcheck::RoundArray<uint8_t> Memcheck::fills = {{0x00, 0xff}};
 
 Memcheck::Memcheck():
   tracee(),
+  patcher(),
+  vars(),
   stack_tracker(tracee, 0),
   syscall_tracker(tracee,
 		  SequencePoint(taint_state,
@@ -23,7 +25,7 @@ Memcheck::Memcheck():
 		  *this
 		  ),
   call_tracker(tracee, 0),
-  jcc_tracker(tracee, cksum),
+  jcc_tracker(tracee, cksum, vars),
   lock_tracker(tracee,
 	       SequencePoint(taint_state,
 			     [this] (auto addr) {
@@ -100,9 +102,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   // TODO: open patcher
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
 
-  vars = MemcheckVariables(tracee);
-  jcc_tracker.set_vars(vars->jcc_cksum_ptr(), patcher->tmp_rsp());
-  
+  vars.open(tracee, *patcher);
+
   patcher->start();
 
   maps_gen.open(child);
@@ -124,7 +125,7 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   protect_map("[vdso]", PROT_READ);
   protect_map("[vvar]", PROT_NONE);
 
-  vars->init_for_subround(cur_fill());
+  vars.init_for_subround(cur_fill());
 
   return true;
 }
@@ -376,7 +377,7 @@ void Memcheck::start_subround() {
   stack_tracker.fill(cur_fill());
   call_tracker.fill(cur_fill());
   cksum.clear(); // TODO: rename cksum -> cksum
-  vars->init_for_subround(cur_fill());
+  vars.init_for_subround(cur_fill());
 }
 
 void Memcheck::stop_subround() {
@@ -386,7 +387,7 @@ void Memcheck::stop_subround() {
     cur_bkpt_cksum() = cksum;
   }
   if (JCC_TRACKER_INCORE) {
-    cur_incore_cksum() = vars->jcc_cksum_val();
+    cur_incore_cksum() = vars.jcc_cksum_val();
   }
 }
 
@@ -410,7 +411,7 @@ void Memcheck::start_round() {
   start_subround();
   
   assert_taint_zero();
-  assert(vars->jcc_cksum_val() == 0U);
+  assert(vars.jcc_cksum_val() == 0U);
 }
 
 void Memcheck::stop_round() {
