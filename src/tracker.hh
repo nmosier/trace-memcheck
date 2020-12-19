@@ -32,9 +32,15 @@ public:
 
   uint8_t fill() const { return fill_; }
   void fill(uint8_t newfill) { fill_ = newfill; }
+
+  void set_fill_ptr(const uint8_t *fill_ptr) { fill_ptr_ = fill_ptr; }
+
+protected:
+  const uint8_t *fill_ptr() { return fill_ptr_; }
   
 private:
   uint8_t fill_;
+  const uint8_t *fill_ptr_ = nullptr;
 };
 
 class Checksummer {
@@ -141,6 +147,8 @@ private:
 
   void pre_handler(uint8_t *addr);
   void post_handler(uint8_t *addr);
+
+  uint8_t *add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 };
 
 class SyscallArgs {

@@ -33,27 +33,23 @@ uint8_t *JccTracker::add_bkpt(uint8_t *addr, Instruction& inst,
 
 uint8_t *JccTracker::add_incore(uint8_t *addr, Instruction& inst,
 				const Patcher::TransformerInfo& info) {
-  static const Data::Content content =
+  constexpr unsigned NBYTES = 0x23;
+  constexpr unsigned NRELBRS = 4;
+  using MC = MachineCode<NBYTES, NRELBRS>;
+  static const MC::Content bytes = 
     {0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c,
      0xd1, 0xc8, 0x03, 0x04, 0x24, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87,
      0x05, 0x00, 0x00, 0x00, 0x00};
-  static Data data(nullptr, content);
+  static const MC::Relbrs relbrs = 
+    {MC::Relbr {0x03, 0x07, (void *) cksum_ptr_},
+     MC::Relbr {0x0a, 0x0e, (void *) tmp_rsp_},
+     MC::Relbr {0x18, 0x1c, (void *) tmp_rsp_},
+     MC::Relbr {0x1f, 0x23, (void *) cksum_ptr_},
+    };
+  static MC code(bytes, relbrs);
 
-  // TODO: Put this in the instructions/patcher library
-  // also check that dst is in range (w/i 4GB)
-  const auto put_relbr = [addr] (unsigned at, unsigned ref, auto dst) {
-    assert(at + 4 <= data.size());
-    *reinterpret_cast<int32_t *>(data.data() + at) =
-      reinterpret_cast<uint8_t *>(dst) - (addr + ref);
-  };
-
-  data.relocate(addr); // TODO: Shouldn't be necessary
-  put_relbr(0x03, 0x07, cksum_ptr_);
-  put_relbr(0x0a, 0x0e, tmp_rsp_);
-  put_relbr(0x18, 0x1c, tmp_rsp_);
-  put_relbr(0x1f, 0x23, cksum_ptr_);
-
-  addr = info.writer(data);
+  code.patch(addr);
+  addr = info.writer(code);
 
   return addr;
 }
@@ -115,6 +111,12 @@ uint8_t *StackTracker::add(uint8_t *addr, Instruction& inst, const Patcher::Tran
   map.emplace(post_addr, elem);
   
   return addr;
+}
+
+uint8_t *StackTracker::add_incore(uint8_t *addr, Instruction& inst,
+					const TransformerInfo& info) {
+  // TODO
+  abort();
 }
 
 uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
