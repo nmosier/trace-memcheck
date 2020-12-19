@@ -33,9 +33,6 @@ uint8_t *JccTracker::add_bkpt(uint8_t *addr, Instruction& inst,
 
 uint8_t *JccTracker::add_incore(uint8_t *addr, Instruction& inst,
 				const Patcher::TransformerInfo& info) {
-  constexpr unsigned NBYTES = 0x23;
-  constexpr unsigned NRELBRS = 4;
-  using MC = MachineCode<NBYTES, NRELBRS>;
   static const MC::Content bytes = 
     {0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c,
      0xd1, 0xc8, 0x03, 0x04, 0x24, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87,
@@ -47,7 +44,7 @@ uint8_t *JccTracker::add_incore(uint8_t *addr, Instruction& inst,
      MC::Relbr {0x1f, 0x23, (void *) cksum_ptr_},
     };
   static MC code(bytes, relbrs);
-
+  
   code.patch(addr);
   addr = info.writer(code);
 

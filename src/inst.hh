@@ -8,6 +8,7 @@ class Data;
 #include <array>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 
 extern "C" {
 #include <xed/xed-interface.h>

@@ -227,7 +227,20 @@ private:
 
 class JccTracker: public Tracker, public Checksummer {
 public:
-  JccTracker(Tracee& tracee, FlagChecksum& cksum): Tracker(tracee), Checksummer(cksum) {}
+  JccTracker(Tracee& tracee, FlagChecksum& cksum):
+    Tracker(tracee),
+    Checksummer(cksum),
+    post_code(MC::Content {
+		0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,
+		0x9c, 0xd1, 0xc8, 0x03, 0x04, 0x24, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,
+		0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00
+	      },
+	      MC::Relbrs {MC::Relbr {0x03, 0x07, (void *) cksum_ptr_},
+		MC::Relbr {0x0a, 0x0e, (void *) tmp_rsp_},
+		MC::Relbr {0x18, 0x1c, (void *) tmp_rsp_},
+		MC::Relbr {0x1f, 0x23, (void *) cksum_ptr_},
+	      })
+  {}
 
   void set_vars(uint32_t *cksum_ptr, uint64_t **tmp_rsp) {
     cksum_ptr_ = cksum_ptr;
@@ -239,9 +252,12 @@ public:
 private:
   uint32_t *cksum_ptr_ = nullptr;
   uint64_t **tmp_rsp_ = nullptr;
+
+  using MC = MachineCode<0x23, 4>;
+  MC post_code;
   
   void handler(uint8_t *addr);
-  
+
   uint8_t *add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
   uint8_t *add_bkpt(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 };
