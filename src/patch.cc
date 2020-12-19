@@ -270,9 +270,23 @@ uint8_t *Patcher::orig_block_addr(uint8_t *addr) const {
 }
 
 void Patcher::pre_syscall_handler() {
+  syscall_args.add_call(tracee);
   std::clog << "pre syscall\n";
 }
 
 void Patcher::post_syscall_handler() {
+  syscall_args.add_ret(tracee);
+
+  switch (syscall_args.no()) {
+  case Syscall::MUNMAP:
+    if (syscall_args.rv<int>() == 0) {
+      cache.invalidate(syscall_args.arg<0, void *>(),
+		       pagealign_up(syscall_args.arg<1, size_t>()));
+    }
+    break;
+    
+  case Syscall::MREMAP: abort();
+  }
+  
   std::clog << "post syscall\n";
 }

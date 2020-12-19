@@ -220,6 +220,12 @@ T *pagealign_up(T *addr) {
   return reinterpret_cast<T *>(util::align_up(reinterpret_cast<uintptr_t>(addr), PAGESIZE));
 }
 
+template <typename T>
+T pagealign_up(T size) {
+  static_assert(std::is_integral<T>(), "");
+  return util::align_up(size, PAGESIZE);
+}
+
 template <class Func>
 void for_each_page(void *begin, void *end, Func func) {
   for (size_t i = 0; i < pagecount(begin, end); ++i) {

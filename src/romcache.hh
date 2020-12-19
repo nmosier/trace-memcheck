@@ -16,8 +16,7 @@ public:
   void invalidate(void *begin, void *end) {
     for_each_page(begin, end, [this] (const auto pageaddr) { this->invalidate(pageaddr); });
   }
-  template <typename Size>
-  void invalidate(void *begin_, Size size) {
+  void invalidate(void *begin_, size_t size) {
     const auto begin = static_cast<char *>(begin_);
     invalidate(begin, begin + size);
   }

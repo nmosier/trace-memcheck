@@ -11,6 +11,7 @@
 #include "rsb.hh"
 #include "tmp-mem.hh"
 #include "romcache.hh"
+#include "syscall-args.hh"
 
 class Patcher {
 public:
@@ -72,6 +73,7 @@ private:
   void handle_bkpt(uint8_t *bkpt_addr);
   void handle_signal(int signum);
 
+  SyscallArgs syscall_args;
   void pre_syscall_handler();
   void post_syscall_handler();
 };
