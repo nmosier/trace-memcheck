@@ -142,7 +142,7 @@ private:
   using PreMC = MachineCode<0x07, 1>;
   PreMC pre_mc;
 
-  using PostMC = MachineCode<62, 5>;
+  using PostMC = MachineCode<0x3f, 5>;
   PostMC post_mc;
   
   const BkptCallback pre_callback = [this] (auto... args) { return pre_handler(args...); };

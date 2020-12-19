@@ -64,15 +64,15 @@ StackTracker::StackTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars
   post_mc(PostMC::Content{
     0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x50, 0x57, 0x56, 0x48, 0x8b, 0x3d, 0x00, 0x00,
     0x00, 0x00, 0x48, 0x8b, 0x35, 0x00, 0x00, 0x00, 0x00, 0x48, 0x39, 0xf7, 0x7c, 0x03, 0x48, 0x87,
-    0xfe, 0x8a, 0x05, 0x00, 0x00, 0x00, 0x00, 0xeb, 0x05, 0x88, 0x07, 0x48, 0xff, 0xc7, 0x48, 0x39,
-    0xf7, 0x7c, 0xf6, 0x5e, 0x5f, 0x58, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00
+    0xfe, 0x8a, 0x05, 0x00, 0x00, 0x00, 0x00, 0xeb, 0x06, 0x88, 0x47, 0x80, 0x48, 0xff, 0xc7, 0x48,
+    0x39, 0xf7, 0x7c, 0xf5, 0x5e, 0x5f, 0x58, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 
   },
     PostMC::Relbrs{
       PostMC::Relbr(0x03, 0x07, vars.tmp_rsp_ptr_ptr()),
       PostMC::Relbr(0x0e, 0x12, vars.prev_sp_ptr_ptr()),
       PostMC::Relbr(0x15, 0x19, vars.tmp_rsp_ptr_ptr()),
       PostMC::Relbr(0x23, 0x27, vars.fill_ptr_ptr()),
-      PostMC::Relbr(0x3a, 0x3e, vars.tmp_rsp_ptr_ptr())
+      PostMC::Relbr(0x3b, 0x3f, vars.tmp_rsp_ptr_ptr())
     }
     )
 {}
@@ -91,9 +91,9 @@ void StackTracker::pre_handler(uint8_t *addr) {
 void StackTracker::post_handler(uint8_t *addr) {
   const auto it = map.find(addr);
   assert(it != map.end());
-  const auto post_sp = static_cast<char *>(tracee.get_sp());
-  const auto pre_sp = static_cast<char *>(it->second->sp);
-
+  const auto post_sp = static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE;
+  const auto pre_sp = static_cast<char *>(it->second->sp) - SHADOW_STACK_SIZE;
+  
   if (STACK_TRACKER_INCORE) {
     static_assert(FILL_SP_DEC && FILL_SP_INC, "STACK_TRACKER_INCORE doesn't support configuration");
     const auto begin = std::min(pre_sp, post_sp);
@@ -109,12 +109,12 @@ void StackTracker::post_handler(uint8_t *addr) {
 
   if (FILL_SP_DEC) {
     if (post_sp < pre_sp) {
-      tracee.fill(fill(), post_sp - SHADOW_STACK_SIZE, pre_sp - SHADOW_STACK_SIZE);
+      tracee.fill(fill(), post_sp, pre_sp);
     }
   }
   if (FILL_SP_INC) {
     if (pre_sp < post_sp) {
-      tracee.fill(fill(), pre_sp - SHADOW_STACK_SIZE, post_sp - SHADOW_STACK_SIZE);
+      tracee.fill(fill(), pre_sp, post_sp);
     }
   }
 

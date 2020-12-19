@@ -20,4 +20,4 @@ constexpr bool JCC_TRACKER_INCORE    = true;
 constexpr bool JCC_TRACKER_BKPT      = false;
 
 constexpr bool STACK_TRACKER_INCORE  = true;
-constexpr bool STACK_TRACKER_BKPT    = true;
+constexpr bool STACK_TRACKER_BKPT    = false;
