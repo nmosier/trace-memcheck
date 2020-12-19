@@ -38,6 +38,6 @@
 [ ] rename Memcheck::{cksum -> bkpt_cksum}
 [ ] Define Memcheck::cur_post_states()
 [ ] Add boundary checks on all subround counter accesses.
-[ ] Central fill location using references
+[ ] *** Central fill location using references
 [ ] Move STATIC data to class members to avoid multithreading problems
 [ ] In inst.hh, use template-simulated inheritance

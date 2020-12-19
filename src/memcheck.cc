@@ -24,8 +24,8 @@ Memcheck::Memcheck():
 		  syscall_args,
 		  *this
 		  ),
-  call_tracker(tracee, 0),
-  ret_tracker(tracee, 0),
+  call_tracker(tracee, 0, vars),
+  ret_tracker(tracee, 0, vars),
   jcc_tracker(tracee, cksum, vars),
   lock_tracker(tracee,
 	       SequencePoint(taint_state,
@@ -384,6 +384,7 @@ void Memcheck::start_subround() {
   
   stack_tracker.fill(cur_fill());
   call_tracker.fill(cur_fill());
+  ret_tracker.fill(cur_fill());
   cksum.clear(); // TODO: rename cksum -> cksum
   vars.init_for_subround(cur_fill());
 }

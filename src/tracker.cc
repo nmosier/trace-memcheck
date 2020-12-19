@@ -173,35 +173,118 @@ uint8_t *StackTracker::add_incore_post(uint8_t *addr, Instruction& inst, const T
   return addr;
 }
 
-uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
-  assert(inst.xed_iclass() == XED_ICLASS_CALL_NEAR);
-  auto bkpt = Instruction::int3(addr);
-  addr = info.writer(bkpt);
-  info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+CallTracker::CallTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars):
+  Tracker(tracee),
+  Filler(fill),
+  mc(MC::Content {
+    0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48, 0x8b, 0x3d, 0x00, 0x00,
+    0x00, 0x00, 0x48, 0x8d, 0x7f, 0x80, 0xb9, 0x78, 0x00, 0x00, 0x00, 0x8a, 0x05, 0x00, 0x00, 0x00,
+    0x00, 0xf3, 0xaa, 0x58, 0x59, 0x5f, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,
+  },
+    MC::Relbrs {
+      MC::Relbr(0x03, 0x07, vars.tmp_rsp_ptr_ptr()),
+      MC::Relbr(0x0e, 0x12, vars.tmp_rsp_ptr_ptr()),
+      MC::Relbr(0x1d, 0x21, vars.fill_ptr_ptr()),
+      MC::Relbr(0x2a, 0x2e, vars.tmp_rsp_ptr_ptr()),
+    }
+    )
+{}
+
+uint8_t *CallTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  if (CALL_TRACKER_INCORE) {
+    addr = add_incore(addr, inst, info);
+  }
+  if (CALL_TRACKER_BKPT) {
+    addr = add_bkpt(addr, inst, info);
+  }
   addr = info.writer(inst);
   return addr;
 }
 
+uint8_t *CallTracker::add_bkpt(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  auto bkpt = Instruction::int3(addr);
+  addr = info.writer(bkpt);
+  info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+  return addr;
+}
+
+uint8_t *CallTracker::add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  mc.patch(addr);
+  addr = info.writer(mc);
+  return addr;
+}
+
 void CallTracker::handler(uint8_t *addr) {
-  /* mark [stack_begin, rsp - 8) as tainted */
   const auto sp = static_cast<char *>(tracee.get_sp());
+
+  if (CALL_TRACKER_INCORE) {
+    static_assert(FILL_CALL, "");
+    std::vector<uint8_t> buf(SHADOW_STACK_SIZE - 8);
+    tracee.read(buf.begin(), buf.end(), sp - SHADOW_STACK_SIZE);
+    std::for_each(buf.begin(), buf.end(), [this] (uint8_t val) {
+      assert(val == this->fill());
+    });
+  }
 
   if (FILL_CALL) {
     tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
   }
 }
 
-uint8_t *RetTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+RetTracker::RetTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars):
+  Tracker(tracee),
+  Filler(fill),
+  mc(MC::Content {
+    0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48, 0x8b, 0x3d, 0x00, 0x00,
+    0x00, 0x00, 0x48, 0x8d, 0x7f, 0x80, 0xb9, 0x80, 0x00, 0x00, 0x00, 0x8a, 0x05, 0x00, 0x00, 0x00,
+    0x00, 0xf3, 0xaa, 0x58, 0x59, 0x5f, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,
+    },
+    MC::Relbrs {
+      MC::Relbr(0x03, 0x07, vars.tmp_rsp_ptr_ptr()),
+      MC::Relbr(0x0e, 0x12, vars.tmp_rsp_ptr_ptr()),
+      MC::Relbr(0x1d, 0x21, vars.fill_ptr_ptr()),
+      MC::Relbr(0x2a, 0x2e, vars.tmp_rsp_ptr_ptr()),
+    }
+    )
+{}
+
+uint8_t *RetTracker::add(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  if (RET_TRACKER_INCORE) {
+    addr = add_incore(addr, inst, info);
+  }
+  if (RET_TRACKER_BKPT) {
+    addr = add_bkpt(addr, inst, info);
+  }
+  addr = info.writer(inst);
+  return addr;
+}
+  
+uint8_t *RetTracker::add_bkpt(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
   assert(inst.xed_iclass() == XED_ICLASS_RET_NEAR);
   auto bkpt = Instruction::int3(addr);
   addr = info.writer(bkpt);
   info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
-  addr = info.writer(inst);
+  return addr;
+}
+
+uint8_t *RetTracker::add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info) {
+  mc.patch(addr);
+  addr = info.writer(mc);
   return addr;
 }
 
 void RetTracker::handler(uint8_t *addr) {
   const auto sp = static_cast<char *>(tracee.get_sp());
+
+  if (RET_TRACKER_INCORE) {
+    static_assert(FILL_RET, "");
+    std::vector<uint8_t> buf(SHADOW_STACK_SIZE);
+    tracee.read(buf.begin(), buf.end(), sp - SHADOW_STACK_SIZE);
+    std::for_each(buf.begin(), buf.end(), [this] (uint8_t val) {
+      assert(val == this->fill());
+    });
+  }
+  
   if (FILL_RET) {
     // TODO: is this ok that it doesn't taint the return address?    
     tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp);

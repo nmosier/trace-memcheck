@@ -219,22 +219,29 @@ private:
 
 class CallTracker: public Tracker, public Filler {
 public:
-  CallTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
-
+  CallTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars);
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
-
 private:
+  using MC = MachineCode<0x2e, 4>;
+  MC mc;
+
+  uint8_t *add_bkpt(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  
   void handler(uint8_t *addr);
 };
 
 class RetTracker: public Tracker, public Filler {
 public:
-  RetTracker(Tracee& tracee, uint8_t fill): Tracker(tracee), Filler(fill) {}
-
+  RetTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars);
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
-
 private:
+  using MC = MachineCode<0x2e, 4>;
+  MC mc;
+  
   void handler(uint8_t *addr);
+  uint8_t *add_bkpt(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
+  uint8_t *add_incore(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 };
 
 
