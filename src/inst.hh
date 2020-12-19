@@ -234,3 +234,47 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const Blob& blob);
+
+template <unsigned NBYTES, unsigned NRELBRS>
+class MachineCode: public Blob {
+public:
+  using Content = std::array<uint8_t, NBYTES>;
+  struct Relbr {
+    unsigned at;
+    unsigned ref;
+    void * const & dst;
+  };
+  using Relbrs = std::array<Relbr, NRELBRS>;
+
+  MachineCode(const Content& binary, const Relbrs& relbrs):
+    Blob(nullptr), binary(binary), relbrs(relbrs) {}
+
+  virtual void relocate(uint8_t *newpc) override {
+    Blob::relocate(newpc);
+    patch_noreloc(newpc);
+  }
+
+  void patch(uint8_t *addr) { relocate(addr); }
+  
+  virtual void retarget(uint8_t *newdst) override { std::abort(); }
+  virtual uint8_t *data() override { return binary.data(); }
+  virtual const uint8_t *data() const override { return binary.data(); }
+  virtual size_t size() const override { return binary.size(); }
+  virtual std::ostream& print(std::ostream& os) const { std::abort(); }
+  
+private:
+  Content binary;
+  Relbrs relbrs;
+
+  void put_relbr(uint8_t *addr, const Relbr& relbr) {
+    assert(relbr.at + 4 <= size());
+    *reinterpret_cast<int32_t *>(binary.data() + relbr.at) =
+      static_cast<uint8_t *>(relbr.dst) - (addr + relbr.ref);
+  }
+
+  void patch_noreloc(uint8_t *addr) {
+    std::for_each(relbrs.begin(), relbrs.end(), [this, addr] (const Relbr& relbr) {
+      this->put_relbr(addr, relbr);
+    });
+  }  
+};
