@@ -16,6 +16,7 @@
 #include "util.hh"
 #include "decoder.hh"
 #include "config.hh"
+#include "settings.hh"
 
 void Tracee::open(pid_t pid, const char *command) {
   pid_ = pid;
@@ -51,28 +52,67 @@ void Tracee::close(void) {
   fd_ = -1;
 }
 
-void Tracee::read(void *to, size_t count, const void *from) {
-  const ssize_t bytes_read = pread(fd(), to, count, (off_t) from);
-  if (bytes_read < 0) {
-    std::perror("pread");
-    fprintf(stderr, "pc = %p\n", (void *) get_pc());
-    abort();
+void Tracee::read(void *to_, size_t count, const void *from_) {
+  auto to = static_cast<char *>(to_);
+  auto from = static_cast<const char *>(from_);
+
+  if (TRACEE_MEMCACHE) {
+    while (count > 0) {
+      const auto from_pageaddr = cache_pagealign(from);
+      const Page& from_page = read_page(from_pageaddr);
+      const auto from_beginidx = from - from_pageaddr;
+      const auto cur_count = std::min<size_t>(from_pageaddr + CACHE_PAGE_SIZE - from, count);
+      std::copy_n(from_page.data.begin() + from_beginidx, cur_count, to);
+      from += cur_count;
+      to += cur_count;
+      count -= cur_count;
+    }
+  } else {
+    const ssize_t bytes_read = pread(fd(), to, count, (off_t) from);
+    if (bytes_read < 0) {
+      std::perror("pread");
+      fprintf(stderr, "pc = %p\n", (void *) get_pc());
+      abort();
+    }
+    assert((size_t) bytes_read == count);    
   }
-  assert((size_t) bytes_read == count);
 }
 
 bool Tracee::try_read(void *to, size_t count, const void *from) {
+  abort(); // TODO
+  
   const ssize_t bytes_read = pread(fd(), to, count, reinterpret_cast<off_t>(from));
   return bytes_read >= 0 && static_cast<size_t>(bytes_read) == count;
 }
 
-void Tracee::write(const void *from, size_t count, void *to) const {
-  const ssize_t bytes_written = pwrite(fd(), from, count, (off_t) to);
-  if (bytes_written < 0) {
-    std::perror("pwrite");
-    abort();
+void Tracee::write(const void *from_, size_t count, void *to_) {
+  auto from = static_cast<const char *>(from_);
+  auto to = static_cast<char *>(to_);
+  if (TRACEE_MEMCACHE) {
+    while (count > 0) {
+      const auto to_pageaddr = cache_pagealign(to);
+      const auto cur_count = std::min<size_t>(to_pageaddr + CACHE_PAGE_SIZE - to, count);
+      Page *to_page;
+      if (cur_count == CACHE_PAGE_SIZE) {
+	to_page = &write_page(to_pageaddr);
+      } else {
+	to_page = &read_page(to_pageaddr);
+      }
+      const auto to_idx = to - to_pageaddr;
+      std::copy_n(from, cur_count, to_page->data.begin() + to_idx);
+      to_page->dirty = true;
+      from += cur_count;
+      to += cur_count;
+      count -= cur_count;
+    }
+  } else {
+    const ssize_t bytes_written = pwrite(fd(), from, count, (off_t) to);
+    if (bytes_written < 0) {
+      std::perror("pwrite");
+      abort();
+    }
+    assert((size_t) bytes_written == count);    
   }
-  assert((size_t) bytes_written == count);
 }
 
 std::ostream& Tracee::dump(std::ostream& os, const void *ptr, size_t count) {
@@ -135,20 +175,20 @@ void Tracee::set_pc(void *pc) {
   set_regs(regs);
 }
 
-void Tracee::flush_caches() const {
+void Tracee::flush_caches() {
   if (regs_good_) {
     ptrace(PTRACE_SETREGS, pid(), nullptr, &regs_);
   }
   if (fpregs_good_) {
     ptrace(PTRACE_SETFPREGS, pid(), nullptr, &fpregs_);
   }
-  /* TODO -- flush memory cache */
+  flush_memcache();
 }
 
 void Tracee::invalidate_caches() {
   regs_good_ = false;
   fpregs_good_ = false;
-  memory_cache_.clear();
+  memcache_.clear();
 }
 
 void Tracee::syscall(user_regs_struct& regs) {
@@ -241,7 +281,7 @@ std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {
   abort();
 }
 
-void Tracee::write(const Blob& blob) const {
+void Tracee::write(const Blob& blob) {
   write(blob.data(), blob.size(), blob.pc());
 }
 
@@ -302,12 +342,12 @@ std::string Tracee::string(const char *addr) {
   return std::string(buf.begin(), buf.begin() + string(addr, buf));
 }
 
-void Tracee::fill(uint8_t val, size_t count, void *to) const {
+void Tracee::fill(uint8_t val, size_t count, void *to) {
   std::vector<uint8_t> buf(count, val);
   write(buf.data(), count, to);
 }
 
-void Tracee::fill(uint8_t val, void *to_begin, void *to_end) const {
+void Tracee::fill(uint8_t val, void *to_begin, void *to_end) {
   fill(val, static_cast<char *>(to_end) - static_cast<char *>(to_begin), to_begin);
 }
 
@@ -352,4 +392,42 @@ std::ostream& Tracee::xmm_print(std::ostream& os, unsigned idx) {
     os << std::hex << (unsigned) *it;
   }
   return os;
+}
+
+Tracee::Page& Tracee::read_page(const void *pageaddr) {
+  /* TODO: optimize using preadv */
+  const auto it = memcache_.find(pageaddr);
+  Page *page;
+  if (it == memcache_.end()) {
+    const auto res = memcache_.emplace(pageaddr, Page());
+    assert(res.second);
+    page = &res.first->second;
+    const auto bytes_read =
+      ::pread(fd(), page->data.data(), page->data.size(), reinterpret_cast<off_t>(pageaddr));
+    assert(bytes_read == static_cast<ssize_t>(page->data.size())); (void) bytes_read;
+    page->dirty = false;
+  } else {
+    page = &it->second;
+  }
+  return *page;
+}
+
+Tracee::Page& Tracee::write_page(const void *pageaddr) {
+  Page& page = memcache_[pageaddr];
+  page.dirty = true;
+  return page;
+}
+
+void Tracee::flush_memcache() {
+  /* TODO: OPTIM: optimize using pwritev */
+  std::for_each(memcache_.begin(), memcache_.end(), [this] (auto& p) {
+    Page& page = p.second;
+    if (page.dirty) {
+      const auto pageaddr = p.first;
+      const auto bytes_written =
+	::pwrite(this->fd(), page.data.data(), page.data.size(), reinterpret_cast<off_t>(pageaddr));
+      assert(bytes_written == static_cast<ssize_t>(page.data.size())); (void) bytes_written;
+      page.dirty = false;
+    }
+  });
 }

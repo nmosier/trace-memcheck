@@ -45,7 +45,7 @@ public:
     read(to.begin(), to.end(), from);
   }
 
-  void write(const void *from, size_t count, void *to) const;
+  void write(const void *from, size_t count, void *to);
 
   template <typename T, size_t N>
   void write(const std::array<T,N>& from, void *to) {
@@ -64,10 +64,10 @@ public:
     return val;
   }
   
-  void write(const Blob& inst) const;
+  void write(const Blob& inst);
 	      
-	      void fill(uint8_t val, size_t count, void *to) const;
-  void fill(uint8_t val, void *to_begin, void *to_end) const;
+  void fill(uint8_t val, size_t count, void *to);
+  void fill(uint8_t val, void *to_begin, void *to_end);
 
   size_t strlen(const char *addr);
   std::string string(const char *addr);
@@ -132,13 +132,36 @@ private:
 
   void cache_regs();
   void cache_fpregs();
-  void flush_caches() const;
+  void flush_caches();
   void invalidate_caches();
   
   /* Memory Cache */
-  using Page = std::array<uint8_t, PAGESIZE>;
-  using MemoryMap = std::map<uint8_t, Page>;
-  MemoryMap memory_cache_;
+  static constexpr size_t CACHE_PAGE_SIZE = PAGESIZE;
+  struct Page {
+    using Data = std::array<uint8_t, CACHE_PAGE_SIZE>;
+    Data data;
+    bool dirty;
+  };
+  using PageMap = std::map<const void *, Page>;
+  PageMap memcache_;
+
+  template <typename T>
+  static constexpr const T *cache_pagealign(const T *ptr) {
+    return reinterpret_cast<const T *>(util::align_down(reinterpret_cast<uintptr_t>(ptr),
+							CACHE_PAGE_SIZE));
+  }
+
+  template <typename T>
+  static constexpr const T *cache_pagealign_up(const T *ptr) {
+    return reinterpret_cast<const T *>(util::align_up(reinterpret_cast<uintptr_t>(ptr),
+						      CACHE_PAGE_SIZE));
+  }
+
+  Page& read_page(const void *pageaddr);
+
+  Page& write_page(const void *pageaddr);
+  
+  void flush_memcache();
   
   size_t string(const char *addr, std::vector<char>& buf);
 
