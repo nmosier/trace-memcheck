@@ -145,6 +145,10 @@ int main(int argc, char *argv[]) {
     usage(stderr);
     return 1;
   }
+
+  if (g_conf.profile) {
+    ProfilerStart("memcheck.prof");
+  }
   
   char **command = &argv[optind++];
 
@@ -154,5 +158,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   memcheck.run();
+
+  if (g_conf.profile) {
+    ProfilerStop();
+  }
+  
   return 0;
 }
