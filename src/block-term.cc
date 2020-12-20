@@ -652,7 +652,7 @@ uint8_t *JmpIndTerminator<CACHELEN>::load_addr(const Instruction& jmp, PointerPo
   std::copy(data_it, data_end, newdata_it);
 
   /* create instruction */
-  const Instruction inst(addr, newdata);
+  const auto inst = Instruction::from_data(addr, newdata);
   write(inst);
 
   assert(inst.size() == load_addr_size(jmp));

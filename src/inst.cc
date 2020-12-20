@@ -265,11 +265,6 @@ bool Instruction::retarget_mem(Op get_dst_ptr) {
   return true;
 }
 
-Instruction::Instruction(uint8_t *pc_, Tracee& tracee): Blob(pc_) {
-  tracee.read(data_, pc());
-  decode();
-}
-
 void Instruction::data(const uint8_t *newdata, size_t len) {
   memcpy(data_.data(), newdata, len);
   decode();
@@ -290,71 +285,71 @@ Instruction Instruction::jmp_relbrd(uint8_t *pc, uint8_t *dst) {
   /* calculate instruction length */
   constexpr unsigned instlen = 5;
   const int32_t disp = dst - (pc + instlen);
-  Data opcode;
+  DataN<instlen> opcode;
   opcode[0] = 0xe9;
   * (int32_t *) &opcode[1] = disp;
-  return Instruction(pc, opcode);
+  return from_data(pc, opcode);
 }
 
 Instruction Instruction::jmp_mem(uint8_t *pc, uint8_t *mem) {
   constexpr unsigned instlen = 6;
   const int32_t disp = mem - (pc + instlen);
-  Data opcode;
+  DataN<instlen> opcode;
   opcode[0] = 0xff;
   opcode[1] = 0x25;
   * (int32_t *) &opcode[2] = disp;
-  return Instruction(pc, opcode);
+  return from_data(pc, opcode);
 }
 
 Instruction Instruction::push_mem(uint8_t *pc, uint8_t *mem) {
   constexpr unsigned instlen = 6;
   const int32_t disp = mem - (pc + instlen);
-  Data opcode;
+  DataN<instlen> opcode;
   opcode[0] = 0xff;
   opcode[1] = 0x35;
   * (int32_t *) &opcode[2] = disp;
-  return Instruction(pc, opcode);
+  return from_data(pc, opcode);
 }
 
 Instruction Instruction::mov_mem64(uint8_t *pc, reg_t reg, uint8_t *mem) {
   Data data {0x48, 0x8b, 0x05};
   data[2] |= static_cast<uint8_t>(reg) << 3;
   *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + mov_mem64_len);
-  return Instruction(pc, data);
+  return from_data(pc, data);
 }
 
 Instruction Instruction::mov_mem64(uint8_t *pc, uint8_t *mem, reg_t reg) {
   Data data {0x48, 0x89, 0x05};
   data[2] |= static_cast<uint8_t>(reg) << 3;
   *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + mov_mem64_len);
-  return Instruction(pc, data);
+  return from_data(pc, data);
 }
 
 Instruction Instruction::cmp_mem64(uint8_t *pc, reg_t reg, uint8_t *mem) {
   Data data {0x48, 0x3b, 0x05};
   data[2] |= static_cast<uint8_t>(reg) << 3;
   *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + cmp_mem64_len);
-  return Instruction(pc, data);
+  return from_data(pc, data);
 }
 
 Instruction Instruction::xchg_rsp_mem(uint8_t *pc, uint8_t *mem) {
   Data data {0x48, 0x87, 0x25};
   * (int32_t *) &data[3] = mem - (pc + xchg_rsp_mem_len);
-  return Instruction(pc, data);
+  return from_data(pc, data);
 }
 
 Instruction Instruction::lea(uint8_t *pc, reg_t reg, uint8_t *mem) {
   Data data {0x48, 0x8d, 0x05};
   data[2] |= static_cast<uint8_t>(reg) << 3;
   *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + lea_len);
-  return Instruction(pc, data);
+  return from_data(pc, data);
 }
 
 Instruction Instruction::add_mem64_imm8(uint8_t *pc, uint8_t *mem, int8_t imm) {
   Data data {0x48, 0x83, 0x05};
   *reinterpret_cast<int32_t *>(&data[3]) = mem - (pc + add_mem64_imm8_len);
   data[7] = imm;
-  return Instruction(pc, data);
+  return from_data(pc, data);
 }
 
 Instruction Instruction::push_reg(uint8_t *pc, reg_t reg) {

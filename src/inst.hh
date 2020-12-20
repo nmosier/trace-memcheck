@@ -103,17 +103,30 @@ public:
 
   Instruction(): good_(false) {}
   // Instruction(uint8_t *pc, const Data& data);
-  template <size_t N>
-  Instruction(uint8_t *pc, const DataN<N>& data): Blob(pc), size_(N) {
-    std::copy(data.begin(), data.end(), data_.begin());
+
+  template <typename InputIt>
+  Instruction(uint8_t *pc, InputIt begin, InputIt end): Blob(pc), size_(std::distance(begin, end)) {
+    assert(size_ <= max_inst_len);
+    std::copy(begin, end, data_.begin());
     decode();
   }
-  Instruction(uint8_t *pc, Tracee& tracee);
+  
+  template <typename Readable>
+  Instruction(uint8_t *pc, Readable& readable): Blob(pc) {
+    readable.read(data_, pc);
+    decode();
+  }
+
   Instruction(const Instruction& other, uint8_t *newpc);
 
   template <typename... Args>
   static Instruction from_bytes(uint8_t *pc, Args... args) {
-    return Instruction(pc, DataN<sizeof...(Args)> {static_cast<uint8_t>(args)...});
+    return from_data(pc, DataN<sizeof...(Args)> {static_cast<uint8_t>(args)...});
+  }
+
+  template <size_t N>
+  static Instruction from_data(uint8_t *pc, const DataN<N>& data) {
+    return Instruction(pc, data.begin(), data.end());
   }
 
   uint8_t *data() override { return data_.data(); }
@@ -266,7 +279,7 @@ public:
   virtual uint8_t *data() override { return binary.data(); }
   virtual const uint8_t *data() const override { return binary.data(); }
   virtual size_t size() const override { return binary.size(); }
-  virtual std::ostream& print(std::ostream& os) const { std::abort(); }
+  virtual std::ostream& print(std::ostream& os) const override { std::abort(); }
   
 private:
   Content binary;

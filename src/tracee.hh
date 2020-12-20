@@ -17,7 +17,8 @@ public:
   Tracee(): fd_(-1) {}
   Tracee(pid_t pid, const char *command) { open(pid, command); }
   ~Tracee();
-
+  Tracee(const Tracee& other) = delete;
+  
   bool good() const { return fd_ >= 0; }
   operator bool() const { return good(); }
   
