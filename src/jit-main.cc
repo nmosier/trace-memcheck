@@ -119,6 +119,10 @@ int main(int argc, char *argv[]) {
   
   char **command = &argv[optind++];
 
+  if (g_conf.profile) {
+    ProfilerStart("jit.prof");
+  }
+
   Decoder::Init();
 
   const pid_t child_pid = fork();
@@ -136,6 +140,10 @@ int main(int argc, char *argv[]) {
   Patcher patcher(tracee, transformer);
   patcher.start();
   patcher.run();
+
+  if (g_conf.profile) {
+    ProfilerStop();
+  }
   
   return 0;
 }
