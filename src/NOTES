@@ -325,3 +325,7 @@ Need:
 ------
 
 Need patcher to track mapped regions as well.
+
+-----
+
+The JIT library could support multithreaded clients by having a shared block translation table.
