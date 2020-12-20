@@ -1,5 +1,6 @@
 #include <new>
 #include <stdexcept>
+#include <sys/uio.h>
 #include <vector>
 #include <cstring>
 #include <sstream>
@@ -78,6 +79,15 @@ void Tracee::read(void *to_, size_t count, const void *from_) {
   }
 }
 
+void Tracee::readv(const struct iovec *iov, int iovcnt, const void *from) {
+  const ssize_t bytes_read = preadv(fd(), iov, iovcnt, reinterpret_cast<off_t>(from));
+  const ssize_t expected_bytes = std::accumulate(iov, iov + iovcnt, 0,
+						 [] (const auto acc, const auto& iov) {
+    return acc + iov.iov_len;
+  });
+  assert(bytes_read == expected_bytes);
+}
+
 bool Tracee::try_read(void *to, size_t count, const void *from) {
   abort(); // TODO
   
@@ -112,6 +122,17 @@ void Tracee::write(const void *from_, size_t count, void *to_) {
       abort();
     }
     assert((size_t) bytes_written == count);    
+  }
+}
+
+void Tracee::writev(const struct iovec *iov, int iovcnt, void *to) {
+  const auto bytes_expected = std::accumulate(iov, iov + iovcnt, 0,
+					      [] (const auto acc, const auto& iov) {
+    return acc + iov.iov_len;
+  });
+  const auto bytes_written = ::pwritev(fd(), iov, iovcnt, reinterpret_cast<off_t>(to));
+  if (bytes_written != bytes_expected) {
+    abort();
   }
 }
 

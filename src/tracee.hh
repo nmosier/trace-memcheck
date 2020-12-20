@@ -33,6 +33,8 @@ public:
   int fd() const { return fd_; }
 
   void read(void *to, size_t count, const void *from);
+  void readv(const struct iovec *iov, int iovcnt, const void *from);
+  
   bool try_read(void *to, size_t count, const void *from);
 
   template <typename OutputIt>
@@ -46,7 +48,8 @@ public:
   }
 
   void write(const void *from, size_t count, void *to);
-
+  void writev(const struct iovec *iov, int iovcnt, void *to);
+	      
   template <typename T, size_t N>
   void write(const std::array<T,N>& from, void *to) {
     write(from.data(), from.size() * sizeof(T), to);

@@ -1,7 +1,9 @@
 #include <numeric>
+#include <sys/uio.h>
 #include <cassert>
 #include <algorithm>
 #include <functional>
+#include <set>
 #include "snapshot.hh"
 #include "state.hh"
 
@@ -15,11 +17,49 @@ bool Snapshot::similar(const Snapshot& other) const {
 }
 
 void Snapshot::restore(Tracee& tracee) const {
+#if 0
+  using PageVec = std::vector<void *>;
+  PageVec pages(map.size());
+  std::transform(map.begin(), map.end(), pages.begin(), [] (const auto& pair) {
+    return pair.first;
+  });
+
+  auto begin = pages.begin();
+  auto end = begin;
+  while (begin != pages.end()) {
+    std::vector<struct iovec> iovs;
+    const char *prevaddr;
+    do {
+      const auto data = const_cast<void *>(static_cast<const void *>(map.at(*end).data()));
+      iovs.emplace_back(iovec{data, PAGESIZE});
+      prevaddr = static_cast<const char *>(*end);
+      ++end;
+    } while (end != pages.end() && static_cast<const char *>(*end) - prevaddr == PAGESIZE);
+
+    for (auto it0 = begin, it1 = std::next(begin, 1); it1 != end; ++it0, ++it1) {
+      assert(static_cast<const char *>(*it1) - static_cast<const char *>(*it0) == PAGESIZE);
+    }
+
+    tracee.writev(iovs.data(), iovs.size(), *begin);
+
+    begin = end;
+  }
+
+#if 0
+  for (const auto& pageaddr : pages) {
+    // TODO: Use Tracee::preadv
+    
+    tracee.write(map.at(pageaddr), pageaddr);
+  }
+#endif
+  
+#else
   for (const auto& p : map) {
     auto addr = p.first;
     const auto& data = p.second;
     tracee.write(data, addr);
   }
+#endif
 }
 
 void Snapshot::zero() {
