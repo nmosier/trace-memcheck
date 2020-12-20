@@ -30,4 +30,4 @@ constexpr bool CALL_TRACKER_BKPT     = false;
 constexpr bool RET_TRACKER_INCORE    = true;
 constexpr bool RET_TRACKER_BKPT      = false;
 
-constexpr bool PATCHER_USE_ROMCACHE  = true;
+constexpr bool PATCHER_USE_ROMCACHE  = false;
