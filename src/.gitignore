@@ -16,3 +16,4 @@ maps
 maps
 jit
 *.lst
+*.prof
