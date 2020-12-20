@@ -1,4 +1,3 @@
-#include <gperftools/profiler.h>
 #include <unordered_set>
 #include <map>
 #include <sys/wait.h>
@@ -160,10 +159,6 @@ void Patcher::signal(int signum, const sighandler_t& handler) {
 void Patcher::run(void) {
   int status;
 
-  if (g_conf.profile) {
-    ProfilerStart("memcheck.prof");
-  }
-
   while (true) {    
     uint8_t *bkpt_pc;
 
@@ -233,10 +228,6 @@ void Patcher::run(void) {
       assert(WIFEXITED(status));
       break;
     }
-  }
-
-  if (g_conf.profile) {
-    ProfilerStop();
   }
 
   fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));  
