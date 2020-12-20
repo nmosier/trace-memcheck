@@ -34,3 +34,4 @@ constexpr bool PATCHER_USE_ROMCACHE  = false;
 
 constexpr bool TRACEE_MEMCACHE       = false;
 
+constexpr bool SNAPSHOT_RESTORE_WRITEV = false;

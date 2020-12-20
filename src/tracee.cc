@@ -85,7 +85,9 @@ void Tracee::readv(const struct iovec *iov, int iovcnt, const void *from) {
 						 [] (const auto acc, const auto& iov) {
     return acc + iov.iov_len;
   });
-  assert(bytes_read == expected_bytes);
+  if (bytes_read != expected_bytes) {
+    abort();
+  }
 }
 
 bool Tracee::try_read(void *to, size_t count, const void *from) {
