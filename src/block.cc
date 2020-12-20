@@ -4,6 +4,7 @@
 #include "block.hh"
 #include "block-pool.hh"
 #include "debug.h"
+#include "settings.hh"
 
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
@@ -87,13 +88,15 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
     
     return newit;
   };
-  
+
+  Instruction inst;
   while (!stop) {
-#if 0
-    Instruction inst(it, tracee);
-#else
-    Instruction inst(it, rom_cache);
-#endif
+    if (PATCHER_USE_ROMCACHE) {
+      inst = Instruction(it, rom_cache);
+    } else {
+      inst = Instruction(it, tracee);
+    }
+
     if (!inst) {
       return false;
     }

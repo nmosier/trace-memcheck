@@ -50,7 +50,7 @@ void JccTracker::handler(uint8_t *addr) {
   if (JCC_TRACKER_INCORE) {
     const auto incore_cksum = tracee.read_type(*cksum_ptr_ptr);
     const auto bkpt_cksum = cksum.cksum();
-    assert(incore_cksum == bkpt_cksum);
+    assert(incore_cksum == bkpt_cksum); (void) incore_cksum; (void) bkpt_cksum;
   }
 }
 

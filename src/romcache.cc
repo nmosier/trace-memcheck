@@ -19,7 +19,7 @@ void ROMCache::read(void *to_, size_t count_, const void *from_) {
   auto to = static_cast<char *>(to_);
   auto from = static_cast<const char *>(from_);
   auto count = count_;
-
+  
   while (count > 0) {
     const auto pageaddr = pagealign(from);
     const auto& page = get_page(pageaddr);

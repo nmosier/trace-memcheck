@@ -27,6 +27,7 @@ constexpr bool STACK_TRACKER_BKPT    = false;
 constexpr bool CALL_TRACKER_INCORE   = true;
 constexpr bool CALL_TRACKER_BKPT     = false;
 
-// TODO
 constexpr bool RET_TRACKER_INCORE    = true;
 constexpr bool RET_TRACKER_BKPT      = false;
+
+constexpr bool PATCHER_USE_ROMCACHE  = true;
