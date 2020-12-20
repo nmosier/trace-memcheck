@@ -263,7 +263,6 @@ uint8_t *Patcher::orig_block_addr(uint8_t *addr) const {
 
 void Patcher::pre_syscall_handler() {
   syscall_args.add_call(tracee);
-  std::clog << "pre syscall\n";
 }
 
 void Patcher::post_syscall_handler() {
@@ -279,6 +278,4 @@ void Patcher::post_syscall_handler() {
     
   case Syscall::MREMAP: abort();
   }
-  
-  std::clog << "post syscall\n";
 }
