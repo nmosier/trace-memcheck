@@ -88,14 +88,14 @@ std::ostream& Tracee::dump(std::ostream& os, const void *ptr, size_t count) {
 
 void Tracee::cache_regs(void) {
   if (!regs_good_) {
-    ptrace(PTRACE_GETREGS, pid(), nullptr, &regs_);
+    ::ptrace(PTRACE_GETREGS, pid(), nullptr, &regs_);
     regs_good_ = true;
   }
 }
 
 void Tracee::cache_fpregs() {
   if (!fpregs_good_) {
-    ptrace(PTRACE_GETFPREGS, pid(), nullptr, &fpregs_);
+    ::ptrace(PTRACE_GETFPREGS, pid(), nullptr, &fpregs_);
     fpregs_good_ = true;
   }
 }
@@ -111,9 +111,8 @@ const user_regs_struct& Tracee::get_gpregs() {
 }
 
 void Tracee::set_gpregs(const user_regs_struct& regs) {
-  regs_ = regs; // TODO: Check if not equal?
+  regs_ = regs;
   regs_good_ = true;
-  ptrace(PTRACE_SETREGS, pid(), nullptr, &regs);
 }
 
 void *Tracee::get_sp(void) {
@@ -136,33 +135,20 @@ void Tracee::set_pc(void *pc) {
   set_regs(regs);
 }
 
+void Tracee::flush_caches() const {
+  if (regs_good_) {
+    ptrace(PTRACE_SETREGS, pid(), nullptr, &regs_);
+  }
+  if (fpregs_good_) {
+    ptrace(PTRACE_SETFPREGS, pid(), nullptr, &fpregs_);
+  }
+  /* TODO -- flush memory cache */
+}
+
 void Tracee::invalidate_caches() {
   regs_good_ = false;
   fpregs_good_ = false;
-}
-
-int Tracee::singlestep(void) {
-  invalidate_caches();
-  ptrace(PTRACE_SINGLESTEP, pid(), nullptr, nullptr);
-  int status;
-  wait(&status);
-  return status;
-}
-
-int Tracee::cont(void) {
-  invalidate_caches();
-  ptrace(PTRACE_CONT, pid(), nullptr, nullptr);
-  int status;
-  wait(&status);
-  return status;
-}
-
-int Tracee::cont_syscall() {
-  invalidate_caches();
-  ptrace(PTRACE_SYSCALL, pid(), nullptr, nullptr);
-  int status;
-  wait(&status);
-  return status;
+  memory_cache_.clear();
 }
 
 void Tracee::syscall(user_regs_struct& regs) {
@@ -215,7 +201,7 @@ void Tracee::gdb() {
   
   /* run in infinite loop */
   write(instbuf, std::max<unsigned>(instlen, 2), get_pc());
-  ptrace(PTRACE_DETACH, pid(), 0, 0);
+  resume<PTRACE_DETACH>();
   
   char pid_str[16];
   sprintf(pid_str, "%d", pid());
@@ -337,7 +323,6 @@ const user_fpregs_struct& Tracee::get_fpregs() {
 
 void Tracee::set_fpregs(const user_fpregs_struct& fpregs) {
   fpregs_ = fpregs;
-  ptrace(PTRACE_SETFPREGS, pid(), nullptr, &fpregs_);
   fpregs_good_ = true;
 }
 

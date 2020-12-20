@@ -8,9 +8,13 @@ class Tracee;
 #include <sys/user.h>
 #include <signal.h>
 #include <string>
+#include <map>
+#include <sys/ptrace.h>
+#include <sys/wait.h>
 
 #include "inst.hh"
 #include "syscall.hh"
+#include "util.hh"
 
 class Tracee {
 public:
@@ -91,9 +95,9 @@ public:
   siginfo_t get_siginfo();
   auto get_flags() { return get_gpregs().eflags; }
   
-  int singlestep(void);
-  int cont(void);
-  int cont_syscall();
+  int singlestep() { return resume<PTRACE_SINGLESTEP>(); }
+  int cont() { return resume<PTRACE_CONT>(); }
+  int cont_syscall() { return resume<PTRACE_SYSCALL>(); }
 
   void syscall(user_regs_struct& regs);
 
@@ -128,7 +132,23 @@ private:
 
   void cache_regs();
   void cache_fpregs();
+  void flush_caches() const;
   void invalidate_caches();
-
+  
+  /* Memory Cache */
+  using Page = std::array<uint8_t, PAGESIZE>;
+  using MemoryMap = std::map<uint8_t, Page>;
+  MemoryMap memory_cache_;
+  
   size_t string(const char *addr, std::vector<char>& buf);
+
+  template <__ptrace_request request>
+  int resume() {
+    flush_caches();
+    invalidate_caches();
+    ::ptrace(request, pid(), nullptr, nullptr);
+    int status;
+    ::wait(&status);
+    return status;
+  }
 };
