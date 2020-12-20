@@ -113,7 +113,7 @@ public:
   
   template <typename Readable>
   Instruction(uint8_t *pc, Readable& readable): Blob(pc) {
-    readable.read(data_, pc);
+    readable.read(data(), max_inst_len, pc);
     decode();
   }
 

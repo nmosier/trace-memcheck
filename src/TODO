@@ -41,3 +41,4 @@
 [ ] *** Central fill location using references
 [ ] Move STATIC data to class members to avoid multithreading problems
 [ ] In inst.hh, use template-simulated inheritance
+[ ] max_inst_len -> MAX_INST_LEN

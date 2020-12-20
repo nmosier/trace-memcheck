@@ -20,7 +20,7 @@ public:
     const auto begin = static_cast<char *>(begin_);
     invalidate(begin, begin + size);
   }
-  
+
 private:
   using Page = std::array<char, PAGESIZE>;
   using Map = std::unordered_map<const void *, Page>;

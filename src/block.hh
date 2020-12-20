@@ -23,6 +23,7 @@ extern "C" {
 #include "block-term.hh"
 #include "ptr-pool.hh"
 #include "tmp-mem.hh"
+#include "romcache.hh"
 
 class Block {
 public:
@@ -40,7 +41,8 @@ public:
 		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		     const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
 		     const InsertBlock& ib, const Transformer& transformer,
-		     const BkptCallback& syscall_pre, const BkptCallback& syscall_post
+		     const BkptCallback& syscall_pre, const BkptCallback& syscall_post,
+		     ROMCache& rom_cache
 		     );
     
   uint8_t *orig_addr() const { return orig_addr_; }

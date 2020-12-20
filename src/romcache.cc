@@ -15,17 +15,21 @@ const ROMCache::Page& ROMCache::get_page(const void *pageaddr) {
   return it->second;
 }
 
-void ROMCache::read(void *to_, size_t count, const void *from_) {
+void ROMCache::read(void *to_, size_t count_, const void *from_) {
   auto to = static_cast<char *>(to_);
   auto from = static_cast<const char *>(from_);
-  
+  auto count = count_;
+
   while (count > 0) {
     const auto pageaddr = pagealign(from);
     const auto& page = get_page(pageaddr);
-    const auto cur_count = std::min(count, PAGESIZE);
+    const auto cur_count = std::min<size_t>(count, (pageaddr + PAGESIZE) - from);
     std::copy_n(page.data() + (from - pageaddr), cur_count, to);
     count -= cur_count;
     to += cur_count;
     from += cur_count;
   }
+
+  assert(static_cast<char *>(to_) + count_ == to);
+  assert(static_cast<const char *>(from_) + count_ == from);
 }

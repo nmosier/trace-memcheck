@@ -52,7 +52,8 @@ bool Patcher::patch(uint8_t *start_pc) {
   return Block::Create(start_pc, tracee, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
 		       block_transformer,
 		       [this] (...) { pre_syscall_handler(); },
-		       [this] (...) { post_syscall_handler(); }
+		       [this] (...) { post_syscall_handler(); },
+		       cache
 		       );
 }
 

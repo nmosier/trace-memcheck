@@ -9,7 +9,8 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
 		   PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
 		   const InsertBlock& ib, const Transformer& transformer,
-		   const BkptCallback& syscall_pre, const BkptCallback& syscall_post)
+		   const BkptCallback& syscall_pre, const BkptCallback& syscall_post,
+		   ROMCache& rom_cache)
 {
   Block *block = new Block(tracee, orig_addr);
   uint8_t *it = orig_addr;
@@ -88,7 +89,11 @@ bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
   };
   
   while (!stop) {
+#if 0
     Instruction inst(it, tracee);
+#else
+    Instruction inst(it, rom_cache);
+#endif
     if (!inst) {
       return false;
     }
