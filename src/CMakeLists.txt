@@ -10,7 +10,6 @@ include_directories(${xed_INCLUDE_DIRS} ${GPERFTOOLS_INCLUDE_DIR})
 # add_link_options(-pg)
 
 add_library(core_objs STATIC
-  util.cc
   decoder.cc
   tracee.cc
   inst.cc
