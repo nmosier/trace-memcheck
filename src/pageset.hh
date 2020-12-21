@@ -21,7 +21,10 @@ public:
   {}
 
   int flags() const { return flags_; }
-  
+
+  void lock(void *pageaddr, Tracee& tracee, int mask);
+  void unlock(void *pageaddr, Tracee& tracee);
+
 private:
   int flags_;
   int orig_prot_;
@@ -71,8 +74,13 @@ public:
   Map::const_iterator begin() const { return map.begin(); }
   Map::const_iterator end() const { return map.end(); }
   Map::size_type size() const { return map.size(); }
+
   template <typename... Args>
   Map::const_iterator find(Args&&... args) const { return map.find(args...); }
+
+  template <typename... Args>
+  Map::iterator find(Args&&... args) { return map.find(args...); }
+  
   template <typename... Args>
   bool contains(Args&&... args) const { return find(args...) != end(); }
   

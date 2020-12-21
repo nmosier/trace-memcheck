@@ -44,3 +44,15 @@ void PageSet::untrack_page(void *pageaddr) {
 void PageSet::untrack_range(void *begin, void *end) {
   for_each_page(begin, end, [this] (void *pageaddr) { untrack_page(pageaddr); });    
 }
+
+void PageInfo::lock(void *pageaddr, Tracee& tracee, int mask) {
+  assert(orig_prot_ == cur_prot_);
+  assert((orig_prot_ & mask) == mask);
+  cur_prot_ = orig_prot_ & ~mask;
+  tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, cur_prot_);
+}
+
+void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
+  tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, orig_prot_);
+  cur_prot_ = orig_prot_;
+}

@@ -341,4 +341,7 @@ RDONLY -- read-only pages that are never saved
 RDWR   -- read-write pages that are originally marked as read-only, but are marked as read-write and tracked when the tracee tries to write to it
 
 The taint state needs to be notified when a page changes states to/from RDWR.
-At the beginning of each round, all maps in the taint state 
+At the beginning of each round, all maps in the taint state
+
+----
+

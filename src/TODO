@@ -43,3 +43,4 @@
 [ ] In inst.hh, use template-simulated inheritance
 [ ] max_inst_len -> MAX_INST_LEN
 [ ] Tracee::regs_good_ -> gpregs_good_
+[ ] Check return values of all syscalls

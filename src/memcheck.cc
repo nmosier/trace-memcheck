@@ -474,7 +474,7 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
   void *faultaddr = siginfo.si_addr;
   void *pageaddr = pagealign(faultaddr);
 
-  const auto page_it = tracked_pages.find(pageaddr);
+  auto page_it = tracked_pages.find(pageaddr);
   if (page_it == tracked_pages.end()) {
     g_conf.abort(tracee); // TODO: Should exit gracefully with 'Segmentation fault: 11' message
   }
@@ -501,7 +501,14 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
     break;
 
   case Tier::RDWR_LOCKED:
-    abort(); // TODO
+    {
+      /* 1. Unlock
+       * 2. Add to pre_state.
+       */
+      page_it->second.unlock(pageaddr, tracee);
+      pre_state.snapshot().add(pageaddr, tracee);
+    }
+    break;
     
   default:
     assert(false);
