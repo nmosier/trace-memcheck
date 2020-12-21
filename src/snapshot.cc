@@ -84,6 +84,7 @@ void Snapshot::fill(void *begin, void *end, Elem val) {
 }
 
 void Snapshot::remove(void *pageaddr) {
+  // NOTE: Also works if pageaddr not in map.
   map.erase(pageaddr);
 }
 

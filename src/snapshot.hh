@@ -51,13 +51,41 @@ public:
 
   template <typename... Args>
   void add(void *begin, void *end, Args&&... args) {
-    for (size_t i = 0; i < pagecount(begin, end); ++i) {
-      add(pageidx(begin, i), args...);
+    for_each_page(begin, end, [&] (const auto pageaddr) {
+      add(pageaddr, args...);
+    });
+  }
+      
+  template <typename InputIt, typename... Args>
+  void add(InputIt begin, InputIt end, Args&&... args) {
+    for (auto it = begin; it != end; ++it) {
+      add(*it, args...);
     }
   }
   
   void remove(void *pageaddr);
   void remove(void *begin, void *end);
+
+  template <typename InputIt>
+  void remove(InputIt begin, InputIt end) {
+    for (auto it = begin; it != end; ++it) {
+      remove(*it);
+    }
+  }
+
+  template <typename Container, typename... Args>
+  void update(const Container& container, Args&&... args) {
+    for (auto container_it = container.begin(); container_it != container.end(); ++container_it) {
+      if (map.find(*container_it) == map.end()) {
+	add(*container_it, args...);
+      }
+    }
+    for (auto map_it = map.begin(); map_it != map.end(); ++map_it) {
+      if (container.find(map_it->first) == container.end()) {
+	remove(map_it->first);
+      }
+    }
+  }
 
 private:
   static_assert(PAGESIZE % sizeof(Elem) == 0, "");
@@ -111,10 +139,12 @@ private:
   template <class Fill>
   void add_fill(void *pageaddr, Fill fill) {
     assert(is_pageaddr(pageaddr));
-    Entry entry;
-    fill(pageaddr, entry.begin());
-    const auto res = map.emplace(pageaddr, entry);
-    assert(res.second); (void) res;
+    if (map.find(pageaddr) == map.end()) {
+      Entry entry;
+      fill(pageaddr, entry.begin());
+      const auto res = map.emplace(pageaddr, entry);
+      assert(res.second); (void) res;
+    }
   }
 
 };

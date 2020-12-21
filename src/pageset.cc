@@ -16,10 +16,6 @@ void PageSet::track_page(void *pageaddr) {
   assert(is_pageaddr(pageaddr));
   const auto res = set.insert(pageaddr);
   assert(res.second); (void) res;
-
-  for (State *state : states) {
-    state->snapshot().add(pageaddr, 0);
-  }
 }
 
 void PageSet::track_range(void *begin, void *end) {
@@ -27,12 +23,7 @@ void PageSet::track_range(void *begin, void *end) {
 }
 
 void PageSet::untrack_page(void *pageaddr) {
-  const auto res = set.erase(pageaddr);
-  if (res) {
-    for (State *state : states) {
-      state->snapshot().remove(pageaddr);
-    }
-  }
+  set.erase(pageaddr);
 }
 
 void PageSet::untrack_range(void *begin, void *end) {

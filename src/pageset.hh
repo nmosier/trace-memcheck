@@ -14,7 +14,6 @@ public:
   PageSet() {} 
   
   void add_maps(Maps& maps_gen);
-  void add_state(State& state) { states.push_back(&state); }
   void track_page(void *pageaddr);
   void track_range(void *begin, void *end);
   void untrack_page(void *pageaddr);
@@ -30,6 +29,4 @@ public:
   
 private:
   Set set;
-  using States = std::list<State *>;
-  States states; // states to update
 };

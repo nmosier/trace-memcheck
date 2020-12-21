@@ -108,7 +108,6 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher->start();
 
   maps_gen.open(child);
-  tracked_pages.add_state(taint_state);
   tracked_pages.add_maps(maps_gen);
    
 
@@ -414,6 +413,7 @@ bool Memcheck::next_subround() {
 void Memcheck::start_round() {  
   subround_counter = 0;
   save_state(pre_state);
+  taint_state.snapshot().update(tracked_pages, 0);
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
