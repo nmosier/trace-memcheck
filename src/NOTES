@@ -345,3 +345,9 @@ At the beginning of each round, all maps in the taint state
 
 ----
 
+Make taint_state lazy, too.
+So whenever a page is unlocked, it is automatically filled using fill function.
+Then the page is XORed with the taint state and written back.
+
+Tasks:
+[ ] 

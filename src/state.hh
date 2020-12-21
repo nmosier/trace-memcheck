@@ -33,6 +33,13 @@ public:
     snapshot_.save(begin, end, tracee);
   }
 
+  template <typename InputIt>
+  void save(InputIt begin, InputIt end, uint8_t fill) {
+    gpregs_.fill(fill);
+    fpregs_.fill(fill);
+    snapshot_.save(begin, end, fill);
+  }
+
   State operator^(const State& other) const;
   State& operator^=(const State& other);
 

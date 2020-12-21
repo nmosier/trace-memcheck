@@ -254,9 +254,15 @@ State Memcheck::save_state() {
 void *Memcheck::stack_begin() {
   const auto stack_end = pagealign_up(tracee.get_sp());
   auto stack_begin = stack_end;
-  do {
+
+  while (true) {
     stack_begin = pageidx(stack_begin, -1);
-  } while (tracked_pages.find(stack_begin) != tracked_pages.end());
+    const auto it = tracked_pages.find(stack_begin);
+    if (it == tracked_pages.end() || !(it->second.orig_prot() & PROT_WRITE)) {
+      break;
+    }
+  }
+
   stack_begin = pageidx(stack_begin, 1);
   return stack_begin;
 }
@@ -444,8 +450,7 @@ void Memcheck::sequence_point_handler_post() {
 
 void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
   /* taint memory below stack */
-  save_state(taint_state); // TODO: optimize
-  taint_state.zero();
+  taint_state.save(tmp_writable_pages.begin(), tmp_writable_pages.end(), 0);
   if (TAINT_STACK) {
     const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
     taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - padding, -1);

@@ -5,6 +5,7 @@
 #include <sys/user.h>
 #include <iomanip>
 #include <cassert>
+#include <cstring>
 extern "C" {
 #include <xed/xed-interface.h>
 }
@@ -34,6 +35,8 @@ public:
   Derived operator|(const Derived& other) const { return binop<std::bit_or>(other); }
   Derived& operator|=(const Derived& other) { return binop_assign<std::bit_or>(other); }
 
+  void fill(uint8_t val) { std::memset(&regs_, val, sizeof(regs_)); }
+  
 protected:
   regs_struct regs_;
 

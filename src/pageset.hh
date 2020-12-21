@@ -25,6 +25,8 @@ public:
   void lock(void *pageaddr, Tracee& tracee, int mask);
   void unlock(void *pageaddr, Tracee& tracee);
 
+  int orig_prot() const { return orig_prot_; }
+
 private:
   int flags_;
   int orig_prot_;
