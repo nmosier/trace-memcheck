@@ -1,5 +1,31 @@
 #include "pageset.hh"
 
+PageInfo::Tier PageInfo::tier() const {
+  if ((flags_ & MAP_SHARED)) {
+    assert(cur_prot_ == PROT_NONE);
+    return Tier::SHARED;
+  } else if (!(orig_prot_ & PROT_WRITE)) {
+    /* NOTE: This includes a page with any of the following permissions:
+     *  PROT_NONE
+     *  PROT_READ
+     *  PROT_READ | PROT_EXEC
+     */
+    assert(orig_prot_ == cur_prot_);
+    return Tier::RDONLY;
+  } else if ((cur_prot_ & PROT_WRITE)) {
+    assert(orig_prot_ == cur_prot_);
+    return Tier::RDWR_UNLOCKED;
+  } else {
+    assert(cur_prot_ == (orig_prot_ & ~PROT_WRITE));
+    return Tier::RDWR_LOCKED;
+  }
+}
+
+void PageInfo::prot(int orig_prot, int cur_prot) {
+  orig_prot_ = orig_prot;
+  cur_prot_ = cur_prot;
+}
+
 void PageSet::add_maps(Maps& maps_gen) {
   std::vector<Map> tmp_maps;
   maps_gen.get_maps(util::conditional_inserter<decltype(tmp_maps)>

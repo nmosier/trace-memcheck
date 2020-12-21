@@ -178,12 +178,10 @@ bool Memcheck::is_jcc(const Instruction& inst) {
 void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
   (void) addr;
 
-#if 1
   if (is_sp_dec(inst)) {
     addr = stack_tracker.add(addr, inst, info);
     return;
   }
-#endif
   
   if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
     addr = syscall_tracker.add(addr, inst, info);
@@ -272,8 +270,6 @@ void Memcheck::set_state_with_taint(State& state, const State& taint) {
 
 template <typename InputIt>
 void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state) {
-  // g_conf.assert_(taint_state.is_zero(), tracee);
-  
   assert(std::distance(begin, end) >= 2);
   
   auto first = begin++;
@@ -286,8 +282,6 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   for (auto it = begin; it != end; ++it) {
     taint_state |= *first ^ *it; // TODO: could be optimized.
   }
-
-  //  g_conf.assert_(taint_state.is_zero(), tracee);  
 }
 
 template <class SequencePoint>

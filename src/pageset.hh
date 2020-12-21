@@ -7,6 +7,25 @@ class PageSet;
 #include "maps.hh"
 #include "state.hh"
 
+class PageInfo {
+public:
+  enum class Tier {SHARED, RDONLY, RDWR_LOCKED, RDWR_UNLOCKED};
+
+  Tier tier() const;
+  void prot(int orig_prot, int cur_prot);
+
+  PageInfo(int flags, int orig_prot, int cur_prot):
+    flags_(flags),
+    orig_prot_(orig_prot),
+    cur_prot_(cur_prot)
+  {}
+  
+private:
+  int flags_;
+  int orig_prot_;
+  int cur_prot_;
+};
+
 class PageSet {
 public:
   using Set = std::unordered_set<void *>;
