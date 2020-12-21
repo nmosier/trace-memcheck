@@ -117,7 +117,8 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   patcher->signal(SIGINT,  sigignore);
   patcher->signal(SIGTSTP, sigignore);
   patcher->sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
-  
+
+  get_writable_pages();
   save_state(pre_state);
   init_taint(taint_state, true); // also taint shadow stack
 
@@ -241,7 +242,7 @@ void Memcheck::run() {
 }
 
 void Memcheck::save_state(State& state) {
-  state.save(tracee, tracked_pages.begin(), tracked_pages.end());
+  state.save(tracee, tmp_writable_pages.begin(), tmp_writable_pages.end());
 }
 
 State Memcheck::save_state() {
@@ -404,10 +405,16 @@ bool Memcheck::next_subround() {
   return success;
 }
 
-void Memcheck::start_round() {  
+void Memcheck::start_round() {
+  get_writable_pages();
+  
   subround_counter = 0;
   save_state(pre_state);
-  taint_state.snapshot().update(tracked_pages, 0);
+
+  // TODO: OPTIM
+  taint_state.snapshot().update(tmp_writable_pages, 0);
+
+  
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
@@ -479,4 +486,13 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
   // will need to determine which permissions to use
   SharedMemSeqPt seq_pt(tracee, *this, taint_state);
   sequence_point_handler_pre(seq_pt);
+}
+
+void Memcheck::get_writable_pages() {
+  tmp_writable_pages.clear();
+  for (const auto& tracked_page : tracked_pages) {
+    if (tracked_page.second.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
+      tmp_writable_pages.emplace(tracked_page.first);
+    }
+  }
 }

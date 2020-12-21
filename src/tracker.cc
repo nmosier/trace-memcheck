@@ -369,12 +369,12 @@ void SyscallTracker::post(uint8_t *addr) {
 	const int flags = syscall_args.arg<3, int>();
 	// DEBUG: omit shared pages
 	const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
+	std::clog << "MMAP -> " << (void *) rv << "-" << (void *) ((char *) rv + length) << "\n";
 	if (util::implies(BLOCK_SHARED_MAPS, !(flags & MAP_SHARED))) {
-	  if ((prot & PROT_WRITE)) {
-	    page_set.track_range(rv, (char *) rv + length);
-	  }
+	  page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, prot});
 	} else {
 	  tracee.syscall(Syscall::MPROTECT, (uintptr_t) rv, length, PROT_NONE);
+	  page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, PROT_NONE});
 	}
       }
     }
@@ -387,7 +387,9 @@ void SyscallTracker::post(uint8_t *addr) {
 	const auto endaddr = pagealign_up(syscall_args.arg<0, void *>());
 	if (endaddr != nullptr) {
 	  assert(brk != nullptr);
-	  page_set.track_range(brk, endaddr);
+	  page_set.track_range(brk, endaddr,
+			       PageInfo{MAP_PRIVATE, PROT_READ | PROT_WRITE,
+				 PROT_READ | PROT_WRITE});
 	  std::clog << "BRK: tracking range from " << (void *) brk << " to " << (void *) endaddr
 		    << "\n";
 	}
@@ -419,11 +421,7 @@ void SyscallTracker::post(uint8_t *addr) {
 	const size_t len = syscall_args.arg<1, size_t>();
 	const int prot = syscall_args.arg<2, int>();
 	void *end = (char *) addr + len;
-	if ((prot & PROT_WRITE)) {
-	  page_set.track_range(addr, end);
-	} else {
-	  page_set.untrack_range(addr, end);
-	}
+	page_set.update_range(addr, end, prot);
       }
     }
     break;

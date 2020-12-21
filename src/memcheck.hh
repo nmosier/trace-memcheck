@@ -2,6 +2,7 @@
 
 class Memcheck;
 
+#include <unordered_set>
 #include "tracker.hh"
 #include "inst.hh"
 #include "util.hh"
@@ -65,6 +66,7 @@ private:
   void sequence_point_handler_post();
 
   void save_state(State& state);
+  
   State save_state();
 
   template <typename InputIt>
@@ -132,4 +134,7 @@ private:
   void check_checksums(const Container& container, const char *desc = nullptr) {
     return check_checksums(container.begin(), container.end(), desc);
   }
+
+  std::unordered_set<void *> tmp_writable_pages;
+  void get_writable_pages();
 };

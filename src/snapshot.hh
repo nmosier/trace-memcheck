@@ -19,8 +19,8 @@ public:
   void save(InputIt begin, InputIt end, Args&&... args) {
     // TODO: optimize
     map.clear();
-    std::for_each(begin, end, [&] (void *pageaddr) {
-      add(pageaddr, args...);
+    std::for_each(begin, end, [&] (const auto& pageaddr) {
+      this->add(pageaddr, args...);
     });
   }
 
