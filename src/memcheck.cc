@@ -470,22 +470,44 @@ void Memcheck::protect_map(const std::string& name, int prot) {
 }
 
 void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
-  // DEBUG
-#if 0
-  g_conf.singlestep = true;
-  g_conf.execution_trace = true;
-#endif
-  
-  const auto loc = orig_loc(tracee.get_pc());
-  *g_conf.log << loc.first << " " << loc.second << "\n";
-  *g_conf.log << "orig inst: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
-  *g_conf.log << "pool inst: " << Instruction(tracee.get_pc(), tracee) << "\n";
-  *g_conf.log << "fault addr: " << siginfo.si_addr << "\n";
+  /* check status of page at which fault occurred */
+  void *faultaddr = siginfo.si_addr;
+  void *pageaddr = pagealign(faultaddr);
 
-  // EXPERIMENTAL
-  // will need to determine which permissions to use
-  SharedMemSeqPt seq_pt(tracee, *this, taint_state);
-  sequence_point_handler_pre(seq_pt);
+  const auto page_it = tracked_pages.find(pageaddr);
+  if (page_it == tracked_pages.end()) {
+    g_conf.abort(tracee); // TODO: Should exit gracefully with 'Segmentation fault: 11' message
+  }
+
+  using Tier = PageInfo::Tier;
+  switch (page_it->second.tier()) {
+  case Tier::SHARED:
+    {
+      const auto loc = orig_loc(tracee.get_pc());
+      *g_conf.log << loc.first << " " << loc.second << "\n";
+      *g_conf.log << "orig inst: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
+      *g_conf.log << "pool inst: " << Instruction(tracee.get_pc(), tracee) << "\n";
+      *g_conf.log << "fault addr: " << faultaddr << "\n";
+
+      // TODO: properly specify permissions
+      SharedMemSeqPt seq_pt(tracee, *this, taint_state);
+      sequence_point_handler_pre(seq_pt);
+    }
+    break;
+
+  case Tier::RDONLY:
+  case Tier::RDWR_UNLOCKED:
+    g_conf.abort(tracee);
+    break;
+
+  case Tier::RDWR_LOCKED:
+    abort(); // TODO
+    
+  default:
+    assert(false);
+    break;
+  }
+  
 }
 
 void Memcheck::get_writable_pages() {
