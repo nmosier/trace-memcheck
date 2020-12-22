@@ -271,7 +271,8 @@ namespace util {
 
   template <template <class> class Binop, class Container>
   Container& binop_fixed(const Container& l, const Container& r, Container& res) {
-    constexpr auto size = Container::size(); (void) size; // require constexpr size member function
+    assert(l.size() == r.size());
+    assert(l.size() == res.size());
     std::transform(l.begin(), l.end(), r.begin(), res.begin(),
 		   Binop<typename Container::value_type>());
     return res;

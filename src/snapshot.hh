@@ -13,7 +13,7 @@ public:
 
   Snapshot() {}
 
-  size_t size() const { return map.size() * PAGESIZE; }
+  auto size() const { return map.size() * PAGESIZE; }
 
   template <typename InputIt, typename... Args>
   void save(InputIt begin, InputIt end, Args&&... args) {
@@ -32,6 +32,10 @@ public:
 
   Snapshot& operator^=(const Snapshot& other) { return binop_assign<std::bit_xor>(other); }
   Snapshot& operator|=(const Snapshot& other) { return binop_assign<std::bit_or>(other); }
+
+  Snapshot& xor_intersection_inplace(const Snapshot& other) {
+    return binop_intersection_inplace<std::bit_xor>(other);
+  }
   
   void restore(Tracee& tracee) const;
   void zero();
@@ -87,6 +91,17 @@ public:
     }
   }
 
+  auto begin() const { return map.begin(); }
+  auto begin() { return map.begin(); }
+  auto end() const { return map.end(); }
+  auto end() { return map.end(); }
+
+  template <typename... Args>
+  auto at(Args&&... args) const { return map.at(args...); }
+
+  template <typename... Args>
+  auto at(Args&&... args) { return map.at(args...); }
+  
 private:
   static_assert(PAGESIZE % sizeof(Elem) == 0, "");
   static constexpr size_t NELEMS = PAGESIZE / sizeof(Elem);
@@ -121,6 +136,15 @@ private:
     std::for_each(map.begin(), map.end(), [&] (auto&& l) {
       const auto& r = other.map.at(l.first);
       std::transform(l.second.begin(), l.second.end(), r.begin(), l.second.begin(), BinOp<Elem>());
+    });
+    return *this;
+  }
+
+  template <template<class> class Binop>
+  Snapshot& binop_intersection_inplace(const Snapshot& other) {
+    std::for_each(map.begin(), map.end(), [&other] (auto& acc) {
+      const auto& val = other.map.at(acc.first);
+      util::binop_fixed<Binop>(acc.second, val, acc.second);
     });
     return *this;
   }

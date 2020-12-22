@@ -48,6 +48,13 @@ public:
 
   State& operator|=(const State& other);
 
+  State& xor_intersection_inplace(const State& other) {
+    gpregs() ^= other.gpregs();
+    fpregs() ^= other.fpregs();
+    snapshot_.xor_intersection_inplace(other.snapshot());
+    return *this;
+  }
+  
   bool similar(const State& other) const;
   
   void restore(Tracee& tracee) const;

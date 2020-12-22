@@ -271,7 +271,7 @@ void *Memcheck::stack_begin() {
 
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {
-  state ^= taint;
+  state.xor_intersection_inplace(taint);
   state.restore(tracee);
 }
 
@@ -419,7 +419,6 @@ void Memcheck::start_round() {
 
   // TODO: OPTIM
   taint_state.snapshot().update(tmp_writable_pages, 0);
-
   
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);

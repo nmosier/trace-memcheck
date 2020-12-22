@@ -349,5 +349,14 @@ Make taint_state lazy, too.
 So whenever a page is unlocked, it is automatically filled using fill function.
 Then the page is XORed with the taint state and written back.
 
-Tasks:
-[ ] 
+....
+
+The pre_state should only record unlocked pages.
+The taint_state can record all writable pages, since storing that is cheaper.
+Then the set_with_taint function should not XOR the states as a whole, but should only selectively
+XOR the registers and unlocked pages.
+
+When a locked page is accessed, the segfault handler should unlock the page, XOR its contents with the taint state, and add the page to the pre_state.
+
+TODO:
+[ ] The set_with_taint() function should do it on a page-by-page basis, going by unlocked pages.
