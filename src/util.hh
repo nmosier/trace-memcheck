@@ -289,6 +289,6 @@ namespace util {
     constexpr auto size = Container::size(); (void) size;
     return std::equal(l.begin(), l.end(), r.begin());
   }
-  
+
 }
 	     

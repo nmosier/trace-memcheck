@@ -27,11 +27,16 @@ public:
 
   int orig_prot() const { return orig_prot_; }
 
+  auto count() const { return count_; }
+  
 private:
   int flags_;
   int orig_prot_;
   int cur_prot_;
+  unsigned count_ = 0;
 };
+
+
 
 class PageSet {
 public:
@@ -87,6 +92,8 @@ public:
   
   template <typename... Args>
   bool contains(Args&&... args) const { return find(args...) != end(); }
+
+  void lock_top_counts(unsigned n, Tracee& tracee, int mask);
   
 private:
   Map map;

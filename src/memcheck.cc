@@ -416,8 +416,8 @@ bool Memcheck::next_subround() {
 }
 
 void Memcheck::start_round() {
-  lock_pages();
-  // unlock_pages();
+  // lock_pages();
+  tracked_pages.lock_top_counts(10, tracee, PROT_WRITE);
   get_writable_pages();
   
   subround_counter = 0;

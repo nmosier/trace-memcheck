@@ -61,6 +61,33 @@ void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
   
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, orig_prot_);
   cur_prot_ = orig_prot_;
-
+  ++count_;
+  
   assert(tier() == Tier::RDWR_UNLOCKED);
+}
+
+void PageSet::lock_top_counts(unsigned n, Tracee& tracee, int mask) {
+  /* get map of counts to page map iterators */
+  std::map<unsigned, Map::iterator> counts_map;
+
+  for (auto it = begin(); it != end(); ++it) {
+    counts_map.emplace(it->second.count(), it);
+  }
+  
+  /* find top N */
+  auto rit = counts_map.rbegin();
+  for (unsigned i = 0; i < n && rit != counts_map.rend(); ++i, ++rit) {
+    const auto pageaddr = rit->second->first;
+    PageInfo& page_info = rit->second->second;
+    if (page_info.tier() == PageInfo::Tier::RDWR_LOCKED) {
+      page_info.unlock(pageaddr, tracee);
+    }
+  }
+  for (; rit != counts_map.rend(); ++rit) {
+    const auto pageaddr = rit->second->first;
+    PageInfo& page_info = rit->second->second;
+    if (page_info.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
+      page_info.lock(pageaddr, tracee, mask);
+    }
+  }
 }
