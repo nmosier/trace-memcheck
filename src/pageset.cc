@@ -68,7 +68,7 @@ void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
 
 void PageSet::lock_top_counts(unsigned n, Tracee& tracee, int mask) {
   /* get map of counts to page map iterators */
-  std::map<unsigned, Map::iterator> counts_map;
+  std::multimap<unsigned, Map::iterator> counts_map;
 
   for (auto it = begin(); it != end(); ++it) {
     counts_map.emplace(it->second.count(), it);
