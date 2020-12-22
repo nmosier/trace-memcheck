@@ -510,7 +510,15 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
        * 2. Add to pre_state.
        */
       page_it->second.unlock(pageaddr, tracee);
+      assert(!pre_state.snapshot().contains(pageaddr));
       pre_state.snapshot().add(pageaddr, tracee);
+      auto taint_it = taint_state.snapshot().find(pageaddr);
+      if (taint_it == taint_state.snapshot().end()) {
+	assert(pageaddr < stack_begin() || pageaddr >= tracee.get_sp());
+	taint_state.snapshot().add(pageaddr, 0);
+	taint_it = taint_state.snapshot().find(pageaddr);
+      }
+      pre_state.snapshot().at(pageaddr) ^= taint_it->second;
     }
     break;
     

@@ -7,9 +7,14 @@
 #include "tracee.hh"
 #include "util.hh"
 
+// class Snapshot;
+// typename Snapshot::Entry& operator^=(typename Snapshot::Entry& l, const typename Snapshot::Entry& r);
+
 class Snapshot {
 public:
   using Elem = uint8_t;
+  static constexpr size_t NELEMS = PAGESIZE / sizeof(Elem);
+  using Entry = std::array<Elem, NELEMS>;
 
   Snapshot() {}
 
@@ -97,15 +102,22 @@ public:
   auto end() { return map.end(); }
 
   template <typename... Args>
-  auto at(Args&&... args) const { return map.at(args...); }
+  const auto& at(Args&&... args) const { return map.at(args...); }
 
   template <typename... Args>
-  auto at(Args&&... args) { return map.at(args...); }
+  auto& at(Args&&... args) { return map.at(args...); }
+
+  template <typename... Args>
+  auto find(Args&&... args) const { return map.find(args...); }
+
+  template <typename... Args>
+  auto find(Args&&... args) { return map.find(args...); }
+  
+  template <typename... Args>
+  bool contains(Args&&... args) const { return find(args...) != end(); }
   
 private:
   static_assert(PAGESIZE % sizeof(Elem) == 0, "");
-  static constexpr size_t NELEMS = PAGESIZE / sizeof(Elem);
-  using Entry = std::array<Elem, NELEMS>;
   using Map = std::unordered_map<void *, Entry>;
   Map map;
 
@@ -144,7 +156,7 @@ private:
   Snapshot& binop_intersection_inplace(const Snapshot& other) {
     std::for_each(map.begin(), map.end(), [&other] (auto& acc) {
       const auto& val = other.map.at(acc.first);
-      util::binop_fixed<Binop>(acc.second, val, acc.second);
+      acc.second ^= val;
     });
     return *this;
   }
@@ -173,3 +185,6 @@ private:
 
 };
 
+inline Snapshot::Entry& operator^=(Snapshot::Entry& l, const Snapshot::Entry& r) {
+  return util::binop_fixed<std::bit_xor>(l, r, l);
+}
