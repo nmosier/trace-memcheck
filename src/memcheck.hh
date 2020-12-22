@@ -137,4 +137,6 @@ private:
 
   std::unordered_set<void *> tmp_writable_pages;
   void get_writable_pages();
+  void lock_pages();
+  void unlock_pages();
 };

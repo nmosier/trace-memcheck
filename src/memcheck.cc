@@ -271,7 +271,7 @@ void *Memcheck::stack_begin() {
 
 /* Rewind to pre_state, flipping bits in taint_state */
 void Memcheck::set_state_with_taint(State& state, const State& taint) {
-  state.xor_intersection_inplace(taint);
+  state.xor_subset_inplace(taint);
   state.restore(tracee);
 }
 
@@ -287,7 +287,7 @@ void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state
   init_taint(taint_state, false); // TODO: Could be optimized.
 
   for (auto it = begin; it != end; ++it) {
-    taint_state |= *first ^ *it; // TODO: could be optimized.
+    taint_state.or_superset_inplace(*first ^ *it); // because the taint mask is a superset
   }
 }
 
@@ -346,7 +346,11 @@ void Memcheck::check_round(SequencePoint& seq_pt) {
       }
   }
 
+  // TODO: TMP: unlock pages, just because too lazy to unlock properly in syscalls-checker
+  
   seq_pt.check();
+
+  // unlock_pages();  
 }
 
 template <typename InputIt>
@@ -412,17 +416,30 @@ bool Memcheck::next_subround() {
 }
 
 void Memcheck::start_round() {
+  lock_pages();
+  // unlock_pages();
   get_writable_pages();
   
   subround_counter = 0;
   save_state(pre_state);
 
   // TODO: OPTIM
-  taint_state.snapshot().update(tmp_writable_pages, 0);
+  std::unordered_set<void *> orig_writable_pages;
+  for (const auto& pair : tracked_pages) {
+    switch (pair.second.tier()) {
+    case PageInfo::Tier::RDWR_LOCKED:
+    case PageInfo::Tier::RDWR_UNLOCKED:
+      orig_writable_pages.insert(pair.first);
+      break;
+    }
+  }
+  taint_state.snapshot().update(orig_writable_pages, 0);
   
   if (CHANGE_PRE_STATE) {
     set_state_with_taint(pre_state, taint_state);
   }
+
+
   start_subround();
   
   assert_taint_zero();
@@ -449,7 +466,17 @@ void Memcheck::sequence_point_handler_post() {
 
 void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
   /* taint memory below stack */
-  taint_state.save(tmp_writable_pages.begin(), tmp_writable_pages.end(), 0);
+  std::vector<void *> orig_writable_pages;
+  for (auto& page : tracked_pages) {
+    switch (page.second.tier()) {
+    case PageInfo::Tier::RDWR_LOCKED:
+    case PageInfo::Tier::RDWR_UNLOCKED:
+      orig_writable_pages.push_back(page.first);
+      break;
+    }
+  }
+  taint_state.save(orig_writable_pages.begin(), orig_writable_pages.end(), 0);
+
   if (TAINT_STACK) {
     const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
     taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - padding, -1);
@@ -509,16 +536,16 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
       /* 1. Unlock
        * 2. Add to pre_state.
        */
+      *g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
       page_it->second.unlock(pageaddr, tracee);
+#if 0
       assert(!pre_state.snapshot().contains(pageaddr));
       pre_state.snapshot().add(pageaddr, tracee);
-      auto taint_it = taint_state.snapshot().find(pageaddr);
-      if (taint_it == taint_state.snapshot().end()) {
-	assert(pageaddr < stack_begin() || pageaddr >= tracee.get_sp());
-	taint_state.snapshot().add(pageaddr, 0);
-	taint_it = taint_state.snapshot().find(pageaddr);
-      }
-      pre_state.snapshot().at(pageaddr) ^= taint_it->second;
+      const auto& taint_page = taint_state.snapshot().at(pageaddr);
+      auto& pre_state_page = pre_state.snapshot().at(pageaddr);
+      pre_state_page ^= taint_page;
+      tracee.write(pre_state_page.data(), pre_state_page.size(), pageaddr); // TODO: Should be merged into Page class in Snapshot
+#endif
     }
     break;
     
@@ -532,8 +559,27 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
 void Memcheck::get_writable_pages() {
   tmp_writable_pages.clear();
   for (const auto& tracked_page : tracked_pages) {
-    if (tracked_page.second.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
+    switch (tracked_page.second.tier()) {
+    case PageInfo::Tier::RDWR_UNLOCKED:
+    case PageInfo::Tier::RDWR_LOCKED:
       tmp_writable_pages.emplace(tracked_page.first);
+      break;
+    }
+  }
+}
+
+void Memcheck::lock_pages() {
+  for (auto& page : tracked_pages) {
+    if (page.second.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
+      page.second.lock(page.first, tracee, PROT_WRITE);
+    }
+  }
+}
+
+void Memcheck::unlock_pages() {
+  for (auto& page : tracked_pages) {
+    if (page.second.tier() == PageInfo::Tier::RDWR_LOCKED) {
+      page.second.unlock(page.first, tracee);
     }
   }
 }

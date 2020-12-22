@@ -38,8 +38,20 @@ public:
   Snapshot& operator^=(const Snapshot& other) { return binop_assign<std::bit_xor>(other); }
   Snapshot& operator|=(const Snapshot& other) { return binop_assign<std::bit_or>(other); }
 
-  Snapshot& xor_intersection_inplace(const Snapshot& other) {
-    return binop_intersection_inplace<std::bit_xor>(other);
+  Snapshot& xor_superset_inplace(const Snapshot& other) {
+    return binop_superset_inplace<std::bit_xor>(other);
+  }
+
+  Snapshot& or_superset_inplace(const Snapshot& other) {
+    return binop_superset_inplace<std::bit_or>(other);
+  }
+
+  Snapshot& xor_subset_inplace(const Snapshot& other) {
+    return binop_subset_inplace<std::bit_xor>(other);
+  }
+
+  Snapshot& or_subset_inplace(const Snapshot& other) {
+    return binop_subset_inplace<std::bit_or>(other);
   }
   
   void restore(Tracee& tracee) const;
@@ -153,14 +165,24 @@ private:
   }
 
   template <template<class> class Binop>
-  Snapshot& binop_intersection_inplace(const Snapshot& other) {
-    std::for_each(map.begin(), map.end(), [&other] (auto& acc) {
-      const auto& val = other.map.at(acc.first);
-      acc.second ^= val;
+  Snapshot& binop_superset_inplace(const Snapshot& other) {
+    std::for_each(other.begin(), other.end(), [this] (const auto& other_pair) {
+      auto& acc = this->at(other_pair.first);
+      util::binop_fixed<Binop>(acc, other_pair.second, acc);
     });
     return *this;
   }
 
+  template <template<class> class Binop>
+  Snapshot& binop_subset_inplace(const Snapshot& other) {
+    std::for_each(begin(), end(), [&other] (auto& pair) {
+      auto& acc = pair.second;
+      const auto& other_page = other.at(pair.first);
+      util::binop_fixed<Binop>(acc, other_page, acc);
+    });
+    return *this;
+  }
+  
   static size_t offset(const void *pageaddr, const void *ptr);
   
   template <typename P>

@@ -345,7 +345,7 @@ void SyscallTracker::pre(uint8_t *addr) {
 
 void SyscallTracker::check() {
   /* make sure args to syscall aren't tainted */
-  SyscallChecker syscall_checker(tracee, taint_state, memcheck.stack_begin(), syscall_args,
+  SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(), syscall_args,
 				 memcheck);
   
   if (!syscall_checker.pre()) {
@@ -427,7 +427,7 @@ void SyscallTracker::post(uint8_t *addr) {
     break;
   }
 
-  SyscallChecker syscall_checker(tracee, taint_state, memcheck.stack_begin(),
+  SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
 				 syscall_args, memcheck);
   syscall_checker.post();
 }

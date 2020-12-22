@@ -8,10 +8,15 @@
 // checks and propogates taint
 class SyscallChecker {
 public:
-  SyscallChecker(Tracee& tracee, State& taint_state, void *stack_begin, const SyscallArgs& args,
-		 const Memcheck& memcheck):
-    tracee(tracee), taint_state(taint_state), stack_range(stack_begin, tracee.get_sp()), args(args),
-    taint_args(taint_state.gpregs()), memcheck(memcheck) {}
+  SyscallChecker(Tracee& tracee, PageSet& page_set, State& taint_state, void *stack_begin,
+		 const SyscallArgs& args, const Memcheck& memcheck):
+    tracee(tracee),
+    page_set(page_set),
+    taint_state(taint_state),
+    stack_range(stack_begin, tracee.get_sp()),
+    args(args),
+    taint_args(taint_state.gpregs()),
+    memcheck(memcheck) {}
 
   bool pre();
   void post();
@@ -21,6 +26,7 @@ public:
   
 private:
   Tracee& tracee;
+  PageSet& page_set;
   State& taint_state;
   AddrRange stack_range;
   const SyscallArgs& args;

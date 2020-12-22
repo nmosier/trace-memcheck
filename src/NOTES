@@ -359,4 +359,10 @@ XOR the registers and unlocked pages.
 When a locked page is accessed, the segfault handler should unlock the page, XOR its contents with the taint state, and add the page to the pre_state.
 
 TODO:
-[ ] The set_with_taint() function should do it on a page-by-page basis, going by unlocked pages.
+[X] The set_with_taint() function should do it on a page-by-page basis, going by unlocked pages.
+
+-----
+
+Page locking/unlocking seems to be working. But it is very complex; I need to spend some time simplifying and cleaning things up.
+
+[ ] Syscall checker should unlock pages as needed (instead of unlocking all pages). Could add to macro system to specify types of parameters?

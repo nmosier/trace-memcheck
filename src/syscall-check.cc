@@ -26,6 +26,14 @@ bool SyscallChecker::check_read(const char *s) {
 }
 
 bool SyscallChecker::check_write(void *begin, void *end) const {
+  /* unlock buffer */
+  for_each_page(pagealign(begin), pagealign_up(end), [this] (const auto pageaddr) {
+    const auto page_it = page_set.find(pageaddr);
+    if (page_it != page_set.end() && page_it->second.tier() == PageInfo::Tier::RDWR_LOCKED) {
+      page_it->second.unlock(pageaddr, tracee);
+    }
+  });
+  
   if (stack_range.overlaps(AddrRange(begin, end))) {
     *g_conf.log << "memcheck: warning: " << to_string(args.no()) << ": write below stack pointer\n";
     *g_conf.log << stack_range << " " << AddrRange(begin, end) << "\n";
@@ -146,6 +154,7 @@ bool SyscallChecker::pre_OPEN() {
 bool SyscallChecker::pre_FSTAT() {
   PRE_DEF_CHK(FSTAT);
   PRE_WRITE_TYPE(buf);
+  *g_conf.log << "FSTAT(" << (void *) buf << ")\n";
   return true;
 }
 
@@ -272,6 +281,7 @@ bool SyscallChecker::pre_POLL() {
   for (nfds_t i = 0; i < nfds; ++i) {
     PRE_READ_TYPE(&fds[i].fd);
     PRE_READ_TYPE(&fds[i].events);
+    PRE_WRITE_TYPE(&fds[i].revents);
   }
 
   return true;

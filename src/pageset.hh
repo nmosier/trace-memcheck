@@ -73,9 +73,11 @@ public:
     });
   }
   
-  Map::const_iterator begin() const { return map.begin(); }
-  Map::const_iterator end() const { return map.end(); }
-  Map::size_type size() const { return map.size(); }
+  auto begin() const { return map.begin(); }
+  auto begin() { return map.begin(); }
+  auto end() const { return map.end(); }
+  auto end() { return map.end(); }
+  auto size() const { return map.size(); }
 
   template <typename... Args>
   Map::const_iterator find(Args&&... args) const { return map.find(args...); }

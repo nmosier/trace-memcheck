@@ -46,13 +46,21 @@ void PageSet::untrack_range(void *begin, void *end) {
 }
 
 void PageInfo::lock(void *pageaddr, Tracee& tracee, int mask) {
+  assert(tier() == Tier::RDWR_UNLOCKED);
+  
   assert(orig_prot_ == cur_prot_);
   assert((orig_prot_ & mask) == mask);
   cur_prot_ = orig_prot_ & ~mask;
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, cur_prot_);
+
+  assert(tier() == Tier::RDWR_LOCKED);
 }
 
 void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
+  assert(tier() == Tier::RDWR_LOCKED);
+  
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, orig_prot_);
   cur_prot_ = orig_prot_;
+
+  assert(tier() == Tier::RDWR_UNLOCKED);
 }
