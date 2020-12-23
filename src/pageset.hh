@@ -93,6 +93,12 @@ public:
   template <typename... Args>
   bool contains(Args&&... args) const { return find(args...) != end(); }
 
+  template <typename... Args>
+  const auto& at(Args&&... args) const { return map.at(args...); }
+
+  template <typename... Args>
+  auto& at(Args&&... args) { return map.at(args...); }
+
   void lock_top_counts(unsigned n, Tracee& tracee, int mask);
   
 private:

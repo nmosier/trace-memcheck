@@ -417,7 +417,14 @@ bool Memcheck::next_subround() {
 
 void Memcheck::start_round() {
   // lock_pages();
-  tracked_pages.lock_top_counts(10, tracee, PROT_WRITE);
+  // tracked_pages.lock_top_counts(80, tracee, PROT_WRITE);
+  for_each_page(stack_begin(), pageidx(pagealign_up(tracee.get_sp()), -16), [this] (const auto pageaddr) {
+    PageInfo& info = tracked_pages.at(pageaddr);
+    if (info.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
+      info.lock(pageaddr, tracee, PROT_WRITE);
+    }
+  });
+  
   get_writable_pages();
   
   subround_counter = 0;
@@ -536,9 +543,8 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
       /* 1. Unlock
        * 2. Add to pre_state.
        */
-      *g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
       page_it->second.unlock(pageaddr, tracee);
-#if 0
+#if 1
       assert(!pre_state.snapshot().contains(pageaddr));
       pre_state.snapshot().add(pageaddr, tracee);
       const auto& taint_page = taint_state.snapshot().at(pageaddr);
