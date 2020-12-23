@@ -10,11 +10,32 @@
 // class Snapshot;
 // typename Snapshot::Entry& operator^=(typename Snapshot::Entry& l, const typename Snapshot::Entry& r);
 
+class SnapshotPage {
+public:
+  SnapshotPage() {}
+
+  template <typename... Args>
+  SnapshotPage(Args&&... args) { save(args...); }
+
+  void save(const void *pageaddr, Tracee& tracee) { tracee.read(buf_, pageaddr); }
+  void save(const void *pageaddr, uint8_t fill) { std::fill(buf_.begin(), buf_.end(), fill); }
+
+  void restore(void *pageaddr, Tracee& tracee) const { tracee.write(buf_, pageaddr); }
+      
+  auto begin() const { return buf_.begin(); }
+  auto begin() { return buf_.begin(); }
+  auto end() const { return buf_.end(); }
+  auto end() { return buf_.end(); }
+  auto data() const { return buf_.data(); }
+  auto data() { return buf_.data(); }
+  
+private:
+  std::array<uint8_t, PAGESIZE> buf_;
+};
+
 class Snapshot {
 public:
-  using Elem = uint8_t;
-  static constexpr size_t NELEMS = PAGESIZE / sizeof(Elem);
-  using Entry = std::array<Elem, NELEMS>;
+  using Entry = std::array<uint8_t, PAGESIZE>;
 
   Snapshot() {}
 
@@ -59,12 +80,12 @@ public:
   bool similar(const Snapshot& other) const; // ensure entries are at same addresses
   bool is_zero(const void *begin, const void *end) const;
   bool is_zero() const;
-  void fill(void *begin, void *end, Elem val);
+  void fill(void *begin, void *end, uint8_t val);
   void read(const void *begin, const void *end, void *buf) const;
 
-  void add(void *pageaddr, Elem val) {
+  void add(void *pageaddr, uint8_t val) {
     add_fill(pageaddr, [val] (const auto pageaddr, const auto begin) {
-      std::fill_n(begin, NELEMS, val);
+      std::fill_n(begin, PAGESIZE, val);
     });
   }
 
@@ -129,7 +150,6 @@ public:
   bool contains(Args&&... args) const { return find(args...) != end(); }
   
 private:
-  static_assert(PAGESIZE % sizeof(Elem) == 0, "");
   using Map = std::unordered_map<void *, Entry>;
   Map map;
 
@@ -138,7 +158,7 @@ private:
   template <template<class> class BinOp>
   static Entry binop(const Entry& l, const Entry& r) {
     Entry a;
-    std::transform(l.begin(), l.end(), r.begin(), a.begin(), BinOp<Elem>());
+    std::transform(l.begin(), l.end(), r.begin(), a.begin(), BinOp<uint8_t>());
     return a;
   }
   
@@ -159,7 +179,7 @@ private:
     assert(similar(other));
     std::for_each(map.begin(), map.end(), [&] (auto&& l) {
       const auto& r = other.map.at(l.first);
-      std::transform(l.second.begin(), l.second.end(), r.begin(), l.second.begin(), BinOp<Elem>());
+      std::transform(l.second.begin(), l.second.end(), r.begin(), l.second.begin(), BinOp<uint8_t>());
     });
     return *this;
   }
