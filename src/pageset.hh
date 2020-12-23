@@ -11,14 +11,16 @@ class PageInfo {
 public:
   enum class Tier {SHARED, RDONLY, RDWR_LOCKED, RDWR_UNLOCKED};
 
-  Tier tier() const;
+  Tier tier() const { return tier_; }
   void prot(int orig_prot, int cur_prot);
 
   PageInfo(int flags, int orig_prot, int cur_prot):
     flags_(flags),
     orig_prot_(orig_prot),
     cur_prot_(cur_prot)
-  {}
+  {
+    recompute_tier();
+  }
 
   int flags() const { return flags_; }
 
@@ -30,10 +32,13 @@ public:
   auto count() const { return count_; }
   
 private:
+  Tier tier_;
   int flags_;
   int orig_prot_;
   int cur_prot_;
   unsigned count_ = 0;
+
+  void recompute_tier();
 };
 
 
