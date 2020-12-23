@@ -18,11 +18,9 @@ bool Snapshot::similar(const Snapshot& other) const {
 }
 
 void Snapshot::restore(Tracee& tracee) const {
-  for (const auto& p : map) {
-    auto addr = p.first;
-    const auto& data = p.second;
-    tracee.write(data, addr);
-  }
+  std::for_each(map.begin(), map.end(), [&tracee] (const auto& pair) {
+    pair.second.restore(pair.first, tracee);
+  });
 }
 
 void Snapshot::zero() {
@@ -54,23 +52,6 @@ void Snapshot::fill(void *begin, void *end, uint8_t val) {
   });
 }
 
-void Snapshot::remove(void *pageaddr) {
-  // NOTE: Also works if pageaddr not in map.
-  map.erase(pageaddr);
-}
-
-void Snapshot::add(void *pageaddr, Tracee& tracee) {
-  add_fill(pageaddr, [&] (const auto pageaddr, const auto begin) {
-    tracee.read(&*begin, PAGESIZE, pageaddr);
-  });
-}
-
-void Snapshot::remove(void *begin, void *end) {
-  for (size_t i = 0; i < pagecount(begin, end); ++i) {
-    remove(pageidx(begin, i));
-  }
-}
-
 void Snapshot::read(const void *begin_, const void *end_, void *buf_) const {
   const auto begin = reinterpret_cast<const uint8_t *>(begin_);
   const auto end = reinterpret_cast<const uint8_t *>(end_);
@@ -81,7 +62,7 @@ void Snapshot::read(const void *begin_, const void *end_, void *buf_) const {
 
   while (it != end) {
     const uint8_t *pageaddr = pagealign(it);
-    const Entry& entry = map.at(const_cast<uint8_t *>(pageaddr));
+    const auto& entry = map.at(const_cast<uint8_t *>(pageaddr));
     const auto count = std::min<size_t>(end - it, entry.size());
     buf_it = std::copy_n(entry.begin() + (it - pageaddr), count, buf_it);
     it += count;

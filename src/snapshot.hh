@@ -12,6 +12,8 @@
 
 class SnapshotPage {
 public:
+  using value_type = uint8_t;
+  
   SnapshotPage() {}
 
   template <typename... Args>
@@ -28,15 +30,39 @@ public:
   auto end() { return buf_.end(); }
   auto data() const { return buf_.data(); }
   auto data() { return buf_.data(); }
+  auto size() const { return buf_.size(); }
+
+  SnapshotPage& operator^=(const SnapshotPage& other) {
+    return util::binop_fixed<std::bit_xor>(*this, other, *this);
+  }
+
+  SnapshotPage& operator|=(const SnapshotPage& other) {
+    return util::binop_fixed<std::bit_xor>(*this, other, *this);
+  }
+
+  SnapshotPage operator^(const SnapshotPage& other) const {
+    return util::binop_fixed<std::bit_xor>(*this, other);
+  }
   
+  SnapshotPage operator|(const SnapshotPage& other) const {
+    return util::binop_fixed<std::bit_or>(*this, other);
+  }
+
+  bool operator==(const SnapshotPage& other) const {
+    return std::equal(begin(), end(), other.begin());
+  }
+
 private:
-  std::array<uint8_t, PAGESIZE> buf_;
+  std::array<value_type, PAGESIZE> buf_;
+
+  template <template <class> class Binop>
+  SnapshotPage& binop_inplace(const SnapshotPage& other) {
+    return util::binop_fixed<Binop>(*this, other, *this);
+  }
 };
 
 class Snapshot {
 public:
-  using Entry = std::array<uint8_t, PAGESIZE>;
-
   Snapshot() {}
 
   auto size() const { return map.size() * PAGESIZE; }
@@ -45,7 +71,7 @@ public:
   void save(InputIt begin, InputIt end, Args&&... args) {
     // TODO: optimize
     map.clear();
-    std::for_each(begin, end, [&] (const auto& pageaddr) {
+    std::for_each(begin, end, [&] (const auto pageaddr) {
       this->add(pageaddr, args...);
     });
   }
@@ -83,13 +109,11 @@ public:
   void fill(void *begin, void *end, uint8_t val);
   void read(const void *begin, const void *end, void *buf) const;
 
-  void add(void *pageaddr, uint8_t val) {
-    add_fill(pageaddr, [val] (const auto pageaddr, const auto begin) {
-      std::fill_n(begin, PAGESIZE, val);
-    });
+  template <typename... Args>
+  void add(void *pageaddr, Args&&... args) {
+    const auto res = map.emplace(pageaddr, SnapshotPage{pageaddr, args...});
+    assert(res.second); (void) res;
   }
-
-  void add(void *pageaddr, Tracee& tracee);
 
   template <typename... Args>
   void add(void *begin, void *end, Args&&... args) {
@@ -105,8 +129,15 @@ public:
     }
   }
   
-  void remove(void *pageaddr);
-  void remove(void *begin, void *end);
+  void remove(void *pageaddr) {
+    map.erase(pageaddr);
+  }
+  
+  void remove(void *begin, void *end) {
+    for_each_page(begin, end, [this] (const auto pageaddr) {
+      this->remove(pageaddr);
+    });
+  }
 
   template <typename InputIt>
   void remove(InputIt begin, InputIt end) {
@@ -150,18 +181,11 @@ public:
   bool contains(Args&&... args) const { return find(args...) != end(); }
   
 private:
-  using Map = std::unordered_map<void *, Entry>;
+  using Map = std::unordered_map<void *, SnapshotPage>;
   Map map;
 
   // TODO: Transform entries
 
-  template <template<class> class BinOp>
-  static Entry binop(const Entry& l, const Entry& r) {
-    Entry a;
-    std::transform(l.begin(), l.end(), r.begin(), a.begin(), BinOp<uint8_t>());
-    return a;
-  }
-  
   template <template<class> class BinOp>
   Snapshot binop(const Snapshot& other) const {
     assert(similar(other));
@@ -169,7 +193,7 @@ private:
     std::transform(map.begin(), map.end(), std::inserter(res.map, res.map.end()),
 		   [&] (const auto& l) {
 		     const auto& r = other.map.at(l.first);
-		     return std::make_pair(l.first, binop<BinOp>(l.second, r));
+		     return std::make_pair(l.first, BinOp<Map::mapped_type>()(l.second, r));
 		   });
     return res;
   }
@@ -206,11 +230,11 @@ private:
   static size_t offset(const void *pageaddr, const void *ptr);
   
   template <typename P>
-  static Entry::iterator iter(P& p, const void *ptr) {
+  static auto iter(P& p, const void *ptr) {
     return std::next(p.second.begin(), offset(p.first, ptr));
   }
   template <typename P>
-  static Entry::const_iterator iter(const P& p, const void *ptr) {
+  static auto iter(const P& p, const void *ptr) {
     return std::next(p.second.begin(), offset(p.first, ptr));
   }
 
@@ -218,7 +242,7 @@ private:
   void add_fill(void *pageaddr, Fill fill) {
     assert(is_pageaddr(pageaddr));
     if (map.find(pageaddr) == map.end()) {
-      Entry entry;
+      SnapshotPage entry;
       fill(pageaddr, entry.begin());
       const auto res = map.emplace(pageaddr, entry);
       assert(res.second); (void) res;
@@ -226,7 +250,3 @@ private:
   }
 
 };
-
-inline Snapshot::Entry& operator^=(Snapshot::Entry& l, const Snapshot::Entry& r) {
-  return util::binop_fixed<std::bit_xor>(l, r, l);
-}
