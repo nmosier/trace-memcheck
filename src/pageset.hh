@@ -11,8 +11,6 @@ class PageInfo {
 public:
   enum class Tier {SHARED, RDONLY, RDWR_LOCKED, RDWR_UNLOCKED};
 
-  Tier tier() const { return tier_; }
-  
   void prot(int orig_prot, int cur_prot) {
     orig_prot_ = orig_prot;
     cur_prot_ = cur_prot;
@@ -29,9 +27,6 @@ public:
 
   int flags() const { return flags_; }
 
-  void lock(void *pageaddr, Tracee& tracee, int mask);
-  void unlock(void *pageaddr, Tracee& tracee);
-
   int orig_prot() const { return orig_prot_; }
 
   auto count() const { return count_; }
@@ -44,6 +39,13 @@ private:
   unsigned count_ = 0;
 
   void recompute_tier();
+
+  void lock(void *pageaddr, Tracee& tracee, int mask);
+  void unlock(void *pageaddr, Tracee& tracee);
+
+  Tier tier() const { return tier_; }
+    
+  friend class PageSet;
 };
 
 
@@ -103,14 +105,28 @@ public:
   template <typename... Args>
   bool contains(Args&&... args) const { return find(args...) != end(); }
 
+#if 0
   template <typename... Args>
   const auto& at(Args&&... args) const { return map.at(args...); }
 
   template <typename... Args>
   auto& at(Args&&... args) { return map.at(args...); }
+#endif
 
   void lock_top_counts(unsigned n, Tracee& tracee, int mask);
+
+  void lock(Map::value_type& it, Tracee& tracee, int mask) {
+    it.second.lock(it.first, tracee, mask);
+  }
+
+  void unlock(Map::value_type& it, Tracee& tracee) {
+    it.second.unlock(it.first, tracee);
+  }
+
+  PageInfo::Tier tier(const Map::value_type& it) const {
+    return it.second.tier();
+  }
   
 private:
-  Map map;
+  Map map; // pageaddr -> page info
 };

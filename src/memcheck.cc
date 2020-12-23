@@ -419,9 +419,9 @@ void Memcheck::start_round() {
   // lock_pages();
   // tracked_pages.lock_top_counts(80, tracee, PROT_WRITE);
   for_each_page(stack_begin(), pageidx(pagealign_up(tracee.get_sp()), -16), [this] (const auto pageaddr) {
-    PageInfo& info = tracked_pages.at(pageaddr);
-    if (info.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
-      info.lock(pageaddr, tracee, PROT_WRITE);
+    const auto it = tracked_pages.find(pageaddr);
+    if (tracked_pages.tier(*it) == PageInfo::Tier::RDWR_UNLOCKED) {
+      tracked_pages.lock(*it, tracee, PROT_WRITE);
     }
   });
   
@@ -433,7 +433,7 @@ void Memcheck::start_round() {
   // TODO: OPTIM
   std::unordered_set<void *> orig_writable_pages;
   for (const auto& pair : tracked_pages) {
-    switch (pair.second.tier()) {
+    switch (tracked_pages.tier(pair)) {
     case PageInfo::Tier::RDWR_LOCKED:
     case PageInfo::Tier::RDWR_UNLOCKED:
       orig_writable_pages.insert(pair.first);
@@ -475,7 +475,7 @@ void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
   /* taint memory below stack */
   std::vector<void *> orig_writable_pages;
   for (auto& page : tracked_pages) {
-    switch (page.second.tier()) {
+    switch (tracked_pages.tier(page)) {
     case PageInfo::Tier::RDWR_LOCKED:
     case PageInfo::Tier::RDWR_UNLOCKED:
       orig_writable_pages.push_back(page.first);
@@ -518,7 +518,7 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
   }
 
   using Tier = PageInfo::Tier;
-  switch (page_it->second.tier()) {
+  switch (tracked_pages.tier(*page_it)) {
   case Tier::SHARED:
     {
       const auto loc = orig_loc(tracee.get_pc());
@@ -543,7 +543,7 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
       /* 1. Unlock
        * 2. Add to pre_state.
        */
-      page_it->second.unlock(pageaddr, tracee);
+      tracked_pages.unlock(*page_it, tracee);
       assert(!pre_state.snapshot().contains(pageaddr));
       pre_state.snapshot().add(pageaddr, tracee);
       const auto& taint_page = taint_state.snapshot().at(pageaddr);
@@ -563,7 +563,7 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
 void Memcheck::get_writable_pages() {
   tmp_writable_pages.clear();
   for (const auto& tracked_page : tracked_pages) {
-    switch (tracked_page.second.tier()) {
+    switch (tracked_pages.tier(tracked_page)) {
     case PageInfo::Tier::RDWR_UNLOCKED:
     case PageInfo::Tier::RDWR_LOCKED:
       tmp_writable_pages.emplace(tracked_page.first);
@@ -574,16 +574,16 @@ void Memcheck::get_writable_pages() {
 
 void Memcheck::lock_pages() {
   for (auto& page : tracked_pages) {
-    if (page.second.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
-      page.second.lock(page.first, tracee, PROT_WRITE);
+    if (tracked_pages.tier(page) == PageInfo::Tier::RDWR_UNLOCKED) {
+      tracked_pages.lock(page, tracee, PROT_WRITE);
     }
   }
 }
 
 void Memcheck::unlock_pages() {
   for (auto& page : tracked_pages) {
-    if (page.second.tier() == PageInfo::Tier::RDWR_LOCKED) {
-      page.second.unlock(page.first, tracee);
+    if (tracked_pages.tier(page) == PageInfo::Tier::RDWR_LOCKED) {
+      tracked_pages.unlock(page, tracee);
     }
   }
 }

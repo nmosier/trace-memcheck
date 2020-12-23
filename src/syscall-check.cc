@@ -29,8 +29,8 @@ bool SyscallChecker::check_write(void *begin, void *end) const {
   /* unlock buffer */
   for_each_page(pagealign(begin), pagealign_up(end), [this] (const auto pageaddr) {
     const auto page_it = page_set.find(pageaddr);
-    if (page_it != page_set.end() && page_it->second.tier() == PageInfo::Tier::RDWR_LOCKED) {
-      page_it->second.unlock(pageaddr, tracee);
+    if (page_it != page_set.end() && page_set.tier(*page_it) == PageInfo::Tier::RDWR_LOCKED) {
+      page_set.unlock(*page_it, tracee);
     }
   });
   
