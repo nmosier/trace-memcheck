@@ -544,14 +544,12 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
        * 2. Add to pre_state.
        */
       page_it->second.unlock(pageaddr, tracee);
-#if 1
       assert(!pre_state.snapshot().contains(pageaddr));
       pre_state.snapshot().add(pageaddr, tracee);
       const auto& taint_page = taint_state.snapshot().at(pageaddr);
       auto& pre_state_page = pre_state.snapshot().at(pageaddr);
       pre_state_page ^= taint_page;
-      tracee.write(pre_state_page.data(), pre_state_page.size(), pageaddr); // TODO: Should be merged into Page class in Snapshot
-#endif
+      pre_state_page.restore(pageaddr, tracee);
     }
     break;
     

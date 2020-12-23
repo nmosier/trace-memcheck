@@ -74,11 +74,6 @@ bool Snapshot::is_zero() const {
   return std::all_of(map.begin(), map.end(), [] (const auto& pair) {
     const auto& entry = pair.second;
     return std::all_of(entry.begin(), entry.end(), [&] (const auto& elem) {
-#if 1
-      if (elem != 0) {
-	*g_conf.log << (void *) ((char *) pair.first + (&elem - entry.data())) << "\n";
-      }
-#endif
       return elem == 0;
     });
   });

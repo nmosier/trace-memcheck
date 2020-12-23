@@ -28,8 +28,6 @@ public:
   auto begin() { return buf_.begin(); }
   auto end() const { return buf_.end(); }
   auto end() { return buf_.end(); }
-  auto data() const { return buf_.data(); }
-  auto data() { return buf_.data(); }
   auto size() const { return buf_.size(); }
 
   SnapshotPage& operator^=(const SnapshotPage& other) {
