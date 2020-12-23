@@ -21,12 +21,6 @@ void PageInfo::recompute_tier() {
   }
 }
 
-void PageInfo::prot(int orig_prot, int cur_prot) {
-  orig_prot_ = orig_prot;
-  cur_prot_ = cur_prot;
-  recompute_tier();
-}
-
 void PageSet::add_maps(Maps& maps_gen) {
   std::vector<::Map> tmp_maps;
   maps_gen.get_maps(std::back_inserter(tmp_maps));
@@ -53,9 +47,9 @@ void PageInfo::lock(void *pageaddr, Tracee& tracee, int mask) {
   
   assert(orig_prot_ == cur_prot_);
   assert((orig_prot_ & mask) == mask);
-  cur_prot_ = orig_prot_ & ~mask;
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, cur_prot_);
-  recompute_tier();
+
+  prot(orig_prot_, orig_prot_ & ~mask);
   
   assert(tier() == Tier::RDWR_LOCKED);
 }
@@ -66,9 +60,8 @@ void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
   assert(tier() == Tier::RDWR_LOCKED);
   
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, orig_prot_);
-  cur_prot_ = orig_prot_;
   ++count_;
-  recompute_tier();
+  prot(orig_prot_, orig_prot_);
   
   assert(tier() == Tier::RDWR_UNLOCKED);
 }

@@ -12,7 +12,12 @@ public:
   enum class Tier {SHARED, RDONLY, RDWR_LOCKED, RDWR_UNLOCKED};
 
   Tier tier() const { return tier_; }
-  void prot(int orig_prot, int cur_prot);
+  
+  void prot(int orig_prot, int cur_prot) {
+    orig_prot_ = orig_prot;
+    cur_prot_ = cur_prot;
+    recompute_tier();
+  }
 
   PageInfo(int flags, int orig_prot, int cur_prot):
     flags_(flags),
