@@ -84,7 +84,8 @@ private:
   template <typename T>
   using RoundArray = std::array<T, SUBROUNDS>;
 
-  static const RoundArray<uint8_t> fills;
+  static const RoundArray<fill_t> fills;
+  fill_t cur_fill_;
   RoundArray<State> post_states;
   FlagChecksum cksum;
   RoundArray<FlagChecksum> bkpt_cksums;
@@ -103,7 +104,13 @@ private:
     return arr[subround_counter];
   }
 
-  uint8_t cur_fill() const { return cur(fills); }
+  void set_cur_fill() { cur_fill_ = cur(fills); }
+  fill_t cur_fill() const {
+    assert(cur_fill_ == cur(fills));
+    return cur(fills);
+  }
+  fill_ptr_t cur_fill_ptr() const { return &cur_fill_; }
+  
   const State& cur_post_state() const { return cur(post_states); }
   State& cur_post_state() { return cur(post_states); }
   const FlagChecksum& cur_bkpt_cksum() const { return cur(bkpt_cksums); }

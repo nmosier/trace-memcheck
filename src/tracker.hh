@@ -10,6 +10,7 @@
 #include "flags.hh"
 #include "memcheck-vars.hh"
 #include "syscall-args.hh"
+#include "memcheck-types.hh"
 
 class Memcheck;
 
@@ -29,13 +30,12 @@ protected:
 
 class Filler {
 public:
-  Filler(uint8_t fill): fill_(fill) {}
+  Filler(fill_ptr_t fill_ptr): fill_ptr_(fill_ptr) {}
 
-  uint8_t fill() const { return fill_; }
-  void fill(uint8_t newfill) { fill_ = newfill; }
-
+  fill_t fill() const { return *fill_ptr_; }
+  
 private:
-  uint8_t fill_;
+  fill_ptr_t fill_ptr_;
 };
 
 class Checksummer {
@@ -119,7 +119,7 @@ private:
 
 class StackTracker: public Tracker, public Filler {
 public:
-  StackTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars);
+  StackTracker(Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars);
   
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
   
@@ -179,7 +179,7 @@ private:
 
 class CallTracker: public Tracker, public Filler {
 public:
-  CallTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars);
+  CallTracker(Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars);
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 private:
   using MC = MachineCode<0x2e, 4>;
@@ -193,7 +193,7 @@ private:
 
 class RetTracker: public Tracker, public Filler {
 public:
-  RetTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars);
+  RetTracker(Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars);
   uint8_t *add(uint8_t *addr, Instruction& inst, const TransformerInfo& info);
 private:
   using MC = MachineCode<0x2e, 4>;

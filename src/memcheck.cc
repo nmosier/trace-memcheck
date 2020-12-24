@@ -12,7 +12,7 @@ Memcheck::Memcheck():
   tracee(),
   patcher(),
   vars(),
-  stack_tracker(tracee, 0, vars),
+  stack_tracker(tracee, cur_fill_ptr(), vars),
   syscall_tracker(tracee,
 		  SequencePoint(taint_state,
 				[this] (auto addr) {
@@ -24,8 +24,8 @@ Memcheck::Memcheck():
 		  syscall_args,
 		  *this
 		  ),
-  call_tracker(tracee, 0, vars),
-  ret_tracker(tracee, 0, vars),
+  call_tracker(tracee, cur_fill_ptr(), vars),
+  ret_tracker(tracee, cur_fill_ptr(), vars),
   jcc_tracker(tracee, cksum, vars),
   lock_tracker(tracee,
 	       SequencePoint(taint_state,
@@ -103,15 +103,13 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   // TODO: open patcher
   patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
 
-  vars.open(tracee, *patcher);
+  vars.open(tracee, *patcher, cur_fill_ptr());
 
   patcher->start();
 
   maps_gen.open(child);
   tracked_pages.add_maps(maps_gen);
    
-
-  // patcher->signal(SIGSEGV, [this] (int signum) { segfault_handler(signum); });
   patcher->signal(SIGSTOP, sigignore);
   patcher->signal(SIGCONT, sigignore);
   patcher->signal(SIGINT,  sigignore);
@@ -125,8 +123,6 @@ bool Memcheck::open(const char *file, char * const argv[]) {
   // TEMP
   protect_map("[vdso]", PROT_READ);
   protect_map("[vvar]", PROT_NONE);
-
-  vars.init_for_subround(cur_fill());
 
   return true;
 }
@@ -385,12 +381,10 @@ void Memcheck::start_subround() {
   } else {
     set_state_with_taint(pre_state, taint_state);
   }
-  
-  stack_tracker.fill(cur_fill());
-  call_tracker.fill(cur_fill());
-  ret_tracker.fill(cur_fill());
-  cksum.clear(); // TODO: rename cksum -> cksum
-  vars.init_for_subround(cur_fill());
+
+  cksum.clear();
+  set_cur_fill(); // MUST come before used by vars.init_for_subround()
+  vars.init_for_subround();
 }
 
 void Memcheck::stop_subround() {

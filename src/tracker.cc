@@ -54,9 +54,9 @@ void JccTracker::handler(uint8_t *addr) {
   }
 }
 
-StackTracker::StackTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars):
+StackTracker::StackTracker(Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars):
   Tracker(tracee),
-  Filler(fill),
+  Filler(fill_ptr),
   prev_sp_ptr_ptr(vars.prev_sp_ptr_ptr()),
   pre_mc(PreMC::Content{0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00},
 	 PreMC::Relbrs{PreMC::Relbr(0x03, 0x07, vars.prev_sp_ptr_ptr())}
@@ -173,9 +173,9 @@ uint8_t *StackTracker::add_incore_post(uint8_t *addr, Instruction& inst, const T
   return addr;
 }
 
-CallTracker::CallTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars):
+CallTracker::CallTracker(Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars):
   Tracker(tracee),
-  Filler(fill),
+  Filler(fill_ptr),
   mc(MC::Content {
     0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48, 0x8b, 0x3d, 0x00, 0x00,
     0x00, 0x00, 0x48, 0x8d, 0x7f, 0x80, 0xb9, 0x78, 0x00, 0x00, 0x00, 0x8a, 0x05, 0x00, 0x00, 0x00,
@@ -231,9 +231,9 @@ void CallTracker::handler(uint8_t *addr) {
   }
 }
 
-RetTracker::RetTracker(Tracee& tracee, uint8_t fill, MemcheckVariables& vars):
+RetTracker::RetTracker(Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars):
   Tracker(tracee),
-  Filler(fill),
+  Filler(fill_ptr),
   mc(MC::Content {
     0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48, 0x8b, 0x3d, 0x00, 0x00,
     0x00, 0x00, 0x48, 0x8d, 0x7f, 0x80, 0xb9, 0x80, 0x00, 0x00, 0x00, 0x8a, 0x05, 0x00, 0x00, 0x00,
