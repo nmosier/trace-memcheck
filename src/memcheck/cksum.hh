@@ -6,7 +6,7 @@
 #include <string>
 #include <cstdint>
 #include "dbi/tracee.hh"
-#include "dbi/settings.hh"
+#include "settings.hh"
 
 namespace memcheck {
 

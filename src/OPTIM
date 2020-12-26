@@ -1,0 +1,8 @@
+[ ] Optimize page storage
+    [ ] Use preadv to read multiple pages at once
+    [ ] Use pwritev to write multiple pages at once
+    [ ] Page cache
+[ ] Tracee
+    [ ] Don't write regs until singlestep() or cont()
+[ ] Lazily add pages to state
+    [ ] ...

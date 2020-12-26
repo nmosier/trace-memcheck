@@ -1,7 +1,4 @@
 ss
-memcheck
-memcheck.prof
-memcheck.txt
 *.bak
 maps-test
 *.out
@@ -10,7 +7,6 @@ bak/
 libc.asm
 *.so
 jit
-.*
 *.asm
 maps
 maps

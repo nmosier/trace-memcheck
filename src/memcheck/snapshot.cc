@@ -6,7 +6,6 @@
 #include <set>
 #include "snapshot.hh"
 #include "state.hh"
-#include "dbi/settings.hh"
 
 namespace memcheck {
 

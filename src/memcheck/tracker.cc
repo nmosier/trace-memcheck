@@ -6,7 +6,6 @@ extern "C" {
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
-#include "dbi/settings.hh"
 
 namespace memcheck {
 

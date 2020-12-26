@@ -12,7 +12,6 @@ namespace memcheck {
 #include "maps.hh"
 #include "state.hh"
 #include "pageset.hh"
-#include "dbi/settings.hh"
 #include "vars.hh"
 
 namespace memcheck {
