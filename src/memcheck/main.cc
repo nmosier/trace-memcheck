@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
   
   char **command = &argv[optind++];
 
-  Memcheck memcheck;
+  memcheck::Memcheck memcheck;
   if (!memcheck.open(command)) {
     fprintf(stderr, "memcheck: open failed\n");
     return 1;

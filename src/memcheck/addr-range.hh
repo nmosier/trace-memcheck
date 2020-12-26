@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+namespace memcheck {
+
 struct AddrRange;
 
 std::ostream& operator<<(std::ostream& os, const AddrRange& ar);
@@ -20,3 +22,4 @@ struct AddrRange {
   }
 };
 
+}

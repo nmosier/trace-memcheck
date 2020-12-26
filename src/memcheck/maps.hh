@@ -11,6 +11,8 @@
 #include <fstream>
 #include <string>
 
+namespace memcheck {
+
 struct Map {
   void *begin;
   void *end;
@@ -64,3 +66,5 @@ private:
 
   Map get_map();
 };
+
+}
