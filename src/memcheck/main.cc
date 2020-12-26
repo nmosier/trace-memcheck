@@ -14,7 +14,7 @@
 
 #include "dbi/util.hh"
 #include "dbi/patch.hh"
-#include "dbi/config.hh"
+#include "config.hh"
 #include "memcheck.hh"
 
 int main(int argc, char *argv[]) {
@@ -105,8 +105,8 @@ int main(int argc, char *argv[]) {
       break;
 
     case 'm':
-      dbi::g_conf.map_file.open(optarg, std::ofstream::out | std::ofstream::trunc);
-      if (!dbi::g_conf.map_file) {
+      memcheck::g_conf.map_file.open(optarg, std::ofstream::out | std::ofstream::trunc);
+      if (!memcheck::g_conf.map_file) {
 	std::cerr << argv[0] << ": couldn't open map file'" << optarg << "'\n";
 	return 1;
       }
@@ -131,12 +131,12 @@ int main(int argc, char *argv[]) {
 	  std::cerr << argv[0] << ": --ss-syscall: invalid syscall-count pair\n";
 	  return 1;
 	}
-	dbi::g_conf.ss_syscall(syscall, std::stoul(count));
+	memcheck::g_conf.ss_syscall(syscall, std::stoul(count));
       }
       break;
 
     case NO_PRELOAD:
-      dbi::g_conf.preload = false;
+      memcheck::g_conf.preload = false;
       break;
       
     default:

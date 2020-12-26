@@ -6,6 +6,7 @@ extern "C" {
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
+#include "config.hh"
 
 namespace memcheck {
 
@@ -343,8 +344,8 @@ namespace memcheck {
 
   void SyscallTracker::pre(uint8_t *addr) {
     syscall_args.add_call(tracee);
-    *dbi::g_conf.log << "syscall " << syscall_args.no() << "\n";
-    dbi::g_conf.add_syscall(syscall_args.no());
+    g_conf.log() << "syscall " << syscall_args.no() << "\n";
+    g_conf.add_syscall(syscall_args.no());
 
     // TODO: Perhaps this should be done in the SyscallTracker's initialization?
     switch (syscall_args.no()) {
@@ -363,7 +364,7 @@ namespace memcheck {
     if (!syscall_checker.pre()) {
       /* DEBUG: Translate */
       const auto loc = memcheck.orig_loc(tracee.get_pc());
-      *dbi::g_conf.log << loc.first << " " << loc.second << "\n";
+      g_conf.log() << loc.first << " " << loc.second << "\n";
       dbi::g_conf.abort(tracee);
     }
   
@@ -446,7 +447,7 @@ namespace memcheck {
 
   void LockTracker::check() {
     const auto addr = tracee.get_pc();
-    *dbi::g_conf.log << "LOCK: " << dbi::Instruction(addr, tracee) << "\n";
+    g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee) << "\n";
   }
 
   bool RTMTracker::match(const dbi::Instruction& inst) const {
@@ -505,7 +506,7 @@ namespace memcheck {
     const uint64_t val64 = taint_state.gpregs().reg(encreg);
   
     if ((val64 & mask_read(reg)) != 0) {
-      *dbi::g_conf.log << "memcheck: read from tainted register " << xed_reg_enum_t2str(reg)
+      g_conf.log() << "memcheck: read from tainted register " << xed_reg_enum_t2str(reg)
 		       << "\n";
       dbi::g_conf.abort(tracee);
     }
@@ -518,7 +519,7 @@ namespace memcheck {
 
   void SharedMemSeqPt::read_flags(uint32_t mask) const {
     if ((taint_state.gpregs().eflags() & mask) != 0) {
-      *dbi::g_conf.log << "memcheck: instruction uses tainted flags\n";
+      g_conf.log() << "memcheck: instruction uses tainted flags\n";
       dbi::g_conf.abort(tracee);
     }
   }
@@ -540,9 +541,9 @@ namespace memcheck {
 
     const auto aligned_fault =
       reinterpret_cast<uintptr_t>(dbi::pagealign(tracee.get_siginfo().si_addr));
-    *dbi::g_conf.log << "aligned_fault = " << (void *) aligned_fault << "\n";
+    g_conf.log() << "aligned_fault = " << (void *) aligned_fault << "\n";
     if ((int) tracee.syscall(dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_READ) < 0) {
-      *dbi::g_conf.log << "MPROTECT: failed\n";
+      g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
     }
     const auto status = tracee.singlestep();
@@ -561,14 +562,14 @@ namespace memcheck {
       const auto index_reg = inst.xed_index_reg();
       if (base_reg != XED_REG_INVALID) {
 	if (taint_state.gpregs().reg(base_reg) != 0) {
-	  *dbi::g_conf.log
+	  g_conf.log()
 	    << "memcheck: memory access address depends on uninitialized base register\n";
 	  dbi::g_conf.abort(tracee);
 	}
       }
       if (index_reg != XED_REG_INVALID) {
 	if (taint_state.gpregs().reg(index_reg) != 0) {
-	  *dbi::g_conf.log
+	  g_conf.log()
 	    << "memcheck: memory access address depends on uninitialized index register\n";
 	  dbi::g_conf.abort(tracee);
 	}
@@ -580,7 +581,7 @@ namespace memcheck {
 	const auto base_reg = inst.xed_reg(op);
 	if (base_reg != XED_REG_INVALID) {
 	  if (taint_state.gpregs().reg(base_reg) != 0) {
-	    *dbi::g_conf.log << "memcheck: memory access depends on uninitialized base register\n";
+	    g_conf.log() << "memcheck: memory access depends on uninitialized base register\n";
 	  }
 	}
       }

@@ -5,6 +5,7 @@
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
+#include "config.hh"
 
 namespace memcheck {
 
@@ -57,15 +58,8 @@ namespace memcheck {
   
 
   void Memcheck::write_maps() const {
-    if (dbi::g_conf.map_file) {
-      std::stringstream ss;
-      ss << "/proc/" << tracee.pid() << "/maps";
-      std::ifstream maps_in(ss.str());
-      std::string line;
-      while (std::getline(maps_in, line)) {
-	dbi::g_conf.map_file << line << "\n";
-      }
-      dbi::g_conf.map_file.close();
+    if (g_conf.map_file) {
+      tracee.cat_maps(g_conf.map_file).flush();
     }
   }
 
@@ -76,7 +70,7 @@ namespace memcheck {
   
     const pid_t child = fork();
     if (child == 0) {
-      if (dbi::g_conf.preload) {
+      if (g_conf.preload) {
 	char *dirname = get_current_dir_name();
 	if (dirname == nullptr) {
 	  std::perror("get_current_dir_name");

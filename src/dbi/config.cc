@@ -30,9 +30,7 @@ namespace dbi {
   }
 
   void Config::abort(Tracee& tracee) {
-    tracee.cat_maps(map_file);
     log->flush();
-    map_file.flush();
     if (gdb) {
       tracee.gdb();
     } else {
