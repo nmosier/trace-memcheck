@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
       " -j        dump conditional jump breakpoint info\n"		\
       " -l <file> log file\n"						\
       " -m <file> save process maps to file\n"				\
+      " -v        increase verbosity level\n"				\
       " --prediction-mode=<mode>\n"					\
       "           branch prediction mode to use\n"			\
       "           legal values: 'none', 'iclass', 'iform'\n"		\
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
   std::ofstream log;
   std::ofstream map_file;
 
-  const char *optstring = "hgpsxbjdl:m:";
+  const char *optstring = "hgpsxbjdl:m:v";
   enum Option {
     PREDICTION_MODE = 256,
     SS_SYSCALL,
@@ -110,6 +111,10 @@ int main(int argc, char *argv[]) {
 	std::cerr << argv[0] << ": couldn't open map file'" << optarg << "'\n";
 	return 1;
       }
+      break;
+
+    case 'v':
+      ++g_conf.verbosity;
       break;
       
     case PREDICTION_MODE:

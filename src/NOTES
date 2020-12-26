@@ -366,3 +366,9 @@ TODO:
 Page locking/unlocking seems to be working. But it is very complex; I need to spend some time simplifying and cleaning things up.
 
 [ ] Syscall checker should unlock pages as needed (instead of unlocking all pages). Could add to macro system to specify types of parameters?
+
+----
+
+For testing, need to check:
+[1] Correctness -- ouptut should be the same.
+[2] Memcheck warnings -- expected kind/number of memcheck warnings

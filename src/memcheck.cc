@@ -342,11 +342,7 @@ void Memcheck::check_round(SequencePoint& seq_pt) {
       }
   }
 
-  // TODO: TMP: unlock pages, just because too lazy to unlock properly in syscalls-checker
-  
   seq_pt.check();
-
-  // unlock_pages();  
 }
 
 template <typename InputIt>
@@ -410,14 +406,13 @@ bool Memcheck::next_subround() {
 }
 
 void Memcheck::start_round() {
-  // lock_pages();
-  // tracked_pages.lock_top_counts(80, tracee, PROT_WRITE);
-  for_each_page(stack_begin(), pageidx(pagealign_up(tracee.get_sp()), -16), [this] (const auto pageaddr) {
-    const auto it = tracked_pages.find(pageaddr);
-    if (tracked_pages.tier(*it) == PageInfo::Tier::RDWR_UNLOCKED) {
-      tracked_pages.lock(*it, tracee, PROT_WRITE);
-    }
-  });
+  for_each_page(stack_begin(), pageidx(pagealign_up(tracee.get_sp()), -16),
+		[this] (const auto pageaddr) {
+		  const auto it = tracked_pages.find(pageaddr);
+		  if (tracked_pages.tier(*it) == PageInfo::Tier::RDWR_UNLOCKED) {
+		    tracked_pages.lock(*it, tracee, PROT_WRITE);
+		  }
+		});
   
   get_writable_pages();
   
@@ -508,7 +503,9 @@ void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
 
   auto page_it = tracked_pages.find(pageaddr);
   if (page_it == tracked_pages.end()) {
-    g_conf.abort(tracee); // TODO: Should exit gracefully with 'Segmentation fault: 11' message
+    // TODO: Pass on to patcher
+    std::clog << "memcheck: signal: " << strsignal(signal) << "\n";
+    std::exit(139);
   }
 
   using Tier = PageInfo::Tier;

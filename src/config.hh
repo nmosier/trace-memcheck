@@ -3,8 +3,18 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include "tracee.hh"
 
+struct PrintOptions {
+  bool syscall = false;
+  bool pagelock = false;
+
+  void enable(const std::string& s);
+  void disable(const std::string& s);
+  static bool PrintOptions::*str2memb();
+};
+  
 struct Config {
   enum class PredictionMode {NONE, ICLASS, IFORM, DIR, LAST_ICLASS};
 
@@ -19,6 +29,7 @@ struct Config {
   std::ostream *log = &std::clog;
   std::ofstream map_file;
   bool preload = true;
+  unsigned verbosity = 0;
 
   bool set_prediction_mode(const char *s);
 

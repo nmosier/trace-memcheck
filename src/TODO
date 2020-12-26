@@ -46,3 +46,5 @@
 [ ] Check return values of all syscalls
 [X] Pages in Snapshot should be classes, not just arrays.
 [ ] Improve testing system
+[ ] Pass signals to patcher
+[ ] Write logging in log.hh

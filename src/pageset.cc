@@ -41,7 +41,9 @@ void PageSet::untrack_range(void *begin, void *end) {
 }
 
 void PageInfo::lock(void *pageaddr, Tracee& tracee, int mask) {
-  *g_conf.log << "LOCKING PAGE " << (void *) pageaddr << "\n";
+  if (g_conf.verbosity >= 1) {
+    *g_conf.log << "LOCKING PAGE " << (void *) pageaddr << "\n";
+  }
   
   assert(tier() == Tier::RDWR_UNLOCKED);
   
@@ -55,8 +57,10 @@ void PageInfo::lock(void *pageaddr, Tracee& tracee, int mask) {
 }
 
 void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
-  *g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
-
+  if (g_conf.verbosity >= 1) {
+    *g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
+  }
+  
   assert(tier() == Tier::RDWR_LOCKED);
   
   tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, orig_prot_);
