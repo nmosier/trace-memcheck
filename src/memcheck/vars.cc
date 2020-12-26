@@ -1,4 +1,4 @@
-#include "memcheck-vars.hh"
+#include "vars.hh"
 
 namespace memcheck {
 

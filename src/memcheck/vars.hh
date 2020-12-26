@@ -4,7 +4,7 @@
 #include "dbi/tracee.hh"
 #include "dbi/util.hh"
 #include "dbi/patch.hh"
-#include "memcheck-types.hh"
+#include "types.hh"
 
 namespace memcheck {
 

@@ -9,8 +9,8 @@
 #include "pageset.hh"
 #include "cksum.hh"
 #include "flags.hh"
-#include "memcheck-vars.hh"
-#include "memcheck-types.hh"
+#include "vars.hh"
+#include "types.hh"
 
 namespace memcheck {
   class Memcheck;

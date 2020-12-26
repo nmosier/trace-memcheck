@@ -13,7 +13,7 @@ namespace memcheck {
 #include "state.hh"
 #include "pageset.hh"
 #include "dbi/settings.hh"
-#include "memcheck-vars.hh"
+#include "vars.hh"
 
 namespace memcheck {
 
