@@ -3,13 +3,13 @@
 #include <cassert>
 #include <string>
 #include <vector>
-#include "block-term.hh"
-#include "patch.hh"
+#include "dbi/block-term.hh"
+#include "dbi/patch.hh"
 #include "pageset.hh"
 #include "cksum.hh"
 #include "flags.hh"
 #include "memcheck-vars.hh"
-#include "syscall-args.hh"
+#include "dbi/syscall-args.hh"
 #include "memcheck-types.hh"
 
 class Memcheck;

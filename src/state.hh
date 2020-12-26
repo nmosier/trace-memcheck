@@ -7,10 +7,10 @@ extern "C" {
 #include <xed/xed-interface.h>
 }
 
-#include "tracee.hh"
+#include "dbi/tracee.hh"
 #include "snapshot.hh"
-#include "config.hh"
-#include "regs.hh"
+#include "dbi/config.hh"
+#include "dbi/regs.hh"
 
 // TODO: Create Register and FPRegister classes. A lot of code for managing these is lumped in here.
 class State {

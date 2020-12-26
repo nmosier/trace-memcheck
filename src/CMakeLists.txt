@@ -9,41 +9,26 @@ include_directories(${xed_INCLUDE_DIRS} ${GPERFTOOLS_INCLUDE_DIR})
 # add_compile_options(-pg)
 # add_link_options(-pg)
 
-add_library(core_objs STATIC
-  decoder.cc
-  tracee.cc
-  inst.cc
-  patch.cc
-  block.cc
-  usermem.cc
-  block-term.cc
-  rsb.cc
-  config.cc
-  block-pool.cc
-  romcache.cc
-  )
-add_dependencies(core_objs xed)
+add_subdirectory(dbi)
 
 add_executable(memcheck
   main.cc
   maps.cc
   memcheck.cc
   snapshot.cc
-  syscall.cc
   state.cc
   syscall-check.cc
   addr-range.cc
   tracker.cc
   pageset.cc
-  regs.cc
   memcheck-vars.cc
-  $<TARGET_OBJECTS:core_objs>
+  $<TARGET_OBJECTS:dbi>
   )
 add_dependencies(memcheck xed)
 
 add_executable(ss
   ss.cc
-  $<TARGET_OBJECTS:core_objs>
+  $<TARGET_OBJECTS:dbi>
   )
 add_dependencies(ss xed)
 
@@ -54,7 +39,7 @@ add_executable(maps-test
 
 add_executable(jit
   jit-main.cc
-  $<TARGET_OBJECTS:core_objs>
+  $<TARGET_OBJECTS:dbi>
   )
 add_dependencies(jit xed)
 

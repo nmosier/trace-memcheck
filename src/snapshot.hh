@@ -4,8 +4,8 @@
 #include <array>
 #include <type_traits>
 
-#include "tracee.hh"
-#include "util.hh"
+#include "dbi/tracee.hh"
+#include "dbi/util.hh"
 
 // class Snapshot;
 // typename Snapshot::Entry& operator^=(typename Snapshot::Entry& l, const typename Snapshot::Entry& r);

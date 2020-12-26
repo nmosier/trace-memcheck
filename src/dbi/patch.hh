@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "tracee.hh"
-#include "patch-fwd.hh"
 #include "block.hh"
 #include "block-pool.hh"
 #include "block-term.hh"

@@ -6,7 +6,6 @@
 #include <unordered_set>
 #include "block-term.hh"
 #include "util.hh"
-#include "debug.h"
 #include "config.hh"
 #include "block.hh"
 

@@ -13,10 +13,9 @@
 #include <getopt.h>
 #include <gperftools/profiler.h>
 
-#include "util.hh"
-#include "debug.h"
-#include "patch.hh"
-#include "config.hh"
+#include "dbi/util.hh"
+#include "dbi/patch.hh"
+#include "dbi/config.hh"
 
 static void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
   (void) addr;

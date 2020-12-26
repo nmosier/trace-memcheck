@@ -10,9 +10,8 @@
 #include <vector>
 #include <cstring>
 
-#include "util.hh"
-#include "inst.hh"
-#include "debug.h"
+#include "dbi/util.hh"
+#include "dbi/inst.hh"
 
 static inline bool stopped_trace(int status) {
   return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;

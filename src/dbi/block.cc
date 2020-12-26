@@ -3,7 +3,6 @@
 #include <cstring>
 #include "block.hh"
 #include "block-pool.hh"
-#include "debug.h"
 #include "settings.hh"
 
 bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,

@@ -5,8 +5,8 @@
 #include <cassert>
 #include <string>
 #include <cstdint>
-#include "tracee.hh"
-#include "settings.hh"
+#include "dbi/tracee.hh"
+#include "dbi/settings.hh"
 
 template <typename Cksum, typename Data>
 class Checksum {

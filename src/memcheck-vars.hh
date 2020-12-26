@@ -1,9 +1,9 @@
 #pragma once
 
-#include "usermem.hh"
-#include "tracee.hh"
-#include "util.hh"
-#include "patch.hh"
+#include "dbi/usermem.hh"
+#include "dbi/tracee.hh"
+#include "dbi/util.hh"
+#include "dbi/patch.hh"
 #include "memcheck-types.hh"
 
 class MemcheckVariables {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "syscall.hh"
+#include "dbi/syscall.hh"
 #include "addr-range.hh"
 #include "state.hh"
 #include "memcheck.hh"

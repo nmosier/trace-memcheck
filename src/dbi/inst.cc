@@ -2,7 +2,6 @@
 #include <cstring>
 #include <unordered_map>
 #include "inst.hh"
-#include "debug.h"
 
 uint8_t *Instruction::branch_dst(void) const {
   return after_pc() + xed_decoded_inst_get_branch_displacement(&xedd());

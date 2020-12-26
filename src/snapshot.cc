@@ -6,7 +6,7 @@
 #include <set>
 #include "snapshot.hh"
 #include "state.hh"
-#include "settings.hh"
+#include "dbi/settings.hh"
 
 bool Snapshot::similar(const Snapshot& other) const {
   if (map.size() != other.map.size()) {

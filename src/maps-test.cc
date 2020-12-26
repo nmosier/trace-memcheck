@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sys/mman.h>
 #include "maps.hh"
-#include "util.hh"
+#include "dbi/util.hh"
 
 int main(void) {
   const pid_t pid = getpid();

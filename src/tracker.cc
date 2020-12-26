@@ -6,7 +6,7 @@ extern "C" {
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
-#include "settings.hh"
+#include "dbi/settings.hh"
 
 uint8_t *JccTracker::add(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
   static_assert(JCC_TRACKER_INCORE || JCC_TRACKER_BKPT, "");

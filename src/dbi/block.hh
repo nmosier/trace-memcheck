@@ -17,9 +17,6 @@ extern "C" {
 
 #include "tracee.hh"
 #include "inst.hh"
-#include "patch-fwd.hh"
-#include "block-fwd.hh"
-#include "block-pool-fwd.hh"
 #include "block-term.hh"
 #include "ptr-pool.hh"
 #include "tmp-mem.hh"

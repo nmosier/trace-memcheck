@@ -4,13 +4,13 @@ class Memcheck;
 
 #include <unordered_set>
 #include "tracker.hh"
-#include "inst.hh"
-#include "util.hh"
-#include "patch.hh"
+#include "dbi/inst.hh"
+#include "dbi/util.hh"
+#include "dbi/patch.hh"
 #include "maps.hh"
 #include "state.hh"
 #include "pageset.hh"
-#include "settings.hh"
+#include "dbi/settings.hh"
 #include "memcheck-vars.hh"
 
 class Memcheck {

@@ -12,10 +12,9 @@
 #include <getopt.h>
 #include <gperftools/profiler.h>
 
-#include "util.hh"
-#include "debug.h"
-#include "patch.hh"
-#include "config.hh"
+#include "dbi/util.hh"
+#include "dbi/patch.hh"
+#include "dbi/config.hh"
 #include "memcheck.hh"
 
 int main(int argc, char *argv[]) {
