@@ -2,12 +2,13 @@
 
 namespace memcheck {
 
-  void MemcheckVariables::open(Tracee& tracee, const Patcher& patcher, fill_ptr_t fill_src) {
+  void MemcheckVariables::open(dbi::Tracee& tracee, const dbi::Patcher& patcher,
+			       fill_ptr_t fill_src) {
     assert(!*this);
 
     fill_src_ = fill_src;
     this->tracee = &tracee;
-    mem.open(tracee, PAGESIZE, PROT_READ | PROT_WRITE);
+    mem.open(tracee, dbi::PAGESIZE, PROT_READ | PROT_WRITE);
     allocator.open(mem);
     fill_ptr_ = reinterpret_cast<uint8_t *>(allocator.alloc());
     jcc_cksum_ptr_ = reinterpret_cast<uint32_t *>(allocator.alloc());

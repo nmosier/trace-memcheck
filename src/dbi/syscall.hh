@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sys/time.h>
 
+namespace dbi {
+
 #define sa0   int, a0_, sa1
 #define sa1   int, a1_, sa2
 #define sa2   int, a2_, sa3
@@ -135,50 +137,57 @@
 # define XSTR(x) STR(x)
 #endif
 
-// #define EXPAND(...) __VA_ARGS__
+  // #define EXPAND(...) __VA_ARGS__
 
 #define SYSCALLS_ENUM(name, val, ...) name = val,
 #define SYSCALLS_STR(name, val, ...) case Syscall::name: return XSTR(name);
 
-enum class Syscall {
-  SYSCALLS(SYSCALLS_ENUM)
-};
+  enum class Syscall {
+    SYSCALLS(SYSCALLS_ENUM)
+  };
 
-const char *to_string(Syscall syscall);
-Syscall to_syscall(const char *s);
+  const char *to_string(Syscall syscall);
+  Syscall to_syscall(const char *s);
 
-inline std::ostream& operator<<(std::ostream& os, Syscall syscall) {
-  const char *s = to_string(syscall);
-  if (s == nullptr) {
-    return os << static_cast<int>(syscall);
-  } else {
-    return os << s;
+  inline std::ostream& operator<<(std::ostream& os, Syscall syscall) {
+    const char *s = to_string(syscall);
+    if (s == nullptr) {
+      return os << static_cast<int>(syscall);
+    } else {
+      return os << s;
+    }
   }
 }
 
 namespace std {
-  template <> struct hash<Syscall> {
-    size_t operator()(Syscall syscall) const { return std::hash<int>()(static_cast<int>(syscall)); }
+  template <> struct hash<dbi::Syscall> {
+    size_t operator()(dbi::Syscall syscall) const {
+      return std::hash<int>()(static_cast<int>(syscall));
+    }
   };
 }
 
-// test
+namespace dbi {
+
+  // test
 #if 1
 #define SYSCALLS_DECLARE(name, no, rv, argc, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5, ...) \
-  case Syscall::name:						\
-  {								\
-  t0 n0; (void) n0;						\
-  t1 n1; (void) n1;						\
-  t2 n2; (void) n2;						\
-  t3 n3; (void) n3;						\
-  t4 n4; (void) n4;						\
-  t5 n5; (void) n5;						\
-  }								\
+  case Syscall::name:							\
+  {									\
+    t0 n0; (void) n0;							\
+    t1 n1; (void) n1;							\
+    t2 n2; (void) n2;							\
+    t3 n3; (void) n3;							\
+    t4 n4; (void) n4;							\
+    t5 n5; (void) n5;							\
+  }									\
   break;
 
-inline void syscalls_declare(Syscall syscall) {
-  switch (syscall) {
-    SYSCALLS(SYSCALLS_DECLARE);
+  inline void syscalls_declare(Syscall syscall) {
+    switch (syscall) {
+      SYSCALLS(SYSCALLS_DECLARE);
+    }
   }
-}
 #endif
+
+}

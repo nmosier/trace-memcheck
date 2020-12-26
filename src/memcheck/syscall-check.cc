@@ -17,7 +17,7 @@ namespace memcheck {
 
   bool SyscallChecker::check_read(const void *begin, const void *end) const {
     if (!taint_state.is_zero(begin, end)) {
-      *g_conf.log << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
+      *dbi::g_conf.log << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
       return false;
     }
     return true;
@@ -29,7 +29,7 @@ namespace memcheck {
 
   bool SyscallChecker::check_write(void *begin, void *end) const {
     /* unlock buffer */
-    for_each_page(pagealign(begin), pagealign_up(end), [this] (const auto pageaddr) {
+    dbi::for_each_page(dbi::pagealign(begin), dbi::pagealign_up(end), [this] (const auto pageaddr) {
       const auto page_it = page_set.find(pageaddr);
       if (page_it != page_set.end() && page_set.tier(*page_it) == PageInfo::Tier::RDWR_LOCKED) {
 	page_set.unlock(*page_it, tracee);
@@ -37,8 +37,9 @@ namespace memcheck {
     });
   
     if (stack_range.overlaps(AddrRange(begin, end))) {
-      *g_conf.log << "memcheck: warning: " << to_string(args.no()) << ": write below stack pointer\n";
-      *g_conf.log << stack_range << " " << AddrRange(begin, end) << "\n";
+      *dbi::g_conf.log << "memcheck: warning: " << to_string(args.no())
+		       << ": write below stack pointer\n";
+      *dbi::g_conf.log << stack_range << " " << AddrRange(begin, end) << "\n";
       return true;
     }
 
@@ -52,11 +53,11 @@ namespace memcheck {
   bool SyscallChecker::pre() {
     /* make sure syscall number not tainted */
     if (static_cast<int>(taint_state.gpregs().rax())) {
-      *g_conf.log << "memcheck: tainted system call number\n";
+      *dbi::g_conf.log << "memcheck: tainted system call number\n";
       return false;
     }
 
-#define PRE_TAB(name, ...) case Syscall::name: return pre_##name();
+#define PRE_TAB(name, ...) case dbi::Syscall::name: return pre_##name();
     switch (args.no()) {
       SYSCALLS(PRE_TAB);
     default: abort();
@@ -78,7 +79,7 @@ namespace memcheck {
 #define PRE_CHK_LINE(name, argc, i, t, n)				\
   if (i < argc) {							\
     if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
-      *g_conf.log << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
+      *dbi::g_conf.log << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
       print_regs<i, t>();						\
       return false;							\
     }									\
@@ -108,18 +109,19 @@ namespace memcheck {
   bool SyscallChecker::pre_##sys() {					\
     PRE_DEF(sys);							\
     PRE_CHK(sys);							\
-    *g_conf.log << "memcheck: warning: " << args.no() << ": stub\n";	\
+    *dbi::g_conf.log << "memcheck: warning: " << args.no() << ": stub\n"; \
     return true;							\
   }
 
 #define PRE_READ_STRING(str)						\
   do {									\
     if (!check_read(str)) {						\
-      *g_conf.log << "memcheck: " << args.no() << ": ";			\
+      *dbi::g_conf.log << "memcheck: " << args.no() << ": ";		\
       for (const State& state : memcheck.post_states) {			\
-	*g_conf.log << "'" << state.string(str) << "' ";		\
+	*dbi::g_conf.log << "'" << state.string(str) << "' ";		\
       }									\
-      *g_conf.log << "\nstr @ " << (void *) str << ", sp @ " << (void *) tracee.get_sp() << "\n"; \
+      *dbi::g_conf.log << "\nstr @ " << (void *) str << ", sp @ "	\
+		       << (void *) tracee.get_sp() << "\n";		\
       return false;							\
     }									\
   } while (0)
@@ -156,7 +158,7 @@ namespace memcheck {
   bool SyscallChecker::pre_FSTAT() {
     PRE_DEF_CHK(FSTAT);
     PRE_WRITE_TYPE(buf);
-    *g_conf.log << "FSTAT(" << (void *) buf << ")\n";
+    *dbi::g_conf.log << "FSTAT(" << (void *) buf << ")\n";
     return true;
   }
 
@@ -490,7 +492,7 @@ namespace memcheck {
   }
 
   void SyscallChecker::post() {
-#define POST_TAB(name, ...) case Syscall::name: post_##name(); break;
+#define POST_TAB(name, ...) case dbi::Syscall::name: post_##name(); break;
     switch (args.no()) {
       SYSCALLS(POST_TAB);
     }
@@ -508,7 +510,7 @@ namespace memcheck {
 #define POST_ABORT(sys) void SyscallChecker::post_##sys() { abort(); }
 #define POST_STUB(sys)					\
   void SyscallChecker::post_##sys() {			\
-    *g_conf.log << "memcheck: warning: "#sys": stub\n";	\
+    *dbi::g_conf.log << "memcheck: warning: "#sys": stub\n";	\
   }
 #define POST_TRUE(sys) void SyscallChecker::post_##sys() {}
 #define POST_WRITE_TYPE(name) do_write(name, sizeof(*name))

@@ -19,7 +19,7 @@ namespace memcheck {
     return res ^= other;
   }
 
-  void State::restore(Tracee& tracee) const {
+  void State::restore(dbi::Tracee& tracee) const {
     gpregs_.restore(tracee);
     fpregs_.restore(tracee);
     snapshot_.restore(tracee);

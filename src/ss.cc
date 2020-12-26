@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     execvp(command[0], command);
   }
 
-  Decoder::Init();
+  dbi::Decoder::Init();
 
 #if DEBUG
   printf("child pid = %d\n", child);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
   wait(&status);
   assert(stopped_trace(status));
 
-  Tracee tracee(child, command[0]);
+  dbi::Tracee tracee(child, command[0]);
 
   std::vector<void *> insts;
 
@@ -73,13 +73,13 @@ int main(int argc, char *argv[]) {
        if (stopsig != SIGTRAP) {
 	 fprintf(stderr, "unexpected signal %d\n", stopsig);
 	 uint8_t *stop_pc = tracee.get_pc();
-	 Instruction inst(stop_pc, tracee);
-	 fprintf(stderr, "stopped at inst: %s\n", Decoder::disas(inst).c_str());
+	 dbi::Instruction inst(stop_pc, tracee);
+	 fprintf(stderr, "stopped at inst: %s\n", dbi::Decoder::disas(inst).c_str());
 	 abort();
        }
        if (execution_trace) {
 	 std::clog << "ss pc = " << (void *) tracee.get_pc() << ": "
-		   << Instruction(tracee.get_pc(), tracee) << "\n";
+		   << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
        }
     } else {
       break;

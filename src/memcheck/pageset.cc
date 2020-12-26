@@ -28,7 +28,7 @@ namespace memcheck {
     maps_gen.get_maps(std::back_inserter(tmp_maps));
     std::for_each(tmp_maps.begin(), tmp_maps.end(), [&] (const auto& map) {
       PageInfo page_info{map.flags, map.prot, map.prot};
-      for_each_page(map.begin, map.end, [this, &page_info] (const auto pageaddr) {
+      dbi::for_each_page(map.begin, map.end, [this, &page_info] (const auto pageaddr) {
 	this->track_page(pageaddr, page_info);
       });
     });
@@ -39,40 +39,40 @@ namespace memcheck {
   }
 
   void PageSet::untrack_range(void *begin, void *end) {
-    for_each_page(begin, end, [this] (void *pageaddr) { untrack_page(pageaddr); });    
+    dbi::for_each_page(begin, end, [this] (void *pageaddr) { untrack_page(pageaddr); });    
   }
 
-  void PageInfo::lock(void *pageaddr, Tracee& tracee, int mask) {
-    if (g_conf.verbosity >= 1) {
-      *g_conf.log << "LOCKING PAGE " << (void *) pageaddr << "\n";
+  void PageInfo::lock(void *pageaddr, dbi::Tracee& tracee, int mask) {
+    if (dbi::g_conf.verbosity >= 1) {
+      *dbi::g_conf.log << "LOCKING PAGE " << (void *) pageaddr << "\n";
     }
   
     assert(tier() == Tier::RDWR_UNLOCKED);
   
     assert(orig_prot_ == cur_prot_);
     assert((orig_prot_ & mask) == mask);
-    tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, cur_prot_);
+    tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) pageaddr, dbi::PAGESIZE, cur_prot_);
 
     prot(orig_prot_, orig_prot_ & ~mask);
   
     assert(tier() == Tier::RDWR_LOCKED);
   }
 
-  void PageInfo::unlock(void *pageaddr, Tracee& tracee) {
-    if (g_conf.verbosity >= 1) {
-      *g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
+  void PageInfo::unlock(void *pageaddr, dbi::Tracee& tracee) {
+    if (dbi::g_conf.verbosity >= 1) {
+      *dbi::g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
     }
   
     assert(tier() == Tier::RDWR_LOCKED);
   
-    tracee.syscall(Syscall::MPROTECT, (uintptr_t) pageaddr, PAGESIZE, orig_prot_);
+    tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) pageaddr, dbi::PAGESIZE, orig_prot_);
     ++count_;
     prot(orig_prot_, orig_prot_);
   
     assert(tier() == Tier::RDWR_UNLOCKED);
   }
 
-  void PageSet::lock_top_counts(unsigned n, Tracee& tracee, int mask) {
+  void PageSet::lock_top_counts(unsigned n, dbi::Tracee& tracee, int mask) {
     /* get map of counts to page map iterators */
     std::multimap<unsigned, Map::iterator> counts_map;
 
@@ -85,7 +85,7 @@ namespace memcheck {
       }
     }
 
-    *g_conf.log << "count: " << counts_map.size() << "\n";
+    *dbi::g_conf.log << "count: " << counts_map.size() << "\n";
   
     /* find top N */
     auto rit = counts_map.rbegin();

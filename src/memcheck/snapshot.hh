@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #include "dbi/tracee.hh"
-#include "dbi/util.hh"
+#include "util.hh"
 
 namespace memcheck {
 
@@ -18,10 +18,10 @@ namespace memcheck {
     template <typename... Args>
     SnapshotPage(Args&&... args) { save(args...); }
 
-    void save(const void *pageaddr, Tracee& tracee) { tracee.read(buf_, pageaddr); }
+    void save(const void *pageaddr, dbi::Tracee& tracee) { tracee.read(buf_, pageaddr); }
     void save(const void *pageaddr, uint8_t fill) { std::fill(buf_.begin(), buf_.end(), fill); }
 
-    void restore(void *pageaddr, Tracee& tracee) const { tracee.write(buf_, pageaddr); }
+    void restore(void *pageaddr, dbi::Tracee& tracee) const { tracee.write(buf_, pageaddr); }
       
     auto begin() const { return buf_.begin(); }
     auto begin() { return buf_.begin(); }
@@ -50,7 +50,7 @@ namespace memcheck {
     }
 
   private:
-    std::array<value_type, PAGESIZE> buf_;
+    std::array<value_type, dbi::PAGESIZE> buf_;
 
     template <template <class> class Binop>
     SnapshotPage& binop_inplace(const SnapshotPage& other) {
@@ -62,7 +62,7 @@ namespace memcheck {
   public:
     Snapshot() {}
 
-    auto size() const { return map.size() * PAGESIZE; }
+    auto size() const { return map.size() * dbi::PAGESIZE; }
 
     template <typename InputIt, typename... Args>
     void save(InputIt begin, InputIt end, Args&&... args) {
@@ -98,7 +98,7 @@ namespace memcheck {
       return binop_subset_inplace<std::bit_or>(other);
     }
   
-    void restore(Tracee& tracee) const;
+    void restore(dbi::Tracee& tracee) const;
     void zero();
     bool similar(const Snapshot& other) const; // ensure entries are at same addresses
     bool is_zero(const void *begin, const void *end) const;
@@ -131,7 +131,7 @@ namespace memcheck {
     }
   
     void remove(void *begin, void *end) {
-      for_each_page(begin, end, [this] (const auto pageaddr) {
+      dbi::for_each_page(begin, end, [this] (const auto pageaddr) {
 	this->remove(pageaddr);
       });
     }
@@ -237,7 +237,7 @@ namespace memcheck {
 
     template <class Fill>
     void add_fill(void *pageaddr, Fill fill) {
-      assert(is_pageaddr(pageaddr));
+      assert(dbi::is_pageaddr(pageaddr));
       if (map.find(pageaddr) == map.end()) {
 	SnapshotPage entry;
 	fill(pageaddr, entry.begin());

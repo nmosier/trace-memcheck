@@ -1,6 +1,8 @@
 #pragma once
 
-class Tracee;
+namespace dbi {
+  class Tracee;
+}
 
 #include <iostream>
 #include <array>
@@ -16,165 +18,169 @@ class Tracee;
 #include "syscall.hh"
 #include "util.hh"
 
-class Tracee {
-public:
-  Tracee(): fd_(-1) {}
-  Tracee(pid_t pid, const char *command) { open(pid, command); }
-  ~Tracee();
-  Tracee(const Tracee& other) = delete;
-  
-  bool good() const { return fd_ >= 0; }
-  operator bool() const { return good(); }
-  
-  void open(pid_t pid, const char *command);
-  void close(void);
-  
-  pid_t pid() const { return pid_; }
-  int fd() const { return fd_; }
+namespace dbi {
 
-  void read(void *to, size_t count, const void *from);
-  void readv(const struct iovec *iov, int iovcnt, const void *from);
+  class Tracee {
+  public:
+    Tracee(): fd_(-1) {}
+    Tracee(pid_t pid, const char *command) { open(pid, command); }
+    ~Tracee();
+    Tracee(const Tracee& other) = delete;
   
-  bool try_read(void *to, size_t count, const void *from);
-
-  template <typename OutputIt>
-  void read(OutputIt begin, OutputIt end, const void *from) {
-    read(&*begin, end - begin, from);
-  }
+    bool good() const { return fd_ >= 0; }
+    operator bool() const { return good(); }
   
-  template <typename T, size_t N>
-  void read(std::array<T,N>& to, const void *from) {
-    read(to.begin(), to.end(), from);
-  }
+    void open(pid_t pid, const char *command);
+    void close(void);
+  
+    pid_t pid() const { return pid_; }
+    int fd() const { return fd_; }
 
-  void write(const void *from, size_t count, void *to);
-  void writev(const struct iovec *iov, int iovcnt, void *to);
+    void read(void *to, size_t count, const void *from);
+    void readv(const struct iovec *iov, int iovcnt, const void *from);
+  
+    bool try_read(void *to, size_t count, const void *from);
+
+    template <typename OutputIt>
+    void read(OutputIt begin, OutputIt end, const void *from) {
+      read(&*begin, end - begin, from);
+    }
+  
+    template <typename T, size_t N>
+    void read(std::array<T,N>& to, const void *from) {
+      read(to.begin(), to.end(), from);
+    }
+
+    void write(const void *from, size_t count, void *to);
+    void writev(const struct iovec *iov, int iovcnt, void *to);
 	      
-  template <typename T, size_t N>
-  void write(const std::array<T,N>& from, void *to) {
-    write(from.data(), from.size() * sizeof(T), to);
-  }
+    template <typename T, size_t N>
+    void write(const std::array<T,N>& from, void *to) {
+      write(from.data(), from.size() * sizeof(T), to);
+    }
 
-  template <typename T>
-  void write_type(T val, T *addr) {
-    write(&val, sizeof(val), addr);
-  }
+    template <typename T>
+    void write_type(T val, T *addr) {
+      write(&val, sizeof(val), addr);
+    }
 
-  template <typename T>
-  T read_type(const T *addr) {
-    T val;
-    read(&val, sizeof(val), addr);
-    return val;
-  }
+    template <typename T>
+    T read_type(const T *addr) {
+      T val;
+      read(&val, sizeof(val), addr);
+      return val;
+    }
   
-  void write(const Blob& inst);
+    void write(const Blob& inst);
 	      
-  void fill(uint8_t val, size_t count, void *to);
-  void fill(uint8_t val, void *to_begin, void *to_end);
+    void fill(uint8_t val, size_t count, void *to);
+    void fill(uint8_t val, void *to_begin, void *to_end);
 
-  size_t strlen(const char *addr);
-  std::string string(const char *addr);
+    size_t strlen(const char *addr);
+    std::string string(const char *addr);
 
-  std::ostream& dump(std::ostream& os, const void *ptr, size_t count);
+    std::ostream& dump(std::ostream& os, const void *ptr, size_t count);
 
-  const user_regs_struct& get_gpregs();
-  void get_gpregs(user_regs_struct& regs); 
-  void set_gpregs(const user_regs_struct& regs);
+    const user_regs_struct& get_gpregs();
+    void get_gpregs(user_regs_struct& regs); 
+    void set_gpregs(const user_regs_struct& regs);
   
-  const user_fpregs_struct& get_fpregs();
-  void get_fpregs(user_fpregs_struct& fpregs);
-  void set_fpregs(const user_fpregs_struct& fpregs);
+    const user_fpregs_struct& get_fpregs();
+    void get_fpregs(user_fpregs_struct& fpregs);
+    void set_fpregs(const user_fpregs_struct& fpregs);
 
-  void get_regs(user_regs_struct& gpregs) { get_gpregs(gpregs); }
-  void get_regs(user_fpregs_struct& fpregs) { get_fpregs(fpregs); }
-  void set_regs(const user_regs_struct& gpregs) { set_gpregs(gpregs); }
-  void set_regs(const user_fpregs_struct& fpregs) { set_fpregs(fpregs); }
+    void get_regs(user_regs_struct& gpregs) { get_gpregs(gpregs); }
+    void get_regs(user_fpregs_struct& fpregs) { get_fpregs(fpregs); }
+    void set_regs(const user_regs_struct& gpregs) { set_gpregs(gpregs); }
+    void set_regs(const user_fpregs_struct& fpregs) { set_fpregs(fpregs); }
   
-  uint8_t *get_pc(void);
-  void set_pc(void *pc);
-  void *get_sp(void);
-  void set_sp(void *sp);
-  void get_siginfo(siginfo_t& siginfo);
-  siginfo_t get_siginfo();
-  auto get_flags() { return get_gpregs().eflags; }
+    uint8_t *get_pc(void);
+    void set_pc(void *pc);
+    void *get_sp(void);
+    void set_sp(void *sp);
+    void get_siginfo(siginfo_t& siginfo);
+    siginfo_t get_siginfo();
+    auto get_flags() { return get_gpregs().eflags; }
   
-  int singlestep() { return resume<PTRACE_SINGLESTEP>(); }
-  int cont() { return resume<PTRACE_CONT>(); }
-  int cont_syscall() { return resume<PTRACE_SYSCALL>(); }
+    int singlestep() { return resume<PTRACE_SINGLESTEP>(); }
+    int cont() { return resume<PTRACE_CONT>(); }
+    int cont_syscall() { return resume<PTRACE_SYSCALL>(); }
 
-  void syscall(user_regs_struct& regs);
+    void syscall(user_regs_struct& regs);
 
-  // TODO: Replace uintptr with decltype of regs.rip, e.g.
-  uintptr_t syscall(Syscall syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
-		    uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
+    // TODO: Replace uintptr with decltype of regs.rip, e.g.
+    uintptr_t syscall(Syscall syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
+		      uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
 
-  void perror(void) const;
+    void perror(void) const;
 
-  void gdb(void);
+    void gdb(void);
 
-  std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
+    std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
 
-  void disas(std::ostream& os, uint8_t *begin, uint8_t *end);
+    void disas(std::ostream& os, uint8_t *begin, uint8_t *end);
 
-  std::ostream& cat_maps(std::ostream& os) const;
+    std::ostream& cat_maps(std::ostream& os) const;
 
-  const char *filename() const { return command; }
+    const char *filename() const { return command; }
 
-  void assert_stopsig(int status, int expect);
+    void assert_stopsig(int status, int expect);
 
-  std::ostream& xmm_print(std::ostream& os, unsigned idx);
+    std::ostream& xmm_print(std::ostream& os, unsigned idx);
   
-private:
-  pid_t pid_;
-  int fd_;
-  const char *command;
-  bool regs_good_ = false;
-  user_regs_struct regs_;
-  bool fpregs_good_ = false;
-  user_fpregs_struct fpregs_;
+  private:
+    pid_t pid_;
+    int fd_;
+    const char *command;
+    bool regs_good_ = false;
+    user_regs_struct regs_;
+    bool fpregs_good_ = false;
+    user_fpregs_struct fpregs_;
 
-  void cache_regs();
-  void cache_fpregs();
-  void flush_caches();
-  void invalidate_caches();
+    void cache_regs();
+    void cache_fpregs();
+    void flush_caches();
+    void invalidate_caches();
   
-  /* Memory Cache */
-  static constexpr size_t CACHE_PAGE_SIZE = PAGESIZE;
-  struct Page {
-    using Data = std::array<uint8_t, CACHE_PAGE_SIZE>;
-    Data data;
-    bool dirty;
-  };
-  using PageMap = std::map<const void *, Page>;
-  PageMap memcache_;
+    /* Memory Cache */
+    static constexpr size_t CACHE_PAGE_SIZE = PAGESIZE;
+    struct Page {
+      using Data = std::array<uint8_t, CACHE_PAGE_SIZE>;
+      Data data;
+      bool dirty;
+    };
+    using PageMap = std::map<const void *, Page>;
+    PageMap memcache_;
 
-  template <typename T>
-  static constexpr const T *cache_pagealign(const T *ptr) {
-    return reinterpret_cast<const T *>(util::align_down(reinterpret_cast<uintptr_t>(ptr),
+    template <typename T>
+    static constexpr const T *cache_pagealign(const T *ptr) {
+      return reinterpret_cast<const T *>(util::align_down(reinterpret_cast<uintptr_t>(ptr),
+							  CACHE_PAGE_SIZE));
+    }
+
+    template <typename T>
+    static constexpr const T *cache_pagealign_up(const T *ptr) {
+      return reinterpret_cast<const T *>(util::align_up(reinterpret_cast<uintptr_t>(ptr),
 							CACHE_PAGE_SIZE));
-  }
+    }
 
-  template <typename T>
-  static constexpr const T *cache_pagealign_up(const T *ptr) {
-    return reinterpret_cast<const T *>(util::align_up(reinterpret_cast<uintptr_t>(ptr),
-						      CACHE_PAGE_SIZE));
-  }
+    Page& read_page(const void *pageaddr);
 
-  Page& read_page(const void *pageaddr);
-
-  Page& write_page(const void *pageaddr);
+    Page& write_page(const void *pageaddr);
   
-  void flush_memcache();
+    void flush_memcache();
   
-  size_t string(const char *addr, std::vector<char>& buf);
+    size_t string(const char *addr, std::vector<char>& buf);
 
-  template <__ptrace_request request>
-  int resume() {
-    flush_caches();
-    invalidate_caches();
-    ::ptrace(request, pid(), nullptr, nullptr);
-    int status;
-    ::wait(&status);
-    return status;
-  }
-};
+    template <__ptrace_request request>
+    int resume() {
+      flush_caches();
+      invalidate_caches();
+      ::ptrace(request, pid(), nullptr, nullptr);
+      int status;
+      ::wait(&status);
+      return status;
+    }
+  };
+
+}

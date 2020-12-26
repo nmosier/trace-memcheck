@@ -74,7 +74,7 @@ namespace memcheck {
       Checksum::add(addr, flags & mask, s);
     }
   
-    void add(uint8_t *addr, Tracee& tracee, const std::string& s = "") {
+    void add(uint8_t *addr, dbi::Tracee& tracee, const std::string& s = "") {
       add(addr, tracee.get_flags(), s);
     }
   

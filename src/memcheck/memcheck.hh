@@ -29,8 +29,8 @@ namespace memcheck {
     Loc orig_loc(uint8_t *addr);
 
   private:
-    Tracee tracee;
-    util::optional<Patcher> patcher;
+    dbi::Tracee tracee;
+    util::optional<dbi::Patcher> patcher;
     MemcheckVariables vars;
     StackTracker stack_tracker;
     SyscallTracker syscall_tracker;
@@ -44,11 +44,12 @@ namespace memcheck {
     Maps maps_gen;
     PageSet tracked_pages;
   
-    void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info);
+    void transformer(uint8_t *addr, dbi::Instruction& inst,
+		     const dbi::Patcher::TransformerInfo& info);
   
     static bool stopped_trace(int status);
-    static bool is_sp_dec(const Instruction& inst);
-    static bool is_jcc(const Instruction& inst);
+    static bool is_sp_dec(const dbi::Instruction& inst);
+    static bool is_jcc(const dbi::Instruction& inst);
 
     static constexpr size_t mprotect_bits = 12;
     static_assert(mprotect_bits >= 12, "bits must be greater than page size");
@@ -78,7 +79,7 @@ namespace memcheck {
   
     void init_taint(State& taint_state, bool taint_shadow_stack);
   
-    SyscallArgs syscall_args;
+    dbi::SyscallArgs syscall_args;
   
     static constexpr unsigned SUBROUNDS = 2;
     unsigned subround_counter = 0;

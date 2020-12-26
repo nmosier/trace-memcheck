@@ -18,7 +18,7 @@ namespace memcheck {
     bool good() const { return mem; }
     operator bool() const { return good(); }
 
-    void open(Tracee& tracee, const Patcher& patcher, fill_ptr_t fill_src);
+    void open(dbi::Tracee& tracee, const dbi::Patcher& patcher, fill_ptr_t fill_src);
 
     uint8_t * const * fill_ptr_ptr() const { return &fill_ptr_; }
     uint8_t fill_val() { return read_type(fill_ptr_); }
@@ -36,9 +36,9 @@ namespace memcheck {
     void init_for_subround();
   
   private:
-    Tracee *tracee = nullptr;
-    UserMemory mem;
-    UserAllocator<uint64_t> allocator;
+    dbi::Tracee *tracee = nullptr;
+    dbi::UserMemory mem;
+    dbi::UserAllocator<uint64_t> allocator;
 
     fill_ptr_t fill_src_;
     uint8_t *fill_ptr_; // so tracee knows what to fill with

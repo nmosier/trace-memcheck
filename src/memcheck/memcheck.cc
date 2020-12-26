@@ -57,15 +57,15 @@ namespace memcheck {
   
 
   void Memcheck::write_maps() const {
-    if (g_conf.map_file) {
+    if (dbi::g_conf.map_file) {
       std::stringstream ss;
       ss << "/proc/" << tracee.pid() << "/maps";
       std::ifstream maps_in(ss.str());
       std::string line;
       while (std::getline(maps_in, line)) {
-	g_conf.map_file << line << "\n";
+	dbi::g_conf.map_file << line << "\n";
       }
-      g_conf.map_file.close();
+      dbi::g_conf.map_file.close();
     }
   }
 
@@ -76,7 +76,7 @@ namespace memcheck {
   
     const pid_t child = fork();
     if (child == 0) {
-      if (g_conf.preload) {
+      if (dbi::g_conf.preload) {
 	char *dirname = get_current_dir_name();
 	if (dirname == nullptr) {
 	  std::perror("get_current_dir_name");
@@ -95,7 +95,7 @@ namespace memcheck {
 
     signal(SIGINT, sigint_handler);
 
-    Decoder::Init();
+    dbi::Decoder::Init(); // TODO: remove
 
     int status;
     wait(&status);
@@ -103,7 +103,7 @@ namespace memcheck {
 
     tracee.open(child, file);
     // TODO: open patcher
-    patcher = Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
+    patcher = dbi::Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
 
     vars.open(tracee, *patcher, cur_fill_ptr());
 
@@ -133,7 +133,7 @@ namespace memcheck {
     return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;  
   }
 
-  bool Memcheck::is_sp_dec(const Instruction& inst) {
+  bool Memcheck::is_sp_dec(const dbi::Instruction& inst) {
     if (inst.xed_reg0() != XED_REG_RSP) {
       return false;
     }
@@ -147,7 +147,7 @@ namespace memcheck {
     return true; // TODO: Should be more conservative about this...
   }
 
-  bool Memcheck::is_jcc(const Instruction& inst) {
+  bool Memcheck::is_jcc(const dbi::Instruction& inst) {
     switch (inst.xed_iclass()) {
     case XED_ICLASS_JB:
     case XED_ICLASS_JBE:
@@ -174,7 +174,8 @@ namespace memcheck {
     }
   }
 
-  void Memcheck::transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+  void Memcheck::transformer(uint8_t *addr, dbi::Instruction& inst,
+			     const dbi::Patcher::TransformerInfo& info) {
     (void) addr;
 
     if (is_sp_dec(inst)) {
@@ -222,10 +223,10 @@ namespace memcheck {
 
     // DEBUG
     if (inst.xed_iclass() == XED_ICLASS_RDTSC) {
-      auto bkpt = Instruction::int3(addr);
+      auto bkpt = dbi::Instruction::int3(addr);
       addr = info.writer(bkpt);
       info.rb(bkpt.pc(), [] (const auto addr) {
-	*g_conf.log << "RDTSC @ " << (void *) addr << "\n";
+	*dbi::g_conf.log << "RDTSC @ " << (void *) addr << "\n";
       });
       addr = info.writer(inst);
       return;
@@ -250,18 +251,18 @@ namespace memcheck {
   }
 
   void *Memcheck::stack_begin() {
-    const auto stack_end = pagealign_up(tracee.get_sp());
+    const auto stack_end = dbi::pagealign_up(tracee.get_sp());
     auto stack_begin = stack_end;
 
     while (true) {
-      stack_begin = pageidx(stack_begin, -1);
+      stack_begin = dbi::pageidx(stack_begin, -1);
       const auto it = tracked_pages.find(stack_begin);
       if (it == tracked_pages.end() || !(it->second.orig_prot() & PROT_WRITE)) {
 	break;
       }
     }
 
-    stack_begin = pageidx(stack_begin, 1);
+    stack_begin = dbi::pageidx(stack_begin, 1);
     return stack_begin;
   }
 
@@ -303,22 +304,26 @@ namespace memcheck {
 			    l.diff(r, [this] (const auto addr,
 					      const auto& flags1, const auto& flags2,
 					      const auto& data1, const auto& data2) {
-			      *g_conf.log << "JCC MISMATCH @ " << (void *) addr << ", flags ";
+			      *dbi::g_conf.log << "JCC MISMATCH @ " << (void *) addr << ", flags ";
 			      for (auto flag : FlagSet(flags1)) {
-				*g_conf.log << flag << " ";
+				*dbi::g_conf.log << flag << " ";
 			      }
-			      *g_conf.log << "vs ";
+			      *dbi::g_conf.log << "vs ";
 			      for (auto flag : FlagSet(flags2)) {
-				*g_conf.log << flag << " ";
+				*dbi::g_conf.log << flag << " ";
 			      }
-			      *g_conf.log << "\n";
+			      *dbi::g_conf.log << "\n";
 			      const auto loc = this->orig_loc(addr);
-			      *g_conf.log << loc.first << " " << loc.second << "\n";
-			      *g_conf.log << "orig: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
-			      *g_conf.log << "new:  " << Instruction((uint8_t *) addr + 1, tracee) << "\n";
-			      *g_conf.log << "data: " << data1 << " vs " << data2 << "\n";
+			      *dbi::g_conf.log << loc.first << " " << loc.second << "\n";
+			      *dbi::g_conf.log << "orig: "
+					       << dbi::Instruction((uint8_t *) loc.first, tracee)
+					       << "\n";
+			      *dbi::g_conf.log << "new:  "
+					       << dbi::Instruction((uint8_t *) addr + 1, tracee)
+					       << "\n";
+			      *dbi::g_conf.log << "data: " << data1 << " vs " << data2 << "\n";
 			      if (ABORT_ON_TAINT) {
-				g_conf.abort(tracee);
+				dbi::g_conf.abort(tracee);
 			      }
 			    });
 			  });
@@ -339,8 +344,8 @@ namespace memcheck {
 			return bkpt_cksum.cksum() == incore_cksum;
 		      }))
 	{
-	  *g_conf.log << "JCC incore and bkpt checksums disagree\n";
-	  g_conf.abort(tracee);
+	  *dbi::g_conf.log << "JCC incore and bkpt checksums disagree\n";
+	  dbi::g_conf.abort(tracee);
 	}
     }
 
@@ -350,13 +355,13 @@ namespace memcheck {
   template <typename InputIt>
   void Memcheck::check_checksums(InputIt begin, InputIt end, const char *desc) {
     if (!util::all_equal(begin, end)) {
-      *g_conf.log << "memcheck: conditional jump checksums differ";
+      *dbi::g_conf.log << "memcheck: conditional jump checksums differ";
       if (desc) {
-	*g_conf.log << " (" << desc << ")";
+	*dbi::g_conf.log << " (" << desc << ")";
       }
-      *g_conf.log << "\n";
+      *dbi::g_conf.log << "\n";
       if (ABORT_ON_TAINT) {
-	g_conf.abort(tracee);
+	dbi::g_conf.abort(tracee);
       }
     }
   }
@@ -408,7 +413,7 @@ namespace memcheck {
   }
 
   void Memcheck::start_round() {
-    for_each_page(stack_begin(), pageidx(pagealign_up(tracee.get_sp()), -16),
+    dbi::for_each_page(stack_begin(), dbi::pageidx(dbi::pagealign_up(tracee.get_sp()), -16),
 		  [this] (const auto pageaddr) {
 		    const auto it = tracked_pages.find(pageaddr);
 		    if (tracked_pages.tier(*it) == PageInfo::Tier::RDWR_UNLOCKED) {
@@ -491,7 +496,7 @@ namespace memcheck {
     maps_gen.get_maps(std::back_inserter(maps));
     for (const auto& map : maps) {
       if (map.desc == name) {
-	tracee.syscall(Syscall::MPROTECT, (uintptr_t) map.begin, (uintptr_t) map.size(), prot);
+	tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) map.begin, (uintptr_t) map.size(), prot);
 	return;
       }
     }
@@ -501,7 +506,7 @@ namespace memcheck {
   void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
     /* check status of page at which fault occurred */
     void *faultaddr = siginfo.si_addr;
-    void *pageaddr = pagealign(faultaddr);
+    void *pageaddr = dbi::pagealign(faultaddr);
 
     auto page_it = tracked_pages.find(pageaddr);
     if (page_it == tracked_pages.end()) {
@@ -515,10 +520,11 @@ namespace memcheck {
     case Tier::SHARED:
       {
 	const auto loc = orig_loc(tracee.get_pc());
-	*g_conf.log << loc.first << " " << loc.second << "\n";
-	*g_conf.log << "orig inst: " << Instruction((uint8_t *) loc.first, tracee) << "\n";
-	*g_conf.log << "pool inst: " << Instruction(tracee.get_pc(), tracee) << "\n";
-	*g_conf.log << "fault addr: " << faultaddr << "\n";
+	*dbi::g_conf.log << loc.first << " " << loc.second << "\n";
+	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee)
+			 << "\n";
+	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
+	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
 
 	// TODO: properly specify permissions
 	SharedMemSeqPt seq_pt(tracee, *this, taint_state);
@@ -528,7 +534,7 @@ namespace memcheck {
 
     case Tier::RDONLY:
     case Tier::RDWR_UNLOCKED:
-      g_conf.abort(tracee);
+      dbi::g_conf.abort(tracee);
       break;
 
     case Tier::RDWR_LOCKED:

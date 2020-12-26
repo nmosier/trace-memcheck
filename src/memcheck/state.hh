@@ -18,17 +18,17 @@ namespace memcheck {
   public:
     State() {}
 
-    const GPRegisters& gpregs() const { return gpregs_; }
-    GPRegisters& gpregs() { return gpregs_; }
-    const FPRegisters& fpregs() const { return fpregs_ ;}
-    FPRegisters& fpregs() { return fpregs_; }
+    const dbi::GPRegisters& gpregs() const { return gpregs_; }
+    dbi::GPRegisters& gpregs() { return gpregs_; }
+    const dbi::FPRegisters& fpregs() const { return fpregs_ ;}
+    dbi::FPRegisters& fpregs() { return fpregs_; }
     Snapshot& snapshot() { return snapshot_; }
     const Snapshot& snapshot() const { return snapshot_; }
 
     std::ostream& xmm_print(std::ostream& os, unsigned idx) const;
 
     template <typename InputIt>
-    void save(Tracee& tracee, InputIt begin, InputIt end) {
+    void save(dbi::Tracee& tracee, InputIt begin, InputIt end) {
       gpregs_.save(tracee);
       fpregs_.save(tracee);
       snapshot_.save(begin, end, tracee);
@@ -79,7 +79,7 @@ namespace memcheck {
     
     bool similar(const State& other) const;
   
-    void restore(Tracee& tracee) const;
+    void restore(dbi::Tracee& tracee) const;
 
     void zero();
     bool is_zero() const;
@@ -96,8 +96,8 @@ namespace memcheck {
     std::ostream& dump(std::ostream& os, const void *begin, const void *end) const;
 
   private:
-    GPRegisters gpregs_;
-    FPRegisters fpregs_;
+    dbi::GPRegisters gpregs_;
+    dbi::FPRegisters fpregs_;
     Snapshot snapshot_;
   };
 

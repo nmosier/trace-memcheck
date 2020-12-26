@@ -1,4 +1,8 @@
 #pragma once
 
-constexpr bool PATCHER_USE_ROMCACHE = false;
-constexpr bool TRACEE_MEMCACHE      = false;
+namespace dbi {
+
+  constexpr bool PATCHER_USE_ROMCACHE = false;
+  constexpr bool TRACEE_MEMCACHE      = false;
+
+}

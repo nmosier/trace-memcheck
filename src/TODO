@@ -48,3 +48,8 @@
 [ ] Improve testing system
 [ ] Pass signals to patcher
 [ ] Write logging in log.hh
+[ ] Centrlaized Decoder::Init()
+[ ] Move regs.hh back into memcheck
+[ ] Export function callbacks like BkptCallback from dbi to central header
+[ ] MemcheckVariables -> Variables
+[ ] Embed confs

@@ -68,31 +68,31 @@ int main(int argc, char *argv[]) {
       return 0;
 
     case 'g':
-      g_conf.gdb = true;
+      dbi::g_conf.gdb = true;
       break;
 
     case 'p':
-      g_conf.profile = true;
+      dbi::g_conf.profile = true;
       break;
 
     case 's':
-      g_conf.singlestep = true;
+      dbi::g_conf.singlestep = true;
       break;
 
     case 'x':
-      g_conf.execution_trace = true;
+      dbi::g_conf.execution_trace = true;
       break;
 
     case 'b':
-      g_conf.dump_ss_bkpts = true;
+      dbi::g_conf.dump_ss_bkpts = true;
       break;
 
     case 'j':
-      g_conf.dump_jcc_info = true;
+      dbi::g_conf.dump_jcc_info = true;
       break;
 
     case 'd':
-      g_conf.execution_trace_diff = true;
+      dbi::g_conf.execution_trace_diff = true;
       break;
 
     case 'l':
@@ -101,23 +101,23 @@ int main(int argc, char *argv[]) {
 	std::cerr << argv[0] << ": couldn't open log file '" << optarg << "'\n";
 	return 1;
       }
-      g_conf.log = &log;
+      dbi::g_conf.log = &log;
       break;
 
     case 'm':
-      g_conf.map_file.open(optarg, std::ofstream::out | std::ofstream::trunc);
-      if (!g_conf.map_file) {
+      dbi::g_conf.map_file.open(optarg, std::ofstream::out | std::ofstream::trunc);
+      if (!dbi::g_conf.map_file) {
 	std::cerr << argv[0] << ": couldn't open map file'" << optarg << "'\n";
 	return 1;
       }
       break;
 
     case 'v':
-      ++g_conf.verbosity;
+      ++dbi::g_conf.verbosity;
       break;
       
     case PREDICTION_MODE:
-      if (!g_conf.set_prediction_mode(optarg)) {
+      if (!dbi::g_conf.set_prediction_mode(optarg)) {
 	fprintf(stderr, "%s: --prediction-mode: bad argument\n", argv[0]);
 	return 1;
       }
@@ -131,12 +131,12 @@ int main(int argc, char *argv[]) {
 	  std::cerr << argv[0] << ": --ss-syscall: invalid syscall-count pair\n";
 	  return 1;
 	}
-	g_conf.ss_syscall(syscall, std::stoul(count));
+	dbi::g_conf.ss_syscall(syscall, std::stoul(count));
       }
       break;
 
     case NO_PRELOAD:
-      g_conf.preload = false;
+      dbi::g_conf.preload = false;
       break;
       
     default:
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (g_conf.profile) {
+  if (dbi::g_conf.profile) {
     ProfilerStart("memcheck.prof");
   }
   
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
   }
   memcheck.run();
 
-  if (g_conf.profile) {
+  if (dbi::g_conf.profile) {
     ProfilerStop();
   }
   

@@ -17,7 +17,8 @@
 #include "dbi/patch.hh"
 #include "dbi/config.hh"
 
-static void transformer(uint8_t *addr, Instruction& inst, const Patcher::TransformerInfo& info) {
+static void transformer(uint8_t *addr, dbi::Instruction& inst,
+			const dbi::Patcher::TransformerInfo& info) {
   (void) addr;
   addr = info.writer(inst);
 }
@@ -62,31 +63,31 @@ int main(int argc, char *argv[]) {
       return 0;
 
     case 'g':
-      g_conf.gdb = true;
+      dbi::g_conf.gdb = true;
       break;
 
     case 'p':
-      g_conf.profile = true;
+      dbi::g_conf.profile = true;
       break;
 
     case 's':
-      g_conf.singlestep = true;
+      dbi::g_conf.singlestep = true;
       break;
 
     case 'x':
-      g_conf.execution_trace = true;
+      dbi::g_conf.execution_trace = true;
       break;
 
     case 'b':
-      g_conf.dump_ss_bkpts = true;
+      dbi::g_conf.dump_ss_bkpts = true;
       break;
 
     case 'j':
-      g_conf.dump_jcc_info = true;
+      dbi::g_conf.dump_jcc_info = true;
       break;
 
     case 'd':
-      g_conf.execution_trace_diff = true;
+      dbi::g_conf.execution_trace_diff = true;
       break;
 
     case 'l':
@@ -95,11 +96,11 @@ int main(int argc, char *argv[]) {
 	std::cerr << argv[0] << ": couldn't open log file '" << optarg << "'\n";
 	return 1;
       }
-      g_conf.log = &log;
+      dbi::g_conf.log = &log;
       break;
       
     case PREDICTION_MODE:
-      if (!g_conf.set_prediction_mode(optarg)) {
+      if (!dbi::g_conf.set_prediction_mode(optarg)) {
 	fprintf(stderr, "%s: --prediction-mode: bad argument\n", argv[0]);
 	return 1;
       }
@@ -118,11 +119,11 @@ int main(int argc, char *argv[]) {
   
   char **command = &argv[optind++];
 
-  if (g_conf.profile) {
+  if (dbi::g_conf.profile) {
     ProfilerStart("jit.prof");
   }
 
-  Decoder::Init();
+  dbi::Decoder::Init();
 
   const pid_t child_pid = fork();
   if (child_pid == 0) {
@@ -134,13 +135,13 @@ int main(int argc, char *argv[]) {
   int status;
   wait(&status);
 
-  Tracee tracee(child_pid, command[0]);
+  dbi::Tracee tracee(child_pid, command[0]);
   
-  Patcher patcher(tracee, transformer);
+  dbi::Patcher patcher(tracee, transformer);
   patcher.start();
   patcher.run();
 
-  if (g_conf.profile) {
+  if (dbi::g_conf.profile) {
     ProfilerStop();
   }
   

@@ -1,6 +1,8 @@
 #pragma once
 
-class Decoder;
+namespace dbi {
+  class Decoder;
+}
 
 #include <string>
 #include <iostream>
@@ -8,6 +10,8 @@ extern "C" {
 #include <xed/xed-interface.h>
 }
 #include "inst.hh"
+
+namespace dbi {
 
 class Decoder {
 public:
@@ -31,3 +35,5 @@ public:
 private:
   static xed_state_t state;
 };
+
+}

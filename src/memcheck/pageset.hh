@@ -42,8 +42,8 @@ namespace memcheck {
 
     void recompute_tier();
 
-    void lock(void *pageaddr, Tracee& tracee, int mask);
-    void unlock(void *pageaddr, Tracee& tracee);
+    void lock(void *pageaddr, dbi::Tracee& tracee, int mask);
+    void unlock(void *pageaddr, dbi::Tracee& tracee);
 
     Tier tier() const { return tier_; }
     
@@ -68,13 +68,13 @@ namespace memcheck {
 	  return;
 	}
       }
-      assert(is_pageaddr(pageaddr));
+      assert(dbi::is_pageaddr(pageaddr));
       const auto res = map.emplace(pageaddr, page_info);
       assert(res.second); (void) res;
     }
 
     void track_range(void *begin, void *end, const PageInfo& page_info) {
-      for_each_page(begin, end, [this, &page_info] (void *pageaddr) {
+      dbi::for_each_page(begin, end, [this, &page_info] (void *pageaddr) {
 	track_page(pageaddr, page_info);
       });
     }
@@ -87,7 +87,7 @@ namespace memcheck {
     }
   
     void update_range(void *begin, void *end, int newprot) {
-      for_each_page(begin, end, [this, newprot] (const auto pageaddr) {
+      dbi::for_each_page(begin, end, [this, newprot] (const auto pageaddr) {
 	this->update_page(pageaddr, newprot);
       });
     }
@@ -115,13 +115,13 @@ namespace memcheck {
     auto& at(Args&&... args) { return map.at(args...); }
 #endif
 
-    void lock_top_counts(unsigned n, Tracee& tracee, int mask);
+    void lock_top_counts(unsigned n, dbi::Tracee& tracee, int mask);
 
-    void lock(Map::value_type& it, Tracee& tracee, int mask) {
+    void lock(Map::value_type& it, dbi::Tracee& tracee, int mask) {
       it.second.lock(it.first, tracee, mask);
     }
 
-    void unlock(Map::value_type& it, Tracee& tracee) {
+    void unlock(Map::value_type& it, dbi::Tracee& tracee) {
       it.second.unlock(it.first, tracee);
     }
 

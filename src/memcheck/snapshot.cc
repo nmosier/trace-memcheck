@@ -18,7 +18,7 @@ namespace memcheck {
     });
   }
 
-  void Snapshot::restore(Tracee& tracee) const {
+  void Snapshot::restore(dbi::Tracee& tracee) const {
     std::for_each(map.begin(), map.end(), [&tracee] (const auto& pair) {
       pair.second.restore(pair.first, tracee);
     });
@@ -33,7 +33,7 @@ namespace memcheck {
 
   size_t Snapshot::offset(const void *pageaddr, const void *ptr) {
     const ptrdiff_t offset_raw = static_cast<const char *>(ptr) - static_cast<const char *>(pageaddr);
-    return std::min<size_t>(std::max<ptrdiff_t>(offset_raw, 0), PAGESIZE);
+    return std::min<size_t>(std::max<ptrdiff_t>(offset_raw, 0), dbi::PAGESIZE);
   }
 
   // TODO: Much more intelligent way to do this.
@@ -62,7 +62,7 @@ namespace memcheck {
     uint8_t *buf_it = buf;
 
     while (it != end) {
-      const uint8_t *pageaddr = pagealign(it);
+      const uint8_t *pageaddr = dbi::pagealign(it);
       const auto& entry = map.at(const_cast<uint8_t *>(pageaddr));
       const auto count = std::min<size_t>(end - it, entry.size());
       buf_it = std::copy_n(entry.begin() + (it - pageaddr), count, buf_it);
