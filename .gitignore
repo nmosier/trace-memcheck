@@ -9,3 +9,6 @@ Makefile
 \#*\#
 Testing
 CTestTestfile.cmake
+build
+memcheck-debug
+memcheck-release
