@@ -2,10 +2,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sstream>
+
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
 #include "config.hh"
+#include "log.hh"
 
 namespace memcheck {
 
@@ -342,13 +344,13 @@ namespace memcheck {
   template <typename InputIt>
   void Memcheck::check_checksums(InputIt begin, InputIt end, const char *desc) {
     if (!util::all_equal(begin, end)) {
-      *dbi::g_conf.log << "memcheck: conditional jump checksums differ";
+      warning() << Error::JCC_CKSUMS_DIFFER;
       if (desc) {
-	*dbi::g_conf.log << " (" << desc << ")";
+	g_conf.log() << " (" << desc << ")";
       }
-      *dbi::g_conf.log << "\n";
+      g_conf.log() << "\n";
       if (ABORT_ON_TAINT) {
-	dbi::g_conf.abort(tracee);
+	g_conf.abort(tracee);
       }
     }
   }
@@ -498,7 +500,7 @@ namespace memcheck {
     auto page_it = tracked_pages.find(pageaddr);
     if (page_it == tracked_pages.end()) {
       // TODO: Pass on to patcher
-      std::clog << "memcheck: signal: " << strsignal(signal) << "\n";
+      log_signal() << strsignal(signal) << "\n";
       std::exit(139);
     }
 

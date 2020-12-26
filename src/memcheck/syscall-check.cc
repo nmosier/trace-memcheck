@@ -11,13 +11,15 @@
 #include <linux/futex.h>
 #include <sys/un.h>
 #include <netinet/in.h>
+
 #include "syscall-check.hh"
+#include "log.hh"
 
 namespace memcheck {
 
   bool SyscallChecker::check_read(const void *begin, const void *end) const {
     if (!taint_state.is_zero(begin, end)) {
-      *dbi::g_conf.log << "memcheck: " << to_string(args.no()) << ": read from tainted memory\n";
+      log() << to_string(args.no()) << ": read from tainted memory\n";
       return false;
     }
     return true;
@@ -37,9 +39,8 @@ namespace memcheck {
     });
   
     if (stack_range.overlaps(AddrRange(begin, end))) {
-      *dbi::g_conf.log << "memcheck: warning: " << to_string(args.no())
-		       << ": write below stack pointer\n";
-      *dbi::g_conf.log << stack_range << " " << AddrRange(begin, end) << "\n";
+      warning() << to_string(args.no()) << ": write below stack pointer\n";
+      // *dbi::g_conf.log << stack_range << " " << AddrRange(begin, end) << "\n";
       return true;
     }
 
@@ -53,7 +54,7 @@ namespace memcheck {
   bool SyscallChecker::pre() {
     /* make sure syscall number not tainted */
     if (static_cast<int>(taint_state.gpregs().rax())) {
-      *dbi::g_conf.log << "memcheck: tainted system call number\n";
+      error() << "tainted system call number\n";
       return false;
     }
 
@@ -79,7 +80,7 @@ namespace memcheck {
 #define PRE_CHK_LINE(name, argc, i, t, n)				\
   if (i < argc) {							\
     if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
-      *dbi::g_conf.log << "memcheck: warning: "#name": tainted syscall parameter '"#n"'\n"; \
+      error() << "tainted syscall parameter '"#n"'\n";			\
       print_regs<i, t>();						\
       return false;							\
     }									\
@@ -109,14 +110,15 @@ namespace memcheck {
   bool SyscallChecker::pre_##sys() {					\
     PRE_DEF(sys);							\
     PRE_CHK(sys);							\
-    *dbi::g_conf.log << "memcheck: warning: " << args.no() << ": stub\n"; \
+    log_stub() << args.no() << "\n";					\
     return true;							\
   }
 
 #define PRE_READ_STRING(str)						\
   do {									\
     if (!check_read(str)) {						\
-      *dbi::g_conf.log << "memcheck: " << args.no() << ": ";		\
+    error() << args.no() << ": string at " << (void *) str		\
+	    << " contains uninitialized characters\n";			\
       for (const State& state : memcheck.post_states) {			\
 	*dbi::g_conf.log << "'" << state.string(str) << "' ";		\
       }									\
@@ -510,7 +512,7 @@ namespace memcheck {
 #define POST_ABORT(sys) void SyscallChecker::post_##sys() { abort(); }
 #define POST_STUB(sys)					\
   void SyscallChecker::post_##sys() {			\
-    *dbi::g_conf.log << "memcheck: warning: "#sys": stub\n";	\
+    log_stub() << #sys << "\n";				\
   }
 #define POST_TRUE(sys) void SyscallChecker::post_##sys() {}
 #define POST_WRITE_TYPE(name) do_write(name, sizeof(*name))
