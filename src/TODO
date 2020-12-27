@@ -53,3 +53,4 @@
 [ ] Export function callbacks like BkptCallback from dbi to central header
 [ ] MemcheckVariables -> Variables
 [ ] Embed confs
+[ ] Propogate exit number correctly

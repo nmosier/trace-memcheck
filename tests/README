@@ -1,0 +1,7 @@
+Components of a test:
+- Source file
+- Output
+- Expected exit number
+- Error count
+- Warning count
+

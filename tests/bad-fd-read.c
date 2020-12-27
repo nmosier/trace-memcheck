@@ -3,6 +3,7 @@
 int main(void) {
   char buf[1024];
   int fd;
-  read(fd, buf, sizeof(buf));
+  * (int **) buf = &fd;
+  const ssize_t res = read(fd, buf, sizeof(buf));
   return 0;
 }

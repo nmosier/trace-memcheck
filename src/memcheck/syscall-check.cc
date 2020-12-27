@@ -19,7 +19,7 @@ namespace memcheck {
 
   bool SyscallChecker::check_read(const void *begin, const void *end) const {
     if (!taint_state.is_zero(begin, end)) {
-      log() << to_string(args.no()) << ": read from tainted memory\n";
+      error() << to_string(args.no()) << ": read from tainted memory\n";
       return false;
     }
     return true;
