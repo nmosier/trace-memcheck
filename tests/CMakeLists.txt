@@ -30,3 +30,6 @@ create_local_test(myls ${CMAKE_CURRENT_SOURCE_DIR}/myls-dir)
 
 create_system_test(ls ls ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
 create_system_test(ls-l ls -l ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
+create_system_test(ls-a ls -a ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
+create_system_test(ls-color ls --color ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
+
