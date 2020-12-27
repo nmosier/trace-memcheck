@@ -164,21 +164,21 @@ namespace memcheck {
     return true;
   }
 
-#if 1
   bool SyscallChecker::pre_RT_SIGACTION() {
     PRE_DEF_CHK(RT_SIGACTION);
 
-    /* check mandatory fields in struct sigaction */
-    PRE_READ_TYPE(&act->sa_mask);
-    PRE_READ_TYPE(&act->sa_flags);
+    if (act != nullptr) {
+      PRE_READ_TYPE(&act->sa_mask);
+      PRE_READ_TYPE(&act->sa_flags);
 
-    int flags;
-    read_struct(&act->sa_flags, flags);
-  
-    if ((flags & SA_SIGINFO)) {
-      PRE_READ_TYPE(&act->sa_sigaction);
-    } else {
-      PRE_READ_TYPE(&act->sa_handler);
+      int flags;
+      read_struct(&act->sa_flags, flags);
+      
+      if ((flags & SA_SIGINFO)) {
+	PRE_READ_TYPE(&act->sa_sigaction);
+      } else {
+	PRE_READ_TYPE(&act->sa_handler);
+      }
     }
 
     if (oldact != nullptr) {
@@ -187,9 +187,6 @@ namespace memcheck {
   
     return true;
   }
-#else
-  PRE_STUB(RT_SIGACTION)
-#endif
 
   bool SyscallChecker::pre_CLOCK_GETTIME() {
     PRE_DEF_CHK(CLOCK_GETTIME);
@@ -399,12 +396,21 @@ namespace memcheck {
 	PRE_WRITE_TYPE(argp);
       }
       break;
+
     case TIOCGWINSZ:
       {
 	const auto argp = reinterpret_cast<struct winsize *>(arg);
 	PRE_WRITE_TYPE(argp);
       }
       break;
+
+    case TIOCGPGRP:
+      {
+	const auto argp = reinterpret_cast<pid_t *>(arg);
+	PRE_WRITE_TYPE(argp);
+      }
+      break;
+      
     default:
       abort();
     }
@@ -575,16 +581,12 @@ namespace memcheck {
     if (rv >= 0) { POST_WRITE_TYPE(usage); }
   }
 
-#if 1
   void SyscallChecker::post_RT_SIGACTION() {
     POST_DEF(RT_SIGACTION);
     if (rv >= 0) {
       if (oldact != nullptr) { POST_WRITE_TYPE(oldact); }
     }
   }
-#else
-  POST_STUB(RT_SIGACTION)
-#endif
 
   void SyscallChecker::post_UNAME() {
     POST_DEF(UNAME);
@@ -621,6 +623,12 @@ namespace memcheck {
       case TIOCGWINSZ:
 	{
 	  const auto argp = reinterpret_cast<struct winsize *>(arg);
+	  POST_WRITE_TYPE(argp);
+	}
+	break;
+      case TIOCGPGRP:
+	{
+	  const auto argp = reinterpret_cast<pid_t *>(arg);
 	  POST_WRITE_TYPE(argp);
 	}
 	break;
