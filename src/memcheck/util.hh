@@ -85,17 +85,6 @@ namespace memcheck {
       return f;
     }
 
-    template <class ForwardIt>
-    bool all_equal(ForwardIt first, ForwardIt last) {
-      if (first == last) {
-	return true;
-      }
-      const auto first_val = *first++;
-      return std::all_of(first, last, [&] (const auto& val) {
-	return val == first_val;
-      });
-    }
-
     template <typename InputIt>
     auto distance(InputIt begin, InputIt end) {
       return std::distance(begin, end);
@@ -105,6 +94,22 @@ namespace memcheck {
       return static_cast<const char *>(end) - static_cast<const char *>(begin);
     }
 
+    template <typename InputIt, typename Pred>
+    bool all_equal(InputIt begin, InputIt end, Pred pred) {
+      if (begin == end) {
+	return true;
+      }
+      const auto first = begin++;
+      return std::all_of(begin, end, [first, pred] (const auto& val) {
+	return pred(*first, val);
+      });
+    }
+
+    template <typename InputIt>
+    bool all_equal(InputIt begin, InputIt end) {
+      return all_equal(begin, end, [] (const auto& lhs, const auto& rhs) { return lhs == rhs; });
+    }
+    
   }
   
 }
