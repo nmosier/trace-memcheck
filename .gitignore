@@ -2,7 +2,6 @@
 *.o
 CMakeFiles/
 CmakeCache.txt
-*.txt
 *.a
 cmake_install.cmake
 Makefile

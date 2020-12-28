@@ -1,0 +1,25 @@
+add_executable(memcheck
+  addr-range.cc
+  config.cc
+  log.cc
+  main.cc
+  maps.cc
+  memcheck2.cc
+  memcheck.cc
+  pageset.cc
+  snapshot.cc
+  state.cc
+  syscall-check.cc
+  # thread.cc
+  tracker.cc
+  vars.cc
+  $<TARGET_OBJECTS:dbi>
+  )
+add_dependencies(memcheck xed)
+
+add_library(memcheck-libc SHARED
+  libc.c
+  )
+
+target_compile_definitions(memcheck PRIVATE MEMCHECK_LIBC=\"$<TARGET_FILE:memcheck-libc>\")
+
