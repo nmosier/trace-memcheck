@@ -4,13 +4,11 @@ add_executable(memcheck
   log.cc
   main.cc
   maps.cc
-  memcheck2.cc
   memcheck.cc
   pageset.cc
   snapshot.cc
   state.cc
   syscall-check.cc
-  # thread.cc
   tracker.cc
   vars.cc
   $<TARGET_OBJECTS:dbi>
