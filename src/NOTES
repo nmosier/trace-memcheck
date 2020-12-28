@@ -372,3 +372,12 @@ Page locking/unlocking seems to be working. But it is very complex; I need to sp
 For testing, need to check:
 [1] Correctness -- ouptut should be the same.
 [2] Memcheck warnings -- expected kind/number of memcheck warnings
+
+-----
+
+THREADS.
+
+One approach: gradually migrate existing Memcheck class to use thread model. Start out w/o thread class at all; just have list of threads that maintain element in round array. This is simpler, but sloppier and will need to be changed in the future. But it can be done gradually, which is good.
+
+----
+

@@ -1,0 +1,17 @@
+Threading Notes
+
+- Trackers are thread-local, since they need to use the tracee.
+- SequencePoints are both thread-local and memcheck-global -- this is difficult.
+  SequencePoints should mainly just stop execution instead of doing their own pre/post work.
+
+
+Interface for threads:
+1. Start thread
+2.
+
+
+What about futexes? Will those cause issues?
+One workaround would be to only let one thread ever execute a system call
+
+ALTERNATIVE:
+

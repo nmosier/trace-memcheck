@@ -54,3 +54,4 @@
 [ ] MemcheckVariables -> Variables
 [ ] Embed confs
 [ ] Propogate exit number correctly
+[ ] Add cksum_t in memcheck/types.hh and use consistently
