@@ -87,6 +87,7 @@ namespace dbi {
     void post_syscall_handler();
 
     bool handle_stop(Tracee& tracee, Status status); // returns whether exited
+    void handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event);
 
     template <typename F>
     void for_each_tracee(F f) const {

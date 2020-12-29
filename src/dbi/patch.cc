@@ -202,8 +202,6 @@ namespace dbi {
   }
 
   bool Patcher::handle_stop(Tracee& tracee, Status status) {
-    uint8_t *bkpt_pc;
-    
     if (g_conf.execution_trace && !g_conf.singlestep) {
       if (status.stopped()) {
 	*g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
@@ -218,6 +216,33 @@ namespace dbi {
       const auto stopsig = status.stopsig();
 
       if (stopsig == SIGTRAP) {
+	handle_ptrace_event(tracee, status.ptrace_event());
+      } else {
+	handle_signal(stopsig);
+      }
+    } else {
+      if (!status.exited()) {
+	if (status.signaled()) {
+	  const auto termsig = status.termsig();
+	  std::cerr << "Terminated: " << strsignal(termsig) << ": " << termsig << "\n";
+	} else {
+	  std::cerr << "aborted due to unknown signal\n";
+	}
+	g_conf.abort(tracee);
+      }
+      assert(status.exited());
+      return true;
+    }
+
+    return false;
+  }
+  
+  void Patcher::handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event) {
+    switch (event) {
+    case 0: // (no event occurred; interpret as regular breakpoint)
+      {
+	uint8_t *bkpt_pc;
+    
 	if (g_conf.singlestep) {
 	  uint8_t pc_byte;
 	  while (true) {
@@ -248,26 +273,14 @@ namespace dbi {
 #endif
 	  handle_bkpt(tracee, bkpt_pc);
 	}
-      } else {
-	handle_signal(stopsig);
       }
-    } else {
-      if (!status.exited()) {
-	if (status.signaled()) {
-	  const auto termsig = status.termsig();
-	  std::cerr << "Terminated: " << strsignal(termsig) << ": " << termsig << "\n";
-	} else {
-	  std::cerr << "aborted due to unknown signal\n";
-	}
-	g_conf.abort(tracee);
-      }
-      assert(status.exited());
-      return true;
-    }
+      break;
 
-    return false;
+    default:
+      std::cerr << "unhandled PTRACE_EVENT_" << event << "\n";
+      std::abort();
+    }
   }
-  
 
   void Patcher::handle_signal(int signum) {
     const auto it = sighandlers.find(signum);
