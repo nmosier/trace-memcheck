@@ -61,12 +61,13 @@ int main(int argc, char *argv[]) {
   wait(&status);
   assert(stopped_trace(status));
 
-  dbi::Tracee tracee(child, command[0]);
+  dbi::Tracee tracee(child, command[0], true);
 
   std::vector<void *> insts;
 
   while (true) {
-    status = tracee.singlestep();
+    tracee.singlestep();
+    tracee.wait(&status);
 
     if (WIFSTOPPED(status)) {
       const int stopsig = WSTOPSIG(status);
