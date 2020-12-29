@@ -20,6 +20,7 @@ namespace dbi {
 #include "inst.hh"
 #include "syscall.hh"
 #include "util.hh"
+#include "status.hh"
 
 namespace dbi {
 
@@ -128,7 +129,7 @@ namespace dbi {
 
     const char *filename() const { return command; }
 
-    void assert_stopsig(int status, int expect);
+    void assert_stopsig(Status status, int expect);
 
     std::ostream& xmm_print(std::ostream& os, unsigned idx);
 
@@ -139,18 +140,18 @@ namespace dbi {
       return eventmsg;
     }
 
-    void wait(int *status) {
+    void wait(Status& status) {
       assert(!stopped());
-      if (::waitpid(pid(), status, 0) < 0) {
+      if (::waitpid(pid(), &status.status(), 0) < 0) {
 	std::perror("waitpid");
 	std::abort();
       }
       stopped_ = true;
     }
 
-    int wait() {
-      int status;
-      wait(&status);
+    Status wait() {
+      Status status;
+      wait(status);
       return status;
     }
 

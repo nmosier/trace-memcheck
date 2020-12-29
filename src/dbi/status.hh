@@ -23,6 +23,7 @@ namespace dbi {
       assert(stopped());
       return WSTOPSIG(status_);
     }
+    bool stopped_trap() const { return stopped() && stopsig() == SIGTRAP; }
     enum __ptrace_eventcodes ptrace_event() const {
       assert(stopsig() == SIGTRAP);
       const auto res = ((status_ >> 8) & ~SIGTRAP) >> 8;

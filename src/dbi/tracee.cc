@@ -258,8 +258,8 @@ namespace dbi {
     write(&syscall, sizeof(syscall), pc);
 
     singlestep();
-    const int status = wait();
-    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP); (void) status;
+    const Status status = wait();
+    assert(status.stopped_trap()); (void) status;
 
     write(&saved_code, sizeof(saved_code), pc);
     get_regs(regs);
@@ -416,20 +416,21 @@ namespace dbi {
     fpregs_good_ = true;
   }
 
-  void Tracee::assert_stopsig(int status, int expect) {
-    if (WIFSTOPPED(status)) {
-      if (WSTOPSIG(status) != expect) {
+  void Tracee::assert_stopsig(Status status, int expect) {
+    if (status.stopped()) {
+      const auto stopsig = status.stopsig();
+      if (stopsig != expect) {
 	*g_conf.log << "Tracee::assert_stopsig: unexpected stop signal '"
-		    << strsignal(WSTOPSIG(status)) << "'\n";
+		    << ::strsignal(stopsig) << "'\n";
 	g_conf.abort(*this);
       }
     } else {
-      if (WIFSIGNALED(status)) {
+      if (status.signaled()) {
 	*g_conf.log << "Tracee::assert_stopsig: unexpected signal '"
-		    << strsignal(WTERMSIG(status)) << "'\n";
+		    << ::strsignal(status.termsig()) << "\n";
 	g_conf.abort(*this);
       } else {
-	*g_conf.log << "Tracee::assert_stopsig: unknown status " << status << "\n";
+	*g_conf.log << "Tracee::assert_stopsig: unknown status " << status.status() << "\n";
 	g_conf.abort(*this);
       }
     }

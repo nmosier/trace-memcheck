@@ -6,6 +6,7 @@
 #include <cstring>
 #include "patch.hh"
 #include "config.hh"
+#include "status.hh"
 
 namespace dbi {
 
@@ -90,6 +91,13 @@ namespace dbi {
   constexpr bool USE_BKPT = true;
 
   void Patcher::start() {
+    assert(tracees.size() == 1);
+    assert(tracee().stopped());
+
+    /* trace children */
+    // TODO: also track clones, vforks, etc.
+    tracee().setoptions(PTRACE_O_EXITKILL | PTRACE_O_TRACEFORK);
+    
     if (USE_BKPT) {
       
       /* get entry point */
@@ -116,10 +124,8 @@ namespace dbi {
       tracee().write(&bkpt, 1, entry_addr);
 
       tracee().cont();
-      const auto status = tracee().wait();
-      (void) status;
-      assert(WIFSTOPPED(status));
-      assert(WSTOPSIG(status) == SIGTRAP);
+      const Status status = tracee().wait();
+      assert(status.stopped_trap()); (void) status;
       assert(tracee().get_pc() == entry_addr + 1);
       tracee().write(&old_entry_byte, 1, entry_addr);
       tracee().set_pc(entry_addr);
@@ -157,7 +163,7 @@ namespace dbi {
   }
 
   void Patcher::run(void) {
-    int status;
+    Status status;
 
     assert(tracees.size() == 1);
 
@@ -176,9 +182,9 @@ namespace dbi {
 
       /* Wait on all tracees */
       const auto ntracees = tracees.size();
-      std::vector<int> statuses(ntracees);
+      std::vector<Status> statuses(ntracees);
       for (unsigned i = 0; i < ntracees; ++i) {
-	tracees[i].wait(&statuses[i]);
+	tracees[i].wait(statuses[i]);
       }
 
       /* Handle stops for all tracees */
@@ -192,14 +198,14 @@ namespace dbi {
     }
     
   exited:
-    fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));  
+    fprintf(stderr, "exit status: %d\n", status.exitstatus());
   }
 
-  bool Patcher::handle_stop(Tracee& tracee, int status) {
+  bool Patcher::handle_stop(Tracee& tracee, Status status) {
     uint8_t *bkpt_pc;
     
-    if (g_conf.execution_trace && !g_conf.singlestep) { 
-      if (WIFSTOPPED(status)) {
+    if (g_conf.execution_trace && !g_conf.singlestep) {
+      if (status.stopped()) {
 	*g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
 		    << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
 		    << ": ";
@@ -208,8 +214,8 @@ namespace dbi {
       }
     }
 
-    if (WIFSTOPPED(status)) {
-      const int stopsig = WSTOPSIG(status);
+    if (status.stopped()) {
+      const auto stopsig = status.stopsig();
 
       if (stopsig == SIGTRAP) {
 	if (g_conf.singlestep) {
@@ -246,16 +252,16 @@ namespace dbi {
 	handle_signal(stopsig);
       }
     } else {
-      if (!WIFEXITED(status)) {
-	if (WIFSIGNALED(status)) {
-	  const auto termsig = WTERMSIG(status);
-	  std::cerr << strsignal(termsig) << ": " << termsig << "\n";
+      if (!status.exited()) {
+	if (status.signaled()) {
+	  const auto termsig = status.termsig();
+	  std::cerr << "Terminated: " << strsignal(termsig) << ": " << termsig << "\n";
 	} else {
 	  std::cerr << "aborted due to unknown signal\n";
 	}
 	g_conf.abort(tracee);
       }
-      assert(WIFEXITED(status));
+      assert(status.exited());
       return true;
     }
 
@@ -266,7 +272,8 @@ namespace dbi {
   void Patcher::handle_signal(int signum) {
     const auto it = sighandlers.find(signum);
     if (it == sighandlers.end()) {
-      *g_conf.log << "unexpected signal " << signum << '\n';
+      *g_conf.log << "unhandled tracee signal " << signum << " ("
+		  << ::strsignal(signum) << ")\n";
       *g_conf.log << "pc = " << (void *) tracee().get_pc() << '\n';
       uint8_t *stop_pc = tracee().get_pc();
       Instruction inst(stop_pc, tracee());

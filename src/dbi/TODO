@@ -1,0 +1,4 @@
+[ ] Block class should record compiled bytes in Block::Create
+[ ] Tracee should track if stopped; assert that stopped actions are only issued when stopped.
+[ ] Status type: status_t
+[ ] Some signals only found in single-step mode (e.g. jit + fork + SIGCHILD)

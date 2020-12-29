@@ -302,10 +302,8 @@ namespace dbi {
 
     /* 2 */
     tracee.singlestep();
-    const int status = tracee.wait();
-    (void) status;
-    assert(WIFSTOPPED(status));
-    assert(WSTOPSIG(status) == SIGTRAP);
+    const Status status = tracee.wait();
+    assert(status.stopped_trap()); (void) status;
 
     orig_pc = tracee.get_pc();
   

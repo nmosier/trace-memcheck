@@ -1,0 +1,14 @@
+--------------
+fork() Support (w/o exec)
+
+Assume that code will NOT change, so can still use shared block cache.
+
+Upon initialization, Patcher should set parent tracee to PTRACE_O_TRACEFORK.
+Upon each stop, Patcher should check if status has PTRACE_O_TRACEFORK event. If so, it should create a new tracee and add it to the map.
+
+TODO:
+[ ] Parameterize execution policy for Patcher:
+    - Sequential/blocking: run one tracee to completion before running the next -- waitpid()
+    - Parallel/nonblocking: run all tracees at once -- wait()
+
+Assume that all threads will not be stuck in indefinite loop.
