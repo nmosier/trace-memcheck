@@ -132,10 +132,10 @@ namespace dbi {
 
     std::ostream& xmm_print(std::ostream& os, unsigned idx);
 
-    auto geteventmsg() const {
+    auto geteventmsg() {
       assert(stopped());
       unsigned long eventmsg;
-      ptrace(PTRACE_GETEVENTMSG, pid(), 0, &eventmsg); // TODO: check return value
+      ptrace(PTRACE_GETEVENTMSG, 0, &eventmsg); // TODO: check return value
       return eventmsg;
     }
 
@@ -152,6 +152,10 @@ namespace dbi {
       int status;
       wait(&status);
       return status;
+    }
+
+    void setoptions(int options) {
+      ptrace(PTRACE_SETOPTIONS, 0, options);
     }
 
   private:
@@ -204,19 +208,20 @@ namespace dbi {
       assert(stopped());
       flush_caches();
       invalidate_caches();
-      ptrace(request, pid(), nullptr, nullptr);
+      ptrace(request, 0, 0);
       stopped_ = false;
     }
-  };
 
-  template <typename Addr, typename Data>
-  long ptrace(enum __ptrace_request request, pid_t pid, Addr addr, Data data) {
-    long res;
-    if ((res = ::ptrace(request, pid, addr, data)) < 0) {
-      std::perror("ptrace");
-      std::abort();
+    template <typename Addr, typename Data>
+    long ptrace(enum __ptrace_request request, Addr addr, Data data) {
+      long res;
+      if ((res = ::ptrace(request, pid(), addr, data)) < 0) {
+	std::perror("ptrace");
+	std::abort();
+      }
+      return res;
     }
-    return res;
-  }
+    
+  };
 
 }

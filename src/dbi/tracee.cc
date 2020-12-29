@@ -182,7 +182,7 @@ namespace dbi {
   void Tracee::cache_regs(void) {
     assert(stopped());
     if (!regs_good_) {
-      ptrace(PTRACE_GETREGS, pid(), nullptr, &regs_);
+      ptrace(PTRACE_GETREGS, 0, &regs_);
       regs_good_ = true;
     }
   }
@@ -190,7 +190,7 @@ namespace dbi {
   void Tracee::cache_fpregs() {
     assert(stopped());
     if (!fpregs_good_) {
-      ptrace(PTRACE_GETFPREGS, pid(), nullptr, &fpregs_);
+      ptrace(PTRACE_GETFPREGS, 0, &fpregs_);
       fpregs_good_ = true;
     }
   }
@@ -233,10 +233,10 @@ namespace dbi {
   void Tracee::flush_caches() {
     assert(stopped());
     if (regs_good_) {
-      ptrace(PTRACE_SETREGS, pid(), nullptr, &regs_);
+      ptrace(PTRACE_SETREGS, 0, &regs_);
     }
     if (fpregs_good_) {
-      ptrace(PTRACE_SETFPREGS, pid(), nullptr, &fpregs_);
+      ptrace(PTRACE_SETFPREGS, 0, &fpregs_);
     }
     flush_memcache();
   }
@@ -346,7 +346,7 @@ namespace dbi {
 
   void Tracee::get_siginfo(siginfo_t& siginfo) {
     assert(stopped());
-    ptrace(PTRACE_GETSIGINFO, pid(), nullptr, &siginfo);
+    ptrace(PTRACE_GETSIGINFO, 0, &siginfo);
   }
 
   siginfo_t Tracee::get_siginfo() {
@@ -478,7 +478,8 @@ namespace dbi {
       if (page.dirty) {
 	const auto pageaddr = p.first;
 	const auto bytes_written =
-	  ::pwrite(this->fd(), page.data.data(), page.data.size(), reinterpret_cast<off_t>(pageaddr));
+	  ::pwrite(this->fd(), page.data.data(), page.data.size(),
+		   reinterpret_cast<off_t>(pageaddr));
 	assert(bytes_written == static_cast<ssize_t>(page.data.size())); (void) bytes_written;
 	page.dirty = false;
       }
