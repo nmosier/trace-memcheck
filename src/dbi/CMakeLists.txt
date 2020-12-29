@@ -11,5 +11,6 @@ add_library(dbi STATIC
   romcache.cc
   syscall.cc
   regs.cc
+  status.cc
   )
 add_dependencies(dbi xed)
