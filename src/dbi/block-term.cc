@@ -29,39 +29,45 @@ namespace dbi {
   }
 
 
-  Terminator *Terminator::Create(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-				 const Instruction& branch, Tracee& tracee,
-				 const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
-				 const ReturnStackBuffer& rsb, const Block& block) {
+  Terminator *Terminator::Create(BlockPool& block_pool,
+				 PointerPool& ptr_pool,
+				 TmpMem& tmp_mem,
+				 const Instruction& branch,
+				 Tracees& tracees,
+				 const LookupBlock& lb,
+				 const ProbeBlock& pb,
+				 const RegisterBkpt& rb,
+				 const ReturnStackBuffer& rsb,
+				 const Block& block) {
     switch (branch.xed_iclass()) {
     case XED_ICLASS_CALL_NEAR:
       switch (branch.xed_iform()) {
       case XED_IFORM_CALL_NEAR_RELBRd:
-	return new CallDirTerminator(block_pool, ptr_pool, tmp_mem, branch, tracee, lb, pb, rb, rsb);
+	return new CallDirTerminator(block_pool, ptr_pool, tmp_mem, branch, tracees, lb, pb, rb, rsb);
       default:
-	return new CallIndTerminator(block_pool, ptr_pool, tmp_mem, branch, tracee, lb, pb, rb, rsb);
+	return new CallIndTerminator(block_pool, ptr_pool, tmp_mem, branch, tracees, lb, pb, rb, rsb);
       }
 
     case XED_ICLASS_JMP:
       switch (branch.xed_iform()) {
       case XED_IFORM_JMP_RELBRd:
       case XED_IFORM_JMP_RELBRb:
-	return new DirJmpTerminator(block_pool, branch, tracee, lb);
+	return new DirJmpTerminator(block_pool, branch, tracees, lb);
       default:
-	return new JmpIndTerminator<4>(block_pool, ptr_pool, tmp_mem, branch, tracee, lb, rb);
+	return new JmpIndTerminator<4>(block_pool, ptr_pool, tmp_mem, branch, tracees, lb, rb);
       }
 
     case XED_ICLASS_RET_NEAR:
-      return new RetTerminator(block_pool, tmp_mem, branch, tracee, lb, rb, rsb);
+      return new RetTerminator(block_pool, tmp_mem, branch, tracees, lb, rb, rsb);
 
     default: // XED_ICLASS_JCC
-      return new DirJccTerminator(block_pool, branch, tracee, lb, pb, rb, block);
+      return new DirJccTerminator(block_pool, branch, tracees, lb, pb, rb, block);
     }
   }
 
   Terminator::Terminator(BlockPool& block_pool, size_t size, const Instruction& branch,
-			 Tracee& tracee, const LookupBlock& lb):
-    addr_(block_pool.peek()), size_(size), buf_(size), tracee_(tracee), lb_(lb),
+			 Tracees& tracees, const LookupBlock& lb):
+    addr_(block_pool.peek()), size_(size), buf_(size), lb_(lb),
     orig_branch_addr_(branch.pc())
   {
     block_pool.alloc(size_);
@@ -76,29 +82,29 @@ namespace dbi {
     return addr + count;
   }
 
-  void Terminator::flush() {
+  void Terminator::flush(Tracee& tracee) {
     if (dirty_) {
-      tracee_.write(buf_.data(), buf_.size(), addr());
+      tracee.write(buf_.data(), buf_.size(), addr());
       dirty_ = false;
     }
   }
 
   DirJmpTerminator::DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp,
-				     Tracee& tracee, const LookupBlock& lb):
-    Terminator(block_pool, DIR_JMP_SIZE, jmp, tracee, lb)
+				     Tracees& tracees, const LookupBlock& lb):
+    Terminator(block_pool, DIR_JMP_SIZE, jmp, tracees, lb)
   {
     uint8_t *orig_dst_addr = jmp.branch_dst();
     uint8_t *new_dst_addr = lookup_block(orig_dst_addr);
     uint8_t *jmp_addr = addr();
     const auto jmp_inst = Instruction::jmp_relbrd(jmp_addr, new_dst_addr);
     write(jmp_inst);
-    flush();
+    flush(tracees);
   }
 
   DirJccTerminator::DirJccTerminator(BlockPool& block_pool, const Instruction& jcc,
-				     Tracee& tracee, const LookupBlock& lb, const ProbeBlock& pb,
+				     Tracees& tracees, const LookupBlock& lb, const ProbeBlock& pb,
 				     const RegisterBkpt& rb, const Block& block):
-    Terminator(block_pool, DIR_JCC_SIZE, jcc, tracee, lb), orig_dst(jcc.branch_dst()),
+    Terminator(block_pool, DIR_JCC_SIZE, jcc, tracees, lb), orig_dst(jcc.branch_dst()),
     orig_fallthru(jcc.after_pc()), block(block), iclass(jcc.xed_iclass()), iform(jcc.xed_iform()),
     dir(jcc.branch_dst() >= jcc.after_pc() ? Direction::FWD : Direction::BACK)
   {
@@ -125,14 +131,14 @@ namespace dbi {
     jcc_inst.relocate(jcc_addr);
     if (new_dst == nullptr) {
       jcc_inst.retarget(jcc_bkpt_addr); // TODO: optim
-      rb(jcc_bkpt_addr, make_callback(this, &DirJccTerminator::handle_bkpt_jcc));
+      rb(jcc_bkpt_addr, [&] (Tracee& tracee, auto addr) { this->handle_bkpt_jcc(tracee); });
     } else {
       jcc_inst.retarget(new_dst);
     }
     Instruction fallthru_inst;
     if (new_fallthru == nullptr) {
       fallthru_inst = Instruction::int3(fallthru_addr);
-      rb(fallthru_addr, make_callback(this, &DirJccTerminator::handle_bkpt_fallthru));
+      rb(fallthru_addr, [&] (Tracee& tracee, auto addr) { this->handle_bkpt_fallthru(tracee); });
     } else {
       fallthru_inst = Instruction::jmp_relbrd(fallthru_addr, new_fallthru);
     }
@@ -144,7 +150,7 @@ namespace dbi {
     write(jcc_bkpt_inst);
   
     /* flush */
-    flush();
+    flush(tracees);
   }
 
   DirJccTerminator::Prediction DirJccTerminator::get_prediction_iclass(void) const {
@@ -262,29 +268,29 @@ namespace dbi {
     *last_decision.rbegin() = c;
   }
 
-  void DirJccTerminator::handle_bkpt_fallthru() {
+  void DirJccTerminator::handle_bkpt_fallthru(Tracee& tracee) {
     /* replace fallthru bkpt with jump */
     uint8_t *new_fallthru = lookup_block(orig_fallthru);
     const auto fallthru_inst = Instruction::jmp_relbrd(fallthru_addr, new_fallthru);
     write(fallthru_inst);
-    flush();
-    tracee().set_pc(new_fallthru);
+    flush(tracee);
+    tracee.set_pc(new_fallthru);
     log_bkpt("FALLTHRU");
     add_decision('f');
   }
 
-  void DirJccTerminator::handle_bkpt_jcc() {
+  void DirJccTerminator::handle_bkpt_jcc(Tracee& tracee) {
     /* replace jump instruction */
     uint8_t *new_dst = lookup_block(orig_dst);
     jcc_inst.retarget(new_dst);
     write(jcc_inst);
-    tracee().set_pc(new_dst);
-    flush();
+    tracee.set_pc(new_dst);
+    flush(tracee);
     log_bkpt("JCC");
     add_decision('j');
   }
 
-  void Terminator::handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc) {
+  void Terminator::handle_bkpt_singlestep(Tracee& tracee, uint8_t *& orig_pc, uint8_t *& new_pc) {
     /* 1. jump to original branch
      * 2. single step
      * 3. lookup block for new pc
@@ -292,39 +298,40 @@ namespace dbi {
      */
   
     /* 1 */
-    tracee().set_pc(orig_branch_addr());
+    tracee.set_pc(orig_branch_addr());
 
     /* 2 */
-    const int status = tracee().singlestep();
+    tracee.singlestep();
+    const int status = tracee.wait();
     (void) status;
     assert(WIFSTOPPED(status));
     assert(WSTOPSIG(status) == SIGTRAP);
 
-    orig_pc = tracee().get_pc();
+    orig_pc = tracee.get_pc();
   
     /* 3 */
     new_pc = lookup_block(orig_pc);
 
     /* 4 */
-    tracee().set_pc(new_pc);
+    tracee.set_pc(new_pc);
 
     if (g_conf.dump_ss_bkpts) {
       fprintf(stderr, "bkpt %016lx ", (intptr_t) orig_branch_addr());
       std::cerr << "bkpt " << (void *) orig_branch_addr() << " -> "
-		<< (void *) orig_pc << ": " << Instruction(orig_branch_addr(), tracee()) << std::endl;
+		<< (void *) orig_pc << ": " << Instruction(orig_branch_addr(), tracee) << std::endl;
     }
   }
 
-  void Terminator::handle_bkpt_singlestep(void) {
+  void Terminator::handle_bkpt_singlestep(Tracee& tracee) {
     uint8_t *orig_pc;
     uint8_t *new_pc;
-    handle_bkpt_singlestep(orig_pc, new_pc);
+    handle_bkpt_singlestep(tracee, orig_pc, new_pc);
   }
 
   RetTerminator::RetTerminator(BlockPool& block_pool, TmpMem& tmp_mem, const Instruction& ret,
-			       Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb,
+			       Tracees& tracees, const LookupBlock& lb, const RegisterBkpt& rb,
 			       const ReturnStackBuffer& rsb):
-    Terminator(block_pool, RET_SIZE, ret, tracee, lb)
+    Terminator(block_pool, RET_SIZE, ret, tracees, lb)
   {
     /* write base */
     static const Data::Content bytes = {0x48, 0x87, 0x04, 0x24, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x51, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x3b, 0x25, 0x00, 0x00, 0x00, 0x00, 0x74, 0x0e, 0x59, 0x48, 0x39, 0xc8, 0x59, 0x74, 0x07, 0x48, 0x8d, 0x0d, 0x26, 0x00, 0x00, 0x00, 0x48, 0x89, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x59, 0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x04, 0x24, 0x48, 0x8d, 0x64, 0x24, 0x08, 0xff, 0x25, 0x00, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x64, 0x24, 0xf8, 0xcc};
@@ -344,20 +351,20 @@ namespace dbi {
     write(PCRelDisp(a + 0x3b + 3, a + 0x42, (uint8_t *) tmp_mem.rsp()));   // xchg rsp, [rel tmp_rsp]
     write(PCRelDisp(a + 0x4b + 2, a + 0x51, (uint8_t *) tmp_mem.begin())); // jmp [rel tmp_0]
   
-    flush();
+    flush(tracees);
 
     uint8_t *bkpt_addr = a + 0x56;
-    rb(bkpt_addr, [this] (auto addr) {
+    rb(bkpt_addr, [this] (Tracee& tracee, auto addr) {
       std::cerr << "ret mismatch\n";
-      this->handle_bkpt_singlestep();
+      this->handle_bkpt_singlestep(tracee);
     });
   }
 
   CallTerminator::CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-				 size_t size, const Instruction& call, Tracee& tracee,
-				 const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb,
-				 const ReturnStackBuffer& rsb):
-    Terminator(block_pool, size + CALL_SIZE, call, tracee, lb)
+				 size_t size, const Instruction& call, Tracees& tracees,
+				 const LookupBlock& lb, const ProbeBlock& pb,
+				 const RegisterBkpt& rb, const ReturnStackBuffer& rsb):
+    Terminator(block_pool, size + CALL_SIZE, call, tracees, lb)
   {
     uint8_t *bkpt_addr = subaddr() + size;
 
@@ -415,23 +422,31 @@ namespace dbi {
 #endif
 
     /* post instructions */
+    // TODO: Should delete this
     const auto bkpt = Instruction::int3(bkpt_addr);
     write(bkpt);
-    rb(bkpt_addr, make_callback(this, &CallTerminator::handle_bkpt_ret));
+    rb(bkpt_addr, [&] (Tracee& tracee, auto addr) { this->handle_bkpt_ret(tracee); });
   }
 
-  void CallTerminator::handle_bkpt_ret(void) {
+  void CallTerminator::handle_bkpt_ret(Tracee& tracee) {
+    // TODO: REMOVE: this
+    std::abort();
     std::cerr << "warning: return address misprediction" << std::endl;
     uint8_t *new_ra_val = lookup_block(orig_ra_val);
-    tracee().write(&new_ra_val, sizeof(new_ra_val), new_ra_ptr);
-    tracee().set_pc(new_ra_val);
+    tracee.write(&new_ra_val, sizeof(new_ra_val), new_ra_ptr);
+    tracee.set_pc(new_ra_val);
   }
 
-  CallDirTerminator::CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-				       const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-				       const ProbeBlock& pb, const RegisterBkpt& rb,
+  CallDirTerminator::CallDirTerminator(BlockPool& block_pool,
+				       PointerPool& ptr_pool,
+				       TmpMem& tmp_mem,
+				       const Instruction& call,
+				       Tracees& tracees,
+				       const LookupBlock& lb,
+				       const ProbeBlock& pb,
+				       const RegisterBkpt& rb,
 				       const ReturnStackBuffer& rsb):
-    CallTerminator(block_pool, ptr_pool, tmp_mem, CALL_DIR_SIZE, call, tracee, lb, pb, rb, rsb)
+    CallTerminator(block_pool, ptr_pool, tmp_mem, CALL_DIR_SIZE, call, tracees, lb, pb, rb, rsb)
   {
     /* push [rel orig_ra] 
      * jmp new_dst
@@ -448,21 +463,25 @@ namespace dbi {
     /* assertions */
     assert(it - subaddr() == CALL_DIR_SIZE);
 
-    flush();
+    flush(tracees);
   }
 
-  CallIndTerminator::CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-				       const Instruction& call, Tracee& tracee, const LookupBlock& lb,
-				       const ProbeBlock& pb, const RegisterBkpt& rb,
+  CallIndTerminator::CallIndTerminator(BlockPool& block_pool,
+				       PointerPool& ptr_pool,
+				       TmpMem& tmp_mem,
+				       const Instruction& call,
+				       Tracees& tracees,
+				       const LookupBlock& lb,
+				       const ProbeBlock& pb,
+				       const RegisterBkpt& rb,
 				       const ReturnStackBuffer& rsb):
-    CallTerminator(block_pool, ptr_pool, tmp_mem, CALL_IND_SIZE, call, tracee, lb, pb, rb, rsb)
+    CallTerminator(block_pool, ptr_pool, tmp_mem, CALL_IND_SIZE, call, tracees, lb, pb, rb, rsb)
   {
     uint8_t *bkpt_addr = subaddr();
     const auto bkpt_inst = Instruction::int3(bkpt_addr);
     write(bkpt_inst);
-    flush();
-  
-    rb(bkpt_addr, make_callback<Terminator>(this, &Terminator::handle_bkpt_singlestep));
+    flush(tracees);
+    rb(bkpt_addr, [&] (Tracee& tracee, auto addr) { this->handle_bkpt_singlestep(tracee); });
   }
 
   template <size_t CACHELEN>
@@ -479,9 +498,9 @@ namespace dbi {
   template <size_t CACHELEN>
   JmpIndTerminator<CACHELEN>::JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool,
 					       TmpMem& tmp_mem, const Instruction& jmp,
-					       Tracee& tracee, const LookupBlock& lb,
+					       Tracees& tracees, const LookupBlock& lb,
 					       const RegisterBkpt& rb):
-    Terminator(block_pool, jmp_ind_size(jmp), jmp, tracee, lb)
+    Terminator(block_pool, jmp_ind_size(jmp), jmp, tracees, lb)
   {
     /* make orig pointers */
     for (auto& orig : origs) {
@@ -531,20 +550,20 @@ namespace dbi {
     const auto mismatch_bkpt = Instruction::int3(it);
     it += mismatch_bkpt.size();
     write(mismatch_bkpt);
-    rb(mismatch_bkpt.pc(), make_callback(this, &JmpIndTerminator::handle_bkpt));
+    rb(mismatch_bkpt.pc(), [&] (Tracee& tracee, auto addr) { this->handle_bkpt(tracee); });
 
     /* null breakpoint */
     const auto null_bkpt = Instruction::int3(it);
     it += null_bkpt.size();
     write(null_bkpt);
-    rb(null_bkpt.pc(), [&] (uint8_t *bkpt_addr) {
+    rb(null_bkpt.pc(), [&] (Tracee& tracee, uint8_t *bkpt_addr) {
       std::cerr << "jumped to NULL" << std::endl;
       std::cerr << "pc: " << (void *) tracee.get_pc() << std::endl;
       const auto begin = addr();
       const auto end = begin + jmp_ind_size(jmp);
       tracee.disas(std::cerr, begin, end);
     
-      abort();
+      std::abort();
     });
   
     assert(static_cast<size_t>(it - addr())
@@ -566,25 +585,25 @@ namespace dbi {
       it += newjmps[i].size();
     }
 
-    flush();
+    flush(tracees);
 
     /* assertions */
     assert(jmp_ind_size(jmp) == static_cast<size_t>(it - addr()));
   }
 
   template <size_t CACHELEN>
-  void JmpIndTerminator<CACHELEN>::handle_bkpt(void) {
+  void JmpIndTerminator<CACHELEN>::handle_bkpt(Tracee& tracee) {
     uint8_t *orig_pc;
     uint8_t *new_pc;
-    Terminator::handle_bkpt_singlestep(orig_pc, new_pc);
+    Terminator::handle_bkpt_singlestep(tracee, orig_pc, new_pc);
 
     /* Update cache: shift origs & newjmps down, add new pair at front.
      */
     const auto i = eviction_index;
-    tracee().write(&orig_pc, sizeof(orig_pc), (uint8_t *) origs[i]);
+    tracee.write(&orig_pc, sizeof(orig_pc), (uint8_t *) origs[i]);
     newjmps[i].retarget(new_pc);
     write(newjmps[i]);
-    flush();
+    flush(tracee);
     eviction_index = (eviction_index + 1) % CACHELEN;
   }
 

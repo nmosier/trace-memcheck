@@ -1,7 +1,10 @@
 #pragma once
 
+#include <vector>
+
 namespace dbi {
   class Tracee;
+  using Tracees = std::vector<Tracee>;
 }
 
 #include <iostream>
@@ -23,14 +26,17 @@ namespace dbi {
   class Tracee {
   public:
     Tracee(): fd_(-1) {}
-    Tracee(pid_t pid, const char *command) { open(pid, command); }
+    Tracee(pid_t pid, const char *command, bool stopped) { open(pid, command, stopped); }
     ~Tracee();
     Tracee(const Tracee& other) = delete;
+    Tracee(Tracee&& other);
   
     bool good() const { return fd_ >= 0; }
     operator bool() const { return good(); }
+
+    bool stopped() const { return stopped_; }
   
-    void open(pid_t pid, const char *command);
+    void open(pid_t pid, const char *command, bool stopped);
     void close(void);
   
     pid_t pid() const { return pid_; }
@@ -102,9 +108,9 @@ namespace dbi {
     siginfo_t get_siginfo();
     auto get_flags() { return get_gpregs().eflags; }
   
-    int singlestep() { return resume<PTRACE_SINGLESTEP>(); }
-    int cont() { return resume<PTRACE_CONT>(); }
-    int cont_syscall() { return resume<PTRACE_SYSCALL>(); }
+    void singlestep() { return resume<PTRACE_SINGLESTEP>(); }
+    void cont() { return resume<PTRACE_CONT>(); }
+    void cont_syscall() { return resume<PTRACE_SYSCALL>(); }
 
     void syscall(user_regs_struct& regs);
 
@@ -112,9 +118,7 @@ namespace dbi {
     uintptr_t syscall(Syscall syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
 		      uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
 
-    void perror(void) const;
-
-    void gdb(void);
+    void gdb();
 
     std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
 
@@ -127,11 +131,34 @@ namespace dbi {
     void assert_stopsig(int status, int expect);
 
     std::ostream& xmm_print(std::ostream& os, unsigned idx);
-  
+
+    auto geteventmsg() const {
+      assert(stopped());
+      unsigned long eventmsg;
+      ptrace(PTRACE_GETEVENTMSG, pid(), 0, &eventmsg); // TODO: check return value
+      return eventmsg;
+    }
+
+    void wait(int *status) {
+      assert(!stopped());
+      if (::waitpid(pid(), status, 0) < 0) {
+	std::perror("waitpid");
+	std::abort();
+      }
+      stopped_ = true;
+    }
+
+    int wait() {
+      int status;
+      wait(&status);
+      return status;
+    }
+
   private:
     pid_t pid_;
     int fd_;
     const char *command;
+    bool stopped_ = false;
     bool regs_good_ = false;
     user_regs_struct regs_;
     bool fpregs_good_ = false;
@@ -173,14 +200,23 @@ namespace dbi {
     size_t string(const char *addr, std::vector<char>& buf);
 
     template <__ptrace_request request>
-    int resume() {
+    void resume() {
+      assert(stopped());
       flush_caches();
       invalidate_caches();
-      ::ptrace(request, pid(), nullptr, nullptr);
-      int status;
-      ::wait(&status);
-      return status;
+      ptrace(request, pid(), nullptr, nullptr);
+      stopped_ = false;
     }
   };
+
+  template <typename Addr, typename Data>
+  long ptrace(enum __ptrace_request request, pid_t pid, Addr addr, Data data) {
+    long res;
+    if ((res = ::ptrace(request, pid, addr, data)) < 0) {
+      std::perror("ptrace");
+      std::abort();
+    }
+    return res;
+  }
 
 }

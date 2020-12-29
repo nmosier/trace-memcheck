@@ -23,28 +23,38 @@ namespace dbi {
     using LookupBlock = std::function<uint8_t *(uint8_t *)>;
     using TryLookupBlock = std::function<uint8_t *(uint8_t *)>;
     using ProbeBlock = std::function<uint8_t *(uint8_t *)>; // returns nullptr if block not present
-    using BkptCallback = std::function<void(uint8_t *)>;
+    using BkptCallback = std::function<void(Tracee& tracee, uint8_t *)>;
     using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
     using UnregisterBkpt = std::function<void(uint8_t *)>;
   
     static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-			      const Instruction& branch, Tracee& trace, const LookupBlock& lb,
+			      const Instruction& branch, Tracees& tracees, const LookupBlock& lb,
 			      const ProbeBlock& pb, const RegisterBkpt& rb,
 			      const ReturnStackBuffer& rsb, const Block& block);
-  
-    void handle_bkpt_singlestep(void); // handle breakpoint by single-stepping
-    void handle_bkpt_singlestep(uint8_t *& orig_pc, uint8_t *& new_pc); // also return original PC after single-stepping
+
+    // handle breakpoint by single-stepping    
+    void handle_bkpt_singlestep(Tracee& tracee); 
+
+    // also return original PC after single-stepping
+    void handle_bkpt_singlestep(Tracee& tracee, uint8_t *& orig_pc, uint8_t *& new_pc); 
 
   protected:
     Terminator(BlockPool& block_pool, size_t size, const Instruction& branch,
-	       Tracee& tracee, const LookupBlock& lb);
+	       Tracees& tracees, const LookupBlock& lb);
 
     uint8_t *write(uint8_t *addr, const uint8_t *data, size_t count);
-    uint8_t *write(const Blob& blob) { return write(blob.pc(), blob.data(), blob.size()); }
-    uint8_t *write(uint8_t *addr, uint8_t byte) { return write_i<uint8_t>(addr, byte); }
+    uint8_t *write(const Blob& blob) {
+      return write(blob.pc(), blob.data(), blob.size());
+    }
+    uint8_t *write(uint8_t *addr, uint8_t byte) {
+      return write_i<uint8_t>(addr, byte);
+    }
     uint8_t *write_bkpt(uint8_t *addr) { return write(addr, 0xcc); }
-  
-    void flush();
+
+    void flush(Tracee& tracee);
+    void flush(Tracees& tracees) {
+      std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) { this->flush(tracee); });
+    }
 
     template <typename... Args>
     uint8_t *try_lookup_block(Args&&... args) { return lb_(args...); }
@@ -56,15 +66,15 @@ namespace dbi {
       return res;
     }
 
-    Tracee& tracee() const { return tracee_; }
-
+#if 0
     template <typename Derived>
     static BkptCallback make_callback(Derived *term,
 				      void (Derived::*fn)(void)) {
-      return [=] (uint8_t *bkpt_addr) {
-	(term->*fn)();
+      return [=] (Tracee& tracee, uint8_t *bkpt_addr) {
+	(term->*fn)(tracee);
       };
     }
+#endif
 
     uint8_t *addr() const { return addr_; }
 
@@ -79,7 +89,6 @@ namespace dbi {
     size_t size_;
     Buf buf_;
     bool dirty_ = false; // whether buf is dirty
-    Tracee& tracee_;
     const LookupBlock lb_;
     uint8_t *orig_branch_addr_;
 
@@ -94,7 +103,7 @@ namespace dbi {
 
   class DirJmpTerminator: public Terminator {
   public:
-    DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, Tracee& tracee,
+    DirJmpTerminator(BlockPool& block_pool, const Instruction& jmp, Tracees& tracees,
 		     const LookupBlock& lb);
   private:
     static constexpr size_t DIR_JMP_SIZE = Instruction::jmp_relbrd_len;
@@ -102,7 +111,7 @@ namespace dbi {
 
   class DirJccTerminator: public Terminator {
   public:
-    DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, Tracee& tracee,
+    DirJccTerminator(BlockPool& block_pool, const Instruction& jcc, Tracees& tracees,
 		     const LookupBlock& lb, const ProbeBlock& pb, const RegisterBkpt& rb, const Block& block);
   private:
     static constexpr size_t DIR_JCC_SIZE =
@@ -128,8 +137,8 @@ namespace dbi {
   
     const char *dir_str(void) const;
     static const char *bias_str(Bias bias);
-    void handle_bkpt_fallthru(void);
-    void handle_bkpt_jcc(void);
+    void handle_bkpt_fallthru(Tracee& tracee);
+    void handle_bkpt_jcc(Tracee& tracee);
     void log_bkpt(const char *kind) const;
   
     struct Prediction {
@@ -156,7 +165,7 @@ namespace dbi {
   class JmpIndTerminator: public Terminator {
   public:
     JmpIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-		     const Instruction& jmp, Tracee& tracee, const LookupBlock& lb,
+		     const Instruction& jmp, Tracees& tracees, const LookupBlock& lb,
 		     const RegisterBkpt& rb);
   private:
     static constexpr size_t JMP_IND_SIZE_pre = 7 + 1 + 1;
@@ -170,7 +179,7 @@ namespace dbi {
     static size_t load_addr_size(const Instruction& jmp);
     uint8_t *match_addr(size_t n, const Instruction& jmp) const;
   
-    void handle_bkpt(void);
+    void handle_bkpt(Tracee& tracee);
   
     std::array<uint8_t **, CACHELEN> origs;
     std::array<Instruction, CACHELEN> newjmps;
@@ -179,7 +188,7 @@ namespace dbi {
 
   class RetTerminator: public Terminator {
   public:
-    RetTerminator(BlockPool& block_pool, TmpMem& tmp_mem, const Instruction& ret, Tracee& tracee,
+    RetTerminator(BlockPool& block_pool, TmpMem& tmp_mem, const Instruction& ret, Tracees& tracees,
 		  const LookupBlock& lb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
   private:
@@ -189,7 +198,7 @@ namespace dbi {
   class CallTerminator: public Terminator {
   public:
     CallTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem, size_t size,
-		   const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+		   const Instruction& call, Tracees& tracees, const LookupBlock& lb,
 		   const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
 
   protected:
@@ -202,13 +211,13 @@ namespace dbi {
     uint8_t *orig_ra_val;
     uint8_t **new_ra_ptr;
 
-    void handle_bkpt_ret(void);  
+    void handle_bkpt_ret(Tracee& tracee);  
   };
 
   class CallDirTerminator: public CallTerminator {
   public:
     CallDirTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-		      const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+		      const Instruction& call, Tracees& tracees, const LookupBlock& lb,
 		      const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
   private:
@@ -218,7 +227,7 @@ namespace dbi {
   class CallIndTerminator: public CallTerminator {
   public:
     CallIndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
-		      const Instruction& call, Tracee& tracee, const LookupBlock& lb,
+		      const Instruction& call, Tracees& tracees, const LookupBlock& lb,
 		      const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb);
   
   private:
@@ -228,7 +237,7 @@ namespace dbi {
   class IndTerminator: public virtual Terminator {
   public:
     IndTerminator(BlockPool& block_pool, PointerPool& ptr_pool, const Instruction& call,
-		  Tracee& tracee, const LookupBlock& lb, const RegisterBkpt& rb);
+		  Tracees& tracees, const LookupBlock& lb, const RegisterBkpt& rb);
   protected:
     static constexpr size_t IND_SIZE = 0; // TODO
   private:

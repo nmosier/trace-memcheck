@@ -9,13 +9,12 @@
 
 namespace dbi {
 
-  Patcher::Patcher(Tracee& tracee, const Transformer& transformer):
-    tracee(tracee),
-    cache(tracee),
-    block_pool(tracee, block_pool_size),
-    ptr_pool(tracee, ptr_pool_size),
-    rsb(tracee, rsb_size),
-    tmp_mem(tracee, tmp_size),
+  Patcher::Patcher(Tracees&& tmp_tracees, const Transformer& transformer):
+    tracees(std::move(tmp_tracees)),
+    block_pool(tracee(), block_pool_size), // done
+    ptr_pool(tracees, ptr_pool_size),
+    rsb(tracee(), rsb_size),
+    tmp_mem(tracee(), tmp_size),
     transformer(transformer)
   {}
 
@@ -50,23 +49,16 @@ namespace dbi {
     };
 
     /* create block */
-    return Block::Create(start_pc, tracee, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
+    return Block::Create(start_pc, tracees, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
 			 block_transformer,
-			 [this] (...) { pre_syscall_handler(); },
-			 [this] (...) { post_syscall_handler(); },
-			 cache
+			 [this] (auto&&...) { this->pre_syscall_handler(); },
+			 [this] (auto&&...) { this->post_syscall_handler(); }
 			 );
   }
 
-  void Patcher::handle_bkpt(uint8_t *bkpt_addr) {
+  void Patcher::handle_bkpt(Tracee& tracee, uint8_t *bkpt_addr) {
     const BkptCallback& callback = lookup_bkpt(bkpt_addr);
-    callback(bkpt_addr);
-  }
-
-  void Patcher::jump_to_block(uint8_t *orig_addr) {
-    auto block_it = block_map.find(orig_addr);
-    assert(block_it != block_map.end());
-    block_it->second->jump_to();
+    callback(tracee, bkpt_addr);
   }
 
   const Patcher::BkptCallback& Patcher::lookup_bkpt(uint8_t *addr) const {
@@ -95,55 +87,61 @@ namespace dbi {
     return it->second;
   }
 
-#define USE_BKPT 1
+  constexpr bool USE_BKPT = true;
 
-#if USE_BKPT
   void Patcher::start() {
-    /* get entry point */
-    std::ifstream ifs;
-    ifs.open(tracee.filename());
-    assert(ifs);
+    if (USE_BKPT) {
+      
+      /* get entry point */
+      std::ifstream ifs;
+      ifs.open(tracee().filename());
+      assert(ifs);
   
 
-    Elf64_Ehdr ehdr;
-    if (!ifs.read(reinterpret_cast<char *>(&ehdr), sizeof(ehdr))) {
-      abort();
+      Elf64_Ehdr ehdr;
+      if (!ifs.read(reinterpret_cast<char *>(&ehdr), sizeof(ehdr))) {
+	abort();
+      }
+
+      // assert(strcmp(reinterpret_cast<const char *>(ehdr.e_ident), ELFMAG) == 0);
+      assert(ehdr.e_type == ET_EXEC);
+
+      const auto entry = ehdr.e_entry;
+
+      // TODO: if under ASLR, need to translate into runtime address.
+
+      entry_addr = reinterpret_cast<uint8_t *>(entry);
+      tracee().read(&old_entry_byte, 1, entry_addr);
+      static const uint8_t bkpt = 0xcc;
+      tracee().write(&bkpt, 1, entry_addr);
+
+      tracee().cont();
+      const auto status = tracee().wait();
+      (void) status;
+      assert(WIFSTOPPED(status));
+      assert(WSTOPSIG(status) == SIGTRAP);
+      assert(tracee().get_pc() == entry_addr + 1);
+      tracee().write(&old_entry_byte, 1, entry_addr);
+      tracee().set_pc(entry_addr);
+      start_block();
+
+    } else {
+
+      start_block();
+      
     }
-
-    // assert(strcmp(reinterpret_cast<const char *>(ehdr.e_ident), ELFMAG) == 0);
-    assert(ehdr.e_type == ET_EXEC);
-
-    const auto entry = ehdr.e_entry;
-
-    // TODO: if under ASLR, need to translate into runtime address.
-
-    entry_addr = reinterpret_cast<uint8_t *>(entry);
-    tracee.read(&old_entry_byte, 1, entry_addr);
-    static const uint8_t bkpt = 0xcc;
-    tracee.write(&bkpt, 1, entry_addr);
-
-    const auto status = tracee.cont(); (void) status;
-    assert(WIFSTOPPED(status));
-    assert(WSTOPSIG(status) == SIGTRAP);
-    assert(tracee.get_pc() == entry_addr + 1);
-    tracee.write(&old_entry_byte, 1, entry_addr);
-    tracee.set_pc(entry_addr);
-    start_block();
-  
+    
   }
-#else
-  void Patcher::start() { start_block(); }
-#endif
 
   void Patcher::start_block(uint8_t *root) {
     const bool patched = patch(root);
     assert(patched); (void) patched;
     Block& block = *lookup_block_patch(root, false); // cannot fail
-    block.jump_to();
+    block.jump_to(tracee());
   }
 
-  void Patcher::start_block(void) {
-    start_block(tracee.get_pc());
+  void Patcher::start_block() {
+    start_block(tracee().get_pc());
   }
 
   bool Patcher::is_pool_addr(uint8_t *addr) const {
@@ -161,91 +159,121 @@ namespace dbi {
   void Patcher::run(void) {
     int status;
 
-    while (true) {    
-      uint8_t *bkpt_pc;
+    assert(tracees.size() == 1);
 
+    while (true) {
+      /* INVARIANT: All Tracees are stopped. */
+      assert(std::all_of(tracees.begin(), tracees.end(), [] (const auto& tracee) {
+	return tracee.stopped();
+      }));
+      
+      /* Resume all tracees */
       if (g_conf.singlestep) {
-	status = tracee.singlestep();
+	for_each_tracee([] (auto& tracee) { tracee.singlestep(); });
       } else {
-	status = tracee.cont();
+	for_each_tracee([] (auto& tracee) { tracee.cont(); });
       }
 
-      if (g_conf.execution_trace && !g_conf.singlestep) { 
-	if (WIFSTOPPED(status)) {
-	  *g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
-		      << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
-		      << ": ";
-	  Instruction cur_inst(tracee.get_pc(), tracee);
-	  *g_conf.log << cur_inst << '\n';
+      /* Wait on all tracees */
+      const auto ntracees = tracees.size();
+      std::vector<int> statuses(ntracees);
+      for (unsigned i = 0; i < ntracees; ++i) {
+	tracees[i].wait(&statuses[i]);
+      }
+
+      /* Handle stops for all tracees */
+      for (unsigned i = 0; i < ntracees; ++i) {
+	const bool exited = handle_stop(tracees[i], statuses[i]);
+	if (exited) {
+	  status = statuses[i];
+	  goto exited; // TODO: continue until all threads exited
 	}
       }
+    }
+    
+  exited:
+    fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));  
+  }
 
+  bool Patcher::handle_stop(Tracee& tracee, int status) {
+    uint8_t *bkpt_pc;
+    
+    if (g_conf.execution_trace && !g_conf.singlestep) { 
       if (WIFSTOPPED(status)) {
-	const int stopsig = WSTOPSIG(status);
-
-	if (stopsig == SIGTRAP) {
-	  if (g_conf.singlestep) {
-	    uint8_t pc_byte;
-	    while (true) {
-	      if (g_conf.execution_trace) {
-		*g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
-			    << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
-			    << ": ";
-		Instruction cur_inst(tracee.get_pc(), tracee);
-		*g_conf.log << cur_inst << '\n';
-	      }
-
-	      bkpt_pc = tracee.get_pc();
-	      tracee.read(&pc_byte, 1, bkpt_pc);
-
-	      if (pc_byte != 0xcc) {
-		break;
-	      }
-
-	      tracee.set_pc(bkpt_pc + 1);
-	      handle_bkpt(bkpt_pc);
-	    }
-	  } else {
-	    bkpt_pc = tracee.get_pc() - 1;
-#ifndef NASSERT
-	    uint8_t pc_byte;
-	    tracee.read(&pc_byte, 1, bkpt_pc);
-	    assert(pc_byte == 0xcc);
-#endif
-	    handle_bkpt(bkpt_pc);
-	  }
-	} else {
-	  handle_signal(stopsig);
-	}
-      } else {
-	if (!WIFEXITED(status)) {
-	  if (WIFSIGNALED(status)) {
-	    const auto termsig = WTERMSIG(status);
-	    std::cerr << strsignal(termsig) << ": " << termsig << "\n";
-	  } else {
-	    std::cerr << "aborted due to unknown signal\n";
-	  }
-	  g_conf.abort(tracee);
-	}
-	assert(WIFEXITED(status));
-	break;
+	*g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
+		    << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
+		    << ": ";
+	Instruction cur_inst(tracee.get_pc(), tracee);
+	*g_conf.log << cur_inst << '\n';
       }
     }
 
-    fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));  
+    if (WIFSTOPPED(status)) {
+      const int stopsig = WSTOPSIG(status);
+
+      if (stopsig == SIGTRAP) {
+	if (g_conf.singlestep) {
+	  uint8_t pc_byte;
+	  while (true) {
+	    if (g_conf.execution_trace) {
+	      *g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
+			  << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
+			  << ": ";
+	      Instruction cur_inst(tracee.get_pc(), tracee);
+	      *g_conf.log << cur_inst << '\n';
+	    }
+
+	    bkpt_pc = tracee.get_pc();
+	    tracee.read(&pc_byte, 1, bkpt_pc);
+
+	    if (pc_byte != 0xcc) {
+	      break;
+	    }
+
+	    tracee.set_pc(bkpt_pc + 1);
+	    handle_bkpt(tracee, bkpt_pc);
+	  }
+	} else {
+	  bkpt_pc = tracee.get_pc() - 1;
+#ifndef NASSERT
+	  uint8_t pc_byte;
+	  tracee.read(&pc_byte, 1, bkpt_pc);
+	  assert(pc_byte == 0xcc);
+#endif
+	  handle_bkpt(tracee, bkpt_pc);
+	}
+      } else {
+	handle_signal(stopsig);
+      }
+    } else {
+      if (!WIFEXITED(status)) {
+	if (WIFSIGNALED(status)) {
+	  const auto termsig = WTERMSIG(status);
+	  std::cerr << strsignal(termsig) << ": " << termsig << "\n";
+	} else {
+	  std::cerr << "aborted due to unknown signal\n";
+	}
+	g_conf.abort(tracee);
+      }
+      assert(WIFEXITED(status));
+      return true;
+    }
+
+    return false;
   }
+  
 
   void Patcher::handle_signal(int signum) {
     const auto it = sighandlers.find(signum);
     if (it == sighandlers.end()) {
       *g_conf.log << "unexpected signal " << signum << '\n';
-      *g_conf.log << "pc = " << (void *) tracee.get_pc() << '\n';
-      uint8_t *stop_pc = tracee.get_pc();
-      Instruction inst(stop_pc, tracee);
+      *g_conf.log << "pc = " << (void *) tracee().get_pc() << '\n';
+      uint8_t *stop_pc = tracee().get_pc();
+      Instruction inst(stop_pc, tracee());
       *g_conf.log << "stopped at inst: " << Decoder::disas(inst).c_str() << '\n';
-      g_conf.abort(tracee);
+      g_conf.abort(tracee());
     } else {
-      auto siginfo = tracee.get_siginfo();
+      auto siginfo = tracee().get_siginfo();
       it->second(signum, siginfo);
     }
   }
@@ -264,11 +292,12 @@ namespace dbi {
   }
 
   void Patcher::pre_syscall_handler() {
-    syscall_args.add_call(tracee);
+    syscall_args.add_call(tracee());
   }
 
   void Patcher::post_syscall_handler() {
-    syscall_args.add_ret(tracee);
+#if 0
+    syscall_args.add_ret(tracee());
 
     switch (syscall_args.no()) {
     case Syscall::MUNMAP:
@@ -280,6 +309,7 @@ namespace dbi {
     
     case Syscall::MREMAP: abort();
     }
+#endif
   }
 
 }

@@ -7,9 +7,9 @@ namespace dbi {
 
   class PointerPool {
   public:
-    PointerPool(Tracee& tracee, size_t size):
-      tracee(tracee),
-      mem(tracee, size, PROT_READ),
+    PointerPool(Tracees& tracees, size_t size):
+      tracees(tracees),
+      mem(tracees.front(), size, PROT_READ),
       allocator(mem.begin<uintptr_t>(), mem.end<uintptr_t>())
     {}
 
@@ -17,12 +17,14 @@ namespace dbi {
 
     uintptr_t *add(uintptr_t val) {
       uintptr_t *ptr = alloc();
-      tracee.write(&val, sizeof(val), ptr);
+      std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) {
+	tracee.write(&val, sizeof(val), ptr);
+      });
       return ptr;
     }
   
   private:
-    Tracee& tracee;
+    Tracees& tracees;
     UserMemory mem;
     UserAllocator<uintptr_t> allocator;
   };

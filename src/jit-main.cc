@@ -17,9 +17,24 @@
 #include "dbi/patch.hh"
 #include "dbi/config.hh"
 
+namespace {
+  bool log_syscalls = false;
+}
+
 static void transformer(uint8_t *addr, dbi::Instruction& inst,
 			const dbi::Patcher::TransformerInfo& info) {
   (void) addr;
+
+  if (log_syscalls) {
+    if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
+      auto inst = dbi::Instruction::int3(addr);
+      addr = info.writer(inst);
+      info.rb(inst.pc(), [&] (dbi::Tracee& tracee, auto addr) {
+	std::clog << "syscall " << static_cast<dbi::Syscall>(tracee.get_gpregs().rax) << "\n";
+      });
+    }
+  }
+  
   addr = info.writer(inst);
 }
 
@@ -40,6 +55,8 @@ int main(int argc, char *argv[]) {
       " --prediction-mode=<mode>\n"				\
       "           branch prediction mode to use\n"		\
       "           legal values: 'none', 'iclass', 'iform'\n"	\
+      " --syscalls\n"						\
+      "           log syscalls" 
       ""
       ;
     fprintf(f, usage, argv[0]);
@@ -50,9 +67,11 @@ int main(int argc, char *argv[]) {
   const char *optstring = "hgpsxbjdl:";
   enum Option {
     PREDICTION_MODE = 256,
+    LOG_SYSCALLS,
   };
   const struct option longopts[] =
     {{"prediction-mode", 1, nullptr, PREDICTION_MODE},
+     {"syscalls", 1, nullptr, LOG_SYSCALLS},
      {nullptr, 0, nullptr, 0},
     };
   int optchar;
@@ -105,6 +124,10 @@ int main(int argc, char *argv[]) {
 	return 1;
       }
       break;
+
+    case LOG_SYSCALLS:
+      log_syscalls = true;
+      break;
       
     default:
       usage(stderr);
@@ -133,11 +156,19 @@ int main(int argc, char *argv[]) {
   }
 
   int status;
-  wait(&status);
+  if (waitpid(child_pid, &status, 0) < 0) {
+    std::perror("waitpid");
+    std::abort();
+  }
+  assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
 
-  dbi::Tracee tracee(child_pid, command[0]);
+  dbi::Tracees tracees;
+  tracees.emplace_back(child_pid, command[0], true);
+
+  std::array<uint8_t, 1> tmp;
+  tracees[0].read(tmp, tracees[0].get_pc());
   
-  dbi::Patcher patcher(tracee, transformer);
+  dbi::Patcher patcher(std::move(tracees), transformer);
   patcher.start();
   patcher.run();
 

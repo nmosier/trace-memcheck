@@ -5,6 +5,7 @@
 
 namespace dbi {
 
+#if 0
   const ROMCache::Page& ROMCache::get_page(const void *pageaddr) {
     auto it = page_map.find(pageaddr);
     if (it == page_map.end()) {
@@ -35,5 +36,6 @@ namespace dbi {
     assert(static_cast<char *>(to_) + count_ == to);
     assert(static_cast<const char *>(from_) + count_ == from);
   }
-
+#endif
+  
 }

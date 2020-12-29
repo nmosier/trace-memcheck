@@ -8,7 +8,6 @@ add_library(dbi STATIC
   block-term.cc
   rsb.cc
   config.cc
-  block-pool.cc
   romcache.cc
   syscall.cc
   regs.cc

@@ -21,9 +21,12 @@
 
 namespace dbi {
 
-  void Tracee::open(pid_t pid, const char *command) {
+  void Tracee::open(pid_t pid, const char *command, bool stopped) {
     pid_ = pid;
     this->command = command;
+    regs_good_ = false;
+    fpregs_good_ = false;
+    stopped_ = stopped;
   
     char *path;
     if (asprintf(&path, "/proc/%d/mem", pid_) < 0) {
@@ -41,6 +44,22 @@ namespace dbi {
     }
   }
 
+  Tracee::Tracee(Tracee&& other) {
+      /* Copy members */
+      pid_ = other.pid_;
+      fd_ = other.fd_;
+      command = other.command;
+      stopped_ = other.stopped_;
+      regs_good_ = other.regs_good_;
+      regs_ = other.regs_;
+      fpregs_good_ = other.fpregs_good_;
+      fpregs_ = other.fpregs_;
+      memcache_ = other.memcache_;
+
+      /* Mark other as closed */
+      other.fd_ = -1;
+  }
+
   Tracee::~Tracee(void) {
     if (fd_ < 0) {
       close();
@@ -56,6 +75,8 @@ namespace dbi {
   }
 
   void Tracee::read(void *to_, size_t count, const void *from_) {
+    assert(stopped());
+    
     auto to = static_cast<char *>(to_);
     auto from = static_cast<const char *>(from_);
 
@@ -71,17 +92,21 @@ namespace dbi {
 	count -= cur_count;
       }
     } else {
-      const ssize_t bytes_read = pread(fd(), to, count, (off_t) from);
+      const ssize_t bytes_read = ::pread(fd(), to, count, reinterpret_cast<off_t>(from));
       if (bytes_read < 0) {
 	std::perror("pread");
-	fprintf(stderr, "pc = %p\n", (void *) get_pc());
-	abort();
+	std::fprintf(stderr, "pc = %p\n", (void *) get_pc());
+	g_conf.abort(*this);
+      } else if (bytes_read == 0) {
+	std::cerr << "pread: unexpected EOF\n";
+	std::abort();
       }
-      assert((size_t) bytes_read == count);    
+      assert(static_cast<size_t>(bytes_read) == count);
     }
   }
 
   void Tracee::readv(const struct iovec *iov, int iovcnt, const void *from) {
+    assert(stopped());
     const ssize_t bytes_read = preadv(fd(), iov, iovcnt, reinterpret_cast<off_t>(from));
     const ssize_t expected_bytes = std::accumulate(iov, iov + iovcnt, 0,
 						   [] (const auto acc, const auto& iov) {
@@ -93,13 +118,15 @@ namespace dbi {
   }
 
   bool Tracee::try_read(void *to, size_t count, const void *from) {
+    assert(stopped());
     abort(); // TODO
-  
+    
     const ssize_t bytes_read = pread(fd(), to, count, reinterpret_cast<off_t>(from));
     return bytes_read >= 0 && static_cast<size_t>(bytes_read) == count;
   }
 
   void Tracee::write(const void *from_, size_t count, void *to_) {
+    assert(stopped());
     auto from = static_cast<const char *>(from_);
     auto to = static_cast<char *>(to_);
     if (TRACEE_MEMCACHE) {
@@ -130,6 +157,7 @@ namespace dbi {
   }
 
   void Tracee::writev(const struct iovec *iov, int iovcnt, void *to) {
+    assert(stopped());
     const auto bytes_expected = std::accumulate(iov, iov + iovcnt, 0,
 						[] (const auto acc, const auto& iov) {
 						  return acc + iov.iov_len;
@@ -152,15 +180,17 @@ namespace dbi {
   }
 
   void Tracee::cache_regs(void) {
+    assert(stopped());
     if (!regs_good_) {
-      ::ptrace(PTRACE_GETREGS, pid(), nullptr, &regs_);
+      ptrace(PTRACE_GETREGS, pid(), nullptr, &regs_);
       regs_good_ = true;
     }
   }
 
   void Tracee::cache_fpregs() {
+    assert(stopped());
     if (!fpregs_good_) {
-      ::ptrace(PTRACE_GETFPREGS, pid(), nullptr, &fpregs_);
+      ptrace(PTRACE_GETFPREGS, pid(), nullptr, &fpregs_);
       fpregs_good_ = true;
     }
   }
@@ -201,6 +231,7 @@ namespace dbi {
   }
 
   void Tracee::flush_caches() {
+    assert(stopped());
     if (regs_good_) {
       ptrace(PTRACE_SETREGS, pid(), nullptr, &regs_);
     }
@@ -226,9 +257,9 @@ namespace dbi {
     read(&saved_code, sizeof(saved_code), pc);
     write(&syscall, sizeof(syscall), pc);
 
-    const int status = singlestep();
-    (void) status;
-    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
+    singlestep();
+    const int status = wait();
+    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP); (void) status;
 
     write(&saved_code, sizeof(saved_code), pc);
     get_regs(regs);
@@ -249,11 +280,6 @@ namespace dbi {
     syscall(regs);
 
     return regs.rax;
-  }
-
-  void Tracee::perror(void) const {
-    // TODO: need to call dlsym()
-    abort();
   }
 
   void Tracee::gdb() {
@@ -319,10 +345,8 @@ namespace dbi {
   }
 
   void Tracee::get_siginfo(siginfo_t& siginfo) {
-    if (ptrace(PTRACE_GETSIGINFO, pid(), nullptr, &siginfo) < 0) {
-      std::perror("ptrace");
-      abort();
-    }
+    assert(stopped());
+    ptrace(PTRACE_GETSIGINFO, pid(), nullptr, &siginfo);
   }
 
   siginfo_t Tracee::get_siginfo() {
@@ -332,6 +356,7 @@ namespace dbi {
   }
 
   std::ostream& Tracee::cat_maps(std::ostream& os) const {
+    assert(stopped());
     std::stringstream ss;
     ss << "/proc/" << pid() << "/maps";
     std::ifstream ifs;
@@ -420,6 +445,7 @@ namespace dbi {
   }
 
   Tracee::Page& Tracee::read_page(const void *pageaddr) {
+    assert(stopped());
     /* TODO: optimize using preadv */
     const auto it = memcache_.find(pageaddr);
     Page *page;
@@ -438,12 +464,14 @@ namespace dbi {
   }
 
   Tracee::Page& Tracee::write_page(const void *pageaddr) {
+    assert(stopped());
     Page& page = memcache_[pageaddr];
     page.dirty = true;
     return page;
   }
 
   void Tracee::flush_memcache() {
+    assert(stopped());
     /* TODO: OPTIM: optimize using pwritev */
     std::for_each(memcache_.begin(), memcache_.end(), [this] (auto& p) {
       Page& page = p.second;

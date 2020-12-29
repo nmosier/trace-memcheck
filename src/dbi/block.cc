@@ -7,14 +7,13 @@
 
 namespace dbi {
 
-  bool Block::Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
+  bool Block::Create(uint8_t *orig_addr, Tracees& tracees, BlockPool& block_pool,
 		     PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		     const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
 		     const InsertBlock& ib, const Transformer& transformer,
-		     const BkptCallback& syscall_pre, const BkptCallback& syscall_post,
-		     ROMCache& rom_cache)
+		     const BkptCallback& syscall_pre, const BkptCallback& syscall_post)
   {
-    Block *block = new Block(tracee, orig_addr);
+    Block *block = new Block(orig_addr);
     uint8_t *it = orig_addr;
   
     block->pool_addr_ = block_pool.peek();
@@ -33,7 +32,9 @@ namespace dbi {
 
     const auto flush = [&] (void) {
       assert(buf.size() == static_cast<size_t>(newit - block->pool_addr_));
-      tracee.write(buf.data(), buf.size(), block->pool_addr_);
+      std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) {
+	tracee.write(buf.data(), buf.size(), block->pool_addr_);
+      });
       block_pool.alloc(buf.size());
     };
   
@@ -54,8 +55,9 @@ namespace dbi {
 	/* branch stuff */
 	flush();
 	ib(orig_addr, block);
-	block->terminator_ = std::unique_ptr<Terminator>
-	  (Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst, tracee, lb, pb, rb, rsb, *block));
+	block->terminator_ =
+	  std::unique_ptr<Terminator>(Terminator::Create(block_pool, ptr_pool, tmp_mem, *inst,
+							 tracees, lb, pb, rb, rsb, *block));
 	return nullptr; // rv shouldn't matter
       }
 
@@ -91,12 +93,9 @@ namespace dbi {
     };
 
     Instruction inst;
+    Tracee& tracee = tracees.front(); // use front tracee for translating; code should be all same.
     while (!stop) {
-      if (PATCHER_USE_ROMCACHE) {
-	inst = Instruction(it, rom_cache);
-      } else {
-	inst = Instruction(it, tracee);
-      }
+      inst = Instruction(it, tracee);
 
       if (!inst) {
 	return false;
@@ -213,8 +212,8 @@ namespace dbi {
     }
   }
 
-  void Block::jump_to(void) const {
-    tracee_.set_pc(pool_addr());
+  void Block::jump_to(Tracee& tracee) const {
+    tracee.set_pc(pool_addr());
   }
 
 }

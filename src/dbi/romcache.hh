@@ -8,6 +8,7 @@
 
 namespace dbi {
 
+#if 0
   class ROMCache {
   public:
     ROMCache(Tracee& tracee): tracee(tracee) {}
@@ -31,5 +32,6 @@ namespace dbi {
 
     const Page& get_page(const void *pageaddr);
   };
-
+#endif
+  
 }

@@ -38,26 +38,23 @@ namespace dbi {
     using Transformer = std::function<void (uint8_t *, Instruction& inst, const Writer&)>;
     using BkptCallback = Terminator::BkptCallback;
 
-    static bool Create(uint8_t *orig_addr, Tracee& tracee, BlockPool& block_pool,
+    static bool Create(uint8_t *orig_addr, Tracees& tracees, BlockPool& block_pool,
 		       PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,
 		       const ProbeBlock& pb, const RegisterBkpt& rb, const ReturnStackBuffer& rsb,
 		       const InsertBlock& ib, const Transformer& transformer,
-		       const BkptCallback& syscall_pre, const BkptCallback& syscall_post,
-		       ROMCache& rom_cache
-		       );
+		       const BkptCallback& syscall_pre, const BkptCallback& syscall_post);
     
     uint8_t *orig_addr() const { return orig_addr_; }
     uint8_t *pool_addr() const { return pool_addr_; }
 
-    void jump_to(void) const;
+    void jump_to(Tracee& tracee) const;
 
   private:
-    Tracee& tracee_;
     uint8_t *orig_addr_;
     uint8_t *pool_addr_;
     std::unique_ptr<Terminator> terminator_;
 
-    Block(Tracee& tracee, uint8_t *orig_addr): tracee_(tracee), orig_addr_(orig_addr) {}
+    Block(uint8_t *orig_addr): orig_addr_(orig_addr) {}
 
     static bool classify_inst(const Instruction& inst) {
       return classify_inst(inst.xed_iclass());

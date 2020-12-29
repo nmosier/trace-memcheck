@@ -21,8 +21,7 @@ namespace dbi {
 						       )
 					);
     if (user_map == MAP_FAILED) {
-      tracee.perror();
-      abort();
+      std::abort();
     }
   }
 
