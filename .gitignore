@@ -6,10 +6,12 @@ CmakeCache.txt
 cmake_install.cmake
 Makefile
 \#*\#
-Testing
+Testing/
 CTestTestfile.cmake
-build
+build/
 memcheck-debug
 memcheck-release
 CMakeCache.txt
 *#*
+*.log
+*._*
