@@ -80,7 +80,7 @@ namespace dbi {
 
     bool patch(uint8_t *root);
     void handle_bkpt(Tracee& tracee, uint8_t *bkpt_addr);
-    void handle_signal(int signum);
+    void handle_signal(Tracee& tracee, int signum);
 
     SyscallArgs syscall_args;
     void pre_syscall_handler();
@@ -88,6 +88,8 @@ namespace dbi {
 
     bool handle_stop(Tracee& tracee, Status status); // returns whether exited
     void handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event);
+
+    void print_ss(Tracee& tracee) const;
 
     template <typename F>
     void for_each_tracee(F f) const {

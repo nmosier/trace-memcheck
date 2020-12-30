@@ -53,7 +53,12 @@ namespace dbi {
 
     void flush(Tracee& tracee);
     void flush(Tracees& tracees) {
-      std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) { this->flush(tracee); });
+      if (dirty_) {
+	std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) {
+	  this->flush_always(tracee);
+	});
+	dirty_ = false;
+      }
     }
 
     template <typename... Args>
@@ -99,6 +104,7 @@ namespace dbi {
     }
 
     uint8_t *orig_branch_addr() const { return orig_branch_addr_; }
+    void flush_always(Tracee& tracee);
   };
 
   class DirJmpTerminator: public Terminator {

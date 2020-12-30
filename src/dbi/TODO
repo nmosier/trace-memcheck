@@ -2,3 +2,4 @@
 [ ] Tracee should track if stopped; assert that stopped actions are only issued when stopped.
 [ ] Status type: status_t
 [ ] Some signals only found in single-step mode (e.g. jit + fork + SIGCHILD)
+[ ] Remove support for caches -- doesn't help w/ memcheck

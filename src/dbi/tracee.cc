@@ -27,6 +27,14 @@ namespace dbi {
     regs_good_ = false;
     fpregs_good_ = false;
     stopped_ = stopped;
+
+    /* stop if necessary */
+    if (!stopped_) {
+      Status status;
+      wait(status);
+      assert(status.stopped()); (void) status; // stopped status can be SIGSTOP or SIGTRAP
+      assert(stopped_);
+    }
   
     char *path;
     if (asprintf(&path, "/proc/%d/mem", pid_) < 0) {
@@ -61,7 +69,7 @@ namespace dbi {
   }
 
   Tracee::~Tracee(void) {
-    if (fd_ < 0) {
+    if (fd_ >= 0) {
       close();
     }
   }

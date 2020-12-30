@@ -204,11 +204,7 @@ namespace dbi {
   bool Patcher::handle_stop(Tracee& tracee, Status status) {
     if (g_conf.execution_trace && !g_conf.singlestep) {
       if (status.stopped()) {
-	*g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
-		    << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
-		    << ": ";
-	Instruction cur_inst(tracee.get_pc(), tracee);
-	*g_conf.log << cur_inst << '\n';
+	print_ss(tracee);
       }
     }
 
@@ -218,7 +214,7 @@ namespace dbi {
       if (stopsig == SIGTRAP) {
 	handle_ptrace_event(tracee, status.ptrace_event());
       } else {
-	handle_signal(stopsig);
+	handle_signal(tracee, stopsig);
       }
     } else {
       if (!status.exited()) {
@@ -241,17 +237,14 @@ namespace dbi {
     switch (event) {
     case 0: // (no event occurred; interpret as regular breakpoint)
       {
+	// TODO: split into own function.
 	uint8_t *bkpt_pc;
     
 	if (g_conf.singlestep) {
 	  uint8_t pc_byte;
 	  while (true) {
 	    if (g_conf.execution_trace) {
-	      *g_conf.log << "ss pc = " << static_cast<void *>(tracee.get_pc())
-			  << " " << static_cast<void *>(orig_block_addr(tracee.get_pc()))
-			  << ": ";
-	      Instruction cur_inst(tracee.get_pc(), tracee);
-	      *g_conf.log << cur_inst << '\n';
+	      print_ss(tracee);
 	    }
 
 	    bkpt_pc = tracee.get_pc();
@@ -276,24 +269,34 @@ namespace dbi {
       }
       break;
 
+    case PTRACE_EVENT_FORK:
+      {
+	/* get pid of forked process */
+	const pid_t newpid = tracee.geteventmsg();
+
+	/* add to tracee list */
+	tracees.emplace_back(newpid, tracee.filename(), false);
+      }
+      break;
+
     default:
       std::cerr << "unhandled PTRACE_EVENT_" << event << "\n";
       std::abort();
     }
   }
 
-  void Patcher::handle_signal(int signum) {
+  void Patcher::handle_signal(Tracee& tracee, int signum) {
     const auto it = sighandlers.find(signum);
     if (it == sighandlers.end()) {
       *g_conf.log << "unhandled tracee signal " << signum << " ("
 		  << ::strsignal(signum) << ")\n";
-      *g_conf.log << "pc = " << (void *) tracee().get_pc() << '\n';
-      uint8_t *stop_pc = tracee().get_pc();
-      Instruction inst(stop_pc, tracee());
+      *g_conf.log << "pc = " << (void *) tracee.get_pc() << '\n';
+      uint8_t *stop_pc = tracee.get_pc();
+      Instruction inst(stop_pc, tracee);
       *g_conf.log << "stopped at inst: " << Decoder::disas(inst).c_str() << '\n';
-      g_conf.abort(tracee());
+      g_conf.abort(tracee);
     } else {
-      auto siginfo = tracee().get_siginfo();
+      auto siginfo = tracee.get_siginfo();
       it->second(signum, siginfo);
     }
   }
@@ -312,7 +315,9 @@ namespace dbi {
   }
 
   void Patcher::pre_syscall_handler() {
+#if 0
     syscall_args.add_call(tracee());
+#endif
   }
 
   void Patcher::post_syscall_handler() {
@@ -332,4 +337,10 @@ namespace dbi {
 #endif
   }
 
+  void Patcher::print_ss(Tracee& tracee) const {
+    *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
+		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
+		<< Instruction(tracee.get_pc(), tracee) << "\n";
+  }
+  
 }

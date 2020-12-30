@@ -82,6 +82,10 @@ namespace dbi {
     return addr + count;
   }
 
+  void Terminator::flush_always(Tracee& tracee) {
+    tracee.write(buf_.data(), buf_.size(), addr());
+  }
+  
   void Terminator::flush(Tracee& tracee) {
     if (dirty_) {
       tracee.write(buf_.data(), buf_.size(), addr());
@@ -143,12 +147,12 @@ namespace dbi {
       fallthru_inst = Instruction::jmp_relbrd(fallthru_addr, new_fallthru);
     }
     const auto jcc_bkpt_inst = Instruction::int3(jcc_bkpt_addr);
-
+    
     /* write blobs */
     write(jcc_inst);
     write(fallthru_inst);
     write(jcc_bkpt_inst);
-  
+    
     /* flush */
     flush(tracees);
   }
