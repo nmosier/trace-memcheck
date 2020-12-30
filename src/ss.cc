@@ -49,33 +49,65 @@ int main(int argc, char *argv[]) {
 
   dbi::Decoder::Init();
 
-  dbi::Tracee tracee(child, command[0], false);
+  dbi::Tracees tracees;
+  std::vector<int> signals;
+  tracees.emplace_back(child, command[0], false);
+  signals.emplace_back(0);
+  tracees[0].setoptions(PTRACE_O_TRACEFORK);
 
-  dbi::Status status;
-  while (true) {
-    tracee.singlestep();
-    tracee.wait(status);
-
-    if (status.stopped()) {
-      const auto stopsig = status.stopsig();
-       if (stopsig != SIGTRAP) {
-	 std::cerr << "unexpected signal " << stopsig << "(" << ::strsignal(stopsig) << ")\n";
-	 uint8_t *stop_pc = tracee.get_pc();
-	 dbi::Instruction inst(stop_pc, tracee);
-	 std::cerr << "stopped at inst: " << inst << "\n";
-	 std::abort();
-       }
-       if (execution_trace) {
-	 std::clog << "[" << child << "] ss pc = " << (void *) tracee.get_pc() << ": "
-		   << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
-       }
-    } else {
-      break;
+  while (tracees.size() > 0) {
+    auto tracee_it = tracees.begin();
+    auto signal_it = signals.begin();
+    while (tracee_it != tracees.end()) {
+      tracee_it->singlestep(*signal_it);
+      dbi::Status status;
+      tracee_it->wait(status);
+      
+      if (status.stopped()) {
+	const auto stopsig = status.stopsig();
+	if (stopsig == SIGTRAP) {
+	  *signal_it = 0;
+	  switch (status.ptrace_event()) {
+	  case 0:
+	    break;
+	    
+	  case PTRACE_EVENT_FORK:
+	    {
+	      const auto newpid = tracee_it->geteventmsg();
+	      tracee_it = tracees.emplace(tracee_it, newpid, tracee_it->filename(), false);
+	      signal_it = signals.emplace(signal_it, 0);
+	      ++tracee_it;
+	      ++signal_it;
+	    }
+	    break;
+	    
+	  default:
+	    std::abort();
+	  }
+	} else {
+	  /* deliver signal to tracee */
+	  *signal_it = stopsig;
+	} 
+	if (execution_trace) {
+	  std::clog << "[" << tracee_it->pid() << "] ss pc = " << (void *) tracee_it->get_pc()
+		    << ": " << dbi::Instruction(tracee_it->get_pc(), *tracee_it) << "\n";
+	}
+	++tracee_it;
+	++signal_it;
+      } else {
+	if (status.signaled()) {
+	  std::clog << "[" << tracee_it->pid() << "] Terminated with signal " << status.termsig()
+		    << " (" << ::strsignal(status.termsig()) << ")\n";
+	} else {
+	  assert(status.exited());
+	  std::clog << "[" << tracee_it->pid() << "] Exited with status " << status.exitstatus()
+		    << "\n";
+	}
+	tracee_it = tracees.erase(tracee_it);
+	signal_it = signals.erase(signal_it);
+      }
     }
   }
 
-  assert(status.exited());
-  std::clog << "exit status: " << status.exitstatus() << "\n";
-  
   return 0;
 }
