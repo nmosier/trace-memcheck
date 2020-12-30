@@ -13,10 +13,6 @@
 #include "dbi/util.hh"
 #include "dbi/inst.hh"
 
-static inline bool stopped_trace(int status) {
-  return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;
-}
-
 int main(int argc, char *argv[]) {
   bool execution_trace = false;
   const char *usage = "usage: %s [-hx] command [args...]\n";
@@ -45,41 +41,32 @@ int main(int argc, char *argv[]) {
 
   char **command = &argv[optind];
   
-  pid_t child = fork();
+  const pid_t child = ::fork();
   if (child == 0) {
-    ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-    execvp(command[0], command);
+    ::ptrace(PTRACE_TRACEME, 0, 0, 0);
+    ::execvp(command[0], command);
   }
 
   dbi::Decoder::Init();
 
-#if DEBUG
-  printf("child pid = %d\n", child);
-#endif
+  dbi::Tracee tracee(child, command[0], false);
 
-  int status;
-  wait(&status);
-  assert(stopped_trace(status));
-
-  dbi::Tracee tracee(child, command[0], true);
-
-  std::vector<void *> insts;
-
+  dbi::Status status;
   while (true) {
     tracee.singlestep();
-    tracee.wait(&status);
+    tracee.wait(status);
 
-    if (WIFSTOPPED(status)) {
-      const int stopsig = WSTOPSIG(status);
+    if (status.stopped()) {
+      const auto stopsig = status.stopsig();
        if (stopsig != SIGTRAP) {
-	 fprintf(stderr, "unexpected signal %d\n", stopsig);
+	 std::cerr << "unexpected signal " << stopsig << "(" << ::strsignal(stopsig) << ")\n";
 	 uint8_t *stop_pc = tracee.get_pc();
 	 dbi::Instruction inst(stop_pc, tracee);
-	 fprintf(stderr, "stopped at inst: %s\n", dbi::Decoder::disas(inst).c_str());
-	 abort();
+	 std::cerr << "stopped at inst: " << inst << "\n";
+	 std::abort();
        }
        if (execution_trace) {
-	 std::clog << "ss pc = " << (void *) tracee.get_pc() << ": "
+	 std::clog << "[" << child << "] ss pc = " << (void *) tracee.get_pc() << ": "
 		   << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
        }
     } else {
@@ -87,10 +74,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  assert(WIFEXITED(status));
-  // cleanup();
-
-  fprintf(stderr, "exit status: %d\n", WEXITSTATUS(status));
+  assert(status.exited());
+  std::clog << "exit status: " << status.exitstatus() << "\n";
   
   return 0;
 }
