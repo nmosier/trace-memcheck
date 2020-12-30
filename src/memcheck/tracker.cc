@@ -328,8 +328,7 @@ namespace memcheck {
   }
 
 
-  uint8_t *LockTracker::add(uint8_t *addr, dbi::Instruction& inst,
-			    const Tracker::TransformerInfo& info,
+  uint8_t *LockTracker::add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info,
 			    bool& match) {
     if ((match = (inst.data()[0] == LOCK_PREFIX))) {
       auto pre_bkpt = dbi::Instruction::int3(addr);
@@ -465,8 +464,8 @@ namespace memcheck {
   }
 
   // TODO: this is basically a duplicate of other sequence point add()'s...
-  uint8_t *RTMTracker::add(uint8_t *addr, dbi::Instruction& inst,
-			   const Tracker::TransformerInfo& info, bool& match_) {
+  uint8_t *RTMTracker::add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info,
+			   bool& match_) {
     match_ = match(inst);
 
     if (match_) {

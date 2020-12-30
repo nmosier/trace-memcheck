@@ -23,6 +23,7 @@ extern "C" {
 #include "ptr-pool.hh"
 #include "tmp-mem.hh"
 #include "romcache.hh"
+#include "types.hh"
 
 namespace dbi {
 
@@ -30,13 +31,7 @@ namespace dbi {
   public:
     using InstVec = std::list<std::unique_ptr<Instruction>>;
     using InstIt = InstVec::iterator;
-    using LookupBlock = Terminator::LookupBlock;
-    using ProbeBlock = Terminator::ProbeBlock;
-    using RegisterBkpt = Terminator::RegisterBkpt;
-    using InsertBlock = std::function<void (uint8_t *, Block *)>;
-    using Writer = std::function<uint8_t *(Blob&)>;
-    using Transformer = std::function<void (uint8_t *, Instruction& inst, const Writer&)>;
-    using BkptCallback = Terminator::BkptCallback;
+    using Transformer = std::function<void(uint8_t *, Instruction&, const Writer&)>;
 
     static bool Create(uint8_t *orig_addr, Tracees& tracees, BlockPool& block_pool,
 		       PointerPool& ptr_pool, TmpMem& tmp_mem, const LookupBlock& lb,

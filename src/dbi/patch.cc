@@ -35,25 +35,26 @@ namespace dbi {
       }
     };
 
-    const auto rb = [&] (uint8_t *addr, const BkptCallback& callback) {
+    const RegisterBkpt rb = [&] (uint8_t *addr, const BkptCallback& callback) {
       const auto res = bkpt_map.emplace(addr, callback);
       assert(res.second); (void) res;
     };
 
-    const auto ib = [&] (uint8_t *addr, Block *block) {
+    const InsertBlock ib = [&] (uint8_t *addr, Block *block) {
       const auto it = block_map.emplace(addr, block);
       assert(it.second); (void) it;
     };
 
-    const auto block_transformer = [&] (uint8_t *addr, Instruction& inst, const Writer& writer) {
-      return transformer(addr, inst, TransformerInfo {writer, rb});
-    };
+    const Block::Transformer block_transformer =
+      [&] (uint8_t *addr, Instruction& inst, const Writer& writer) {
+	return transformer(addr, inst, TransformerInfo {writer, rb});
+      };
 
     /* create block */
     return Block::Create(start_pc, tracees, block_pool, ptr_pool, tmp_mem, lb, pb, rb, rsb, ib,
 			 block_transformer,
-			 [this] (auto&&...) { this->pre_syscall_handler(); },
-			 [this] (auto&&...) { this->post_syscall_handler(); }
+			 [this] (auto& tracee, auto addr) { this->pre_syscall_handler(); },
+			 [this] (auto& tracee, auto addr) { this->post_syscall_handler(); }
 			 );
   }
 
@@ -62,7 +63,7 @@ namespace dbi {
     callback(tracee, bkpt_addr);
   }
 
-  const Patcher::BkptCallback& Patcher::lookup_bkpt(uint8_t *addr) const {
+  const BkptCallback& Patcher::lookup_bkpt(uint8_t *addr) const {
     return bkpt_map.at(addr);
   }
 

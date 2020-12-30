@@ -15,12 +15,7 @@
 namespace memcheck {
   class Memcheck;
 
-  class Tracker {
-  public:
-    using BkptCallback = dbi::Terminator::BkptCallback;
-    using TransformerInfo = dbi::Patcher::TransformerInfo;
-    Tracker() {}
-  };
+  class Tracker {};
 
   class Filler {
   public:
@@ -41,16 +36,14 @@ namespace memcheck {
 
   class SequencePoint {
   public:
-    using Callback = dbi::Terminator::BkptCallback;
-    using TransformerInfo = dbi::Patcher::TransformerInfo;
-
-    SequencePoint(State& taint_state, const Callback& pre_callback, const Callback& post_callback):
+    SequencePoint(State& taint_state, const BkptCallback& pre_callback,
+		  const BkptCallback& post_callback):
       taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback) {}
 
   protected:
     State& taint_state;
-    Callback pre_callback;
-    Callback post_callback;
+    BkptCallback pre_callback;
+    BkptCallback post_callback;
 
     template <typename Func>
     void add_pre(uint8_t *addr, const TransformerInfo& info, Func func) {
@@ -72,17 +65,14 @@ namespace memcheck {
   template <class Base>
   class SequencePoint_: public Base {
   public:
-    using Callback = dbi::Terminator::BkptCallback;
-
     template <typename... BaseArgs>
-    SequencePoint_(State& taint_state, const Callback& pre_callback, const Callback& post_callback,
-		   BaseArgs&&... base_args):
-      Base(base_args...),
-      taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback)
+    SequencePoint_(State& taint_state, const BkptCallback& pre_callback,
+		   const BkptCallback& post_callback, BaseArgs&&... base_args):
+      Base(base_args...), taint_state(taint_state), pre_callback(pre_callback),
+      post_callback(post_callback)
     {}
 
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const dbi::Patcher::TransformerInfo& info,
-		 bool match_)
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool match_)
     {
       match_ = this->match(inst);
 
@@ -109,8 +99,8 @@ namespace memcheck {
   
   private:
     State& taint_state;
-    Callback pre_callback;
-    Callback post_callback;
+    BkptCallback pre_callback;
+    BkptCallback post_callback;
   };
 
   class StackTracker: public Tracker, public Filler {
@@ -129,7 +119,6 @@ namespace memcheck {
       Elem(const dbi::Instruction& inst);
     };
     using Map = std::unordered_map<uint8_t *, std::shared_ptr<Elem>>;
-    using BkptCallback = dbi::Terminator::BkptCallback;
 
     Map map;
     std::shared_ptr<Elem> tmp_elem;
@@ -243,8 +232,7 @@ namespace memcheck {
     template <typename SequencePointArg>
     LockTracker(const SequencePointArg& sequence_point): Tracker(), SequencePoint(sequence_point) {}
 
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const Tracker::TransformerInfo& info,
-		 bool& match);
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool& match);
     void check(dbi::Tracee& tracee);
   
   private:
@@ -256,8 +244,7 @@ namespace memcheck {
     template <typename SequencePointArg>
     RTMTracker(const SequencePointArg& sequence_point): Tracker(), SequencePoint(sequence_point) {}
 
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const Tracker::TransformerInfo& info,
-		 bool& match);
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool& match);
     void check(dbi::Tracee& tracee) {}
 
   private:

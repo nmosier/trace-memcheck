@@ -14,15 +14,14 @@
 #include "romcache.hh"
 #include "syscall-args.hh"
 #include "status.hh"
+#include "types.hh"
 
 namespace dbi {
 
   class Patcher {
   public:
     enum class ExecutionPolicy {SEQUENTIAL, PARALLEL}; // TODO: Use this somewhere
-    
-    using RegisterBkpt = Block::RegisterBkpt;
-    using Writer = Block::Writer;
+
     struct TransformerInfo {
       Writer writer;
       RegisterBkpt rb;
@@ -64,7 +63,6 @@ namespace dbi {
 
   private:
     using BlockMap = std::unordered_map<uint8_t *, Block *>;
-    using BkptCallback = Terminator::BkptCallback;
     using BkptMap = std::unordered_map<uint8_t *, BkptCallback>;
 
     static constexpr size_t block_pool_size = 0x100000;

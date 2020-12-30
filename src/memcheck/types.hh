@@ -9,4 +9,7 @@ namespace memcheck {
 
   constexpr unsigned SHADOW_STACK_SIZE = 128;
 
+  using dbi::BkptCallback;
+  using TransformerInfo = dbi::Patcher::TransformerInfo;
+  
 }

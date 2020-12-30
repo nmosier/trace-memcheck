@@ -13,6 +13,7 @@ namespace dbi {
 #include "ptr-pool.hh"
 #include "rsb.hh"
 #include "tmp-mem.hh"
+#include "types.hh"
 
 namespace dbi {
 
@@ -20,12 +21,6 @@ namespace dbi {
   public:
     using InstVec = std::list<std::unique_ptr<Blob>>;
     using InstIt = InstVec::iterator;
-    using LookupBlock = std::function<uint8_t *(uint8_t *)>;
-    using TryLookupBlock = std::function<uint8_t *(uint8_t *)>;
-    using ProbeBlock = std::function<uint8_t *(uint8_t *)>; // returns nullptr if block not present
-    using BkptCallback = std::function<void(Tracee& tracee, uint8_t *)>;
-    using RegisterBkpt = std::function<void(uint8_t *, const BkptCallback&)>;
-    using UnregisterBkpt = std::function<void(uint8_t *)>;
   
     static Terminator *Create(BlockPool& block_pool, PointerPool& ptr_pool, TmpMem& tmp_mem,
 			      const Instruction& branch, Tracees& tracees, const LookupBlock& lb,
