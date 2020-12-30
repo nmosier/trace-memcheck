@@ -52,6 +52,11 @@ namespace dbi {
     /* find the original address of an instruction in a block */
     uint8_t *orig_block_addr(uint8_t *addr) const;
 
+    const Tracee& tracee() const {
+      assert(tracees.size() == 1);
+      return tracees.front();
+    }
+    
     Tracee& tracee() {
       assert(tracees.size() == 1);
       return tracees.front();

@@ -26,13 +26,14 @@ namespace memcheck {
     const char *end_s = strsep(&s, space);
     const char *prot_s = strsep(&s, space);
     for (auto i = 0; i < 3; ++i) {
-      strsep(&s, space);
+      ::strsep(&s, space);
     }
-    for (; strchr(space, *s) != nullptr; ++s) {}
+
+    for (; *s != '\0' && std::strchr(space, *s) != nullptr; ++s) {}
     if (*s == '\n') {
       desc = "";
     } else {
-      desc = strsep(&s, "\n");
+      desc = ::strsep(&s, "\n");
     }
 
     std::stringstream begin_ss(begin_s);

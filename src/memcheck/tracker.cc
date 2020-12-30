@@ -32,7 +32,7 @@ namespace memcheck {
 				const dbi::Patcher::TransformerInfo& info) {
     auto bkpt = dbi::Instruction::int3(addr);
     addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+    info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
     return addr;
   }
 
@@ -44,7 +44,7 @@ namespace memcheck {
     return addr;
   }
 
-  void JccTracker::handler(uint8_t *addr) {
+  void JccTracker::handler(dbi::Tracee& tracee, uint8_t *addr) {
     /* checksum flags */
     std::stringstream ss;
     if (JCC_RECORD_REGS) {
@@ -59,8 +59,8 @@ namespace memcheck {
     }
   }
 
-  StackTracker::StackTracker(dbi::Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars):
-    Tracker(tracee),
+  StackTracker::StackTracker(fill_ptr_t fill_ptr, MemcheckVariables& vars):
+    Tracker(),
     Filler(fill_ptr),
     prev_sp_ptr_ptr(vars.prev_sp_ptr_ptr()),
     pre_mc(PreMC::Content{0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00},
@@ -82,7 +82,7 @@ namespace memcheck {
       )
   {}
 
-  void StackTracker::pre_handler(uint8_t *addr) {
+  void StackTracker::pre_handler(dbi::Tracee& tracee, uint8_t *addr) {
     const auto it = map.find(addr);
     assert(it != map.end());
     it->second->sp = tracee.get_sp();
@@ -93,7 +93,7 @@ namespace memcheck {
     }
   }
 
-  void StackTracker::post_handler(uint8_t *addr) {
+  void StackTracker::post_handler(dbi::Tracee& tracee, uint8_t *addr) {
     const auto it = map.find(addr);
     assert(it != map.end());
     const auto post_sp = static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE;
@@ -182,8 +182,8 @@ namespace memcheck {
     return addr;
   }
 
-  CallTracker::CallTracker(dbi::Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars):
-    Tracker(tracee),
+  CallTracker::CallTracker(fill_ptr_t fill_ptr, MemcheckVariables& vars):
+    Tracker(),
     Filler(fill_ptr),
     mc(MC::Content {
       0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48, 0x8b, 0x3d, 0x00, 0x00,
@@ -214,7 +214,7 @@ namespace memcheck {
   {
     auto bkpt = dbi::Instruction::int3(addr);
     addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+    info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
     return addr;
   }
 
@@ -225,7 +225,7 @@ namespace memcheck {
     return addr;
   }
 
-  void CallTracker::handler(uint8_t *addr) {
+  void CallTracker::handler(dbi::Tracee& tracee, uint8_t *addr) {
     const auto sp = static_cast<char *>(tracee.get_sp());
 
     if (CALL_TRACKER_INCORE) {
@@ -242,8 +242,8 @@ namespace memcheck {
     }
   }
 
-  RetTracker::RetTracker(dbi::Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars):
-    Tracker(tracee),
+  RetTracker::RetTracker(fill_ptr_t fill_ptr, MemcheckVariables& vars):
+    Tracker(),
     Filler(fill_ptr),
     mc(MC::Content {
       0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48, 0x8b, 0x3d, 0x00,
@@ -276,7 +276,7 @@ namespace memcheck {
     assert(inst.xed_iclass() == XED_ICLASS_RET_NEAR);
     auto bkpt = dbi::Instruction::int3(addr);
     addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto addr) { this->handler(addr); });
+    info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
     return addr;
   }
 
@@ -287,7 +287,7 @@ namespace memcheck {
     return addr;
   }
 
-  void RetTracker::handler(uint8_t *addr) {
+  void RetTracker::handler(dbi::Tracee& tracee, uint8_t *addr) {
     const auto sp = static_cast<char *>(tracee.get_sp());
 
     if (RET_TRACKER_INCORE) {
@@ -321,14 +321,15 @@ namespace memcheck {
     auto post_bkpt = dbi::Instruction::int3(addr);
     addr = info.writer(post_bkpt);
 
-    add_pre(pre_bkpt.pc(), info, [this] (const auto addr) { this->pre(addr); });
-    add_post(post_bkpt.pc(), info, [this] (const auto addr) { this->post(addr); });
+    add_pre(pre_bkpt.pc(), info, [this] (auto&&... args) { this->pre(args...); });
+    add_post(post_bkpt.pc(), info, [this] (auto&&... args) { this->post(args...); });
   
     return addr;
   }
 
 
-  uint8_t *LockTracker::add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info,
+  uint8_t *LockTracker::add(uint8_t *addr, dbi::Instruction& inst,
+			    const Tracker::TransformerInfo& info,
 			    bool& match) {
     if ((match = (inst.data()[0] == LOCK_PREFIX))) {
       auto pre_bkpt = dbi::Instruction::int3(addr);
@@ -337,14 +338,14 @@ namespace memcheck {
       auto post_bkpt = dbi::Instruction::int3(addr);
       addr = info.writer(post_bkpt);
 
-      add_pre(pre_bkpt.pc(), info, [] (const auto addr) {});
-      add_post(post_bkpt.pc(), info, [] (const auto addr) {});
+      add_pre(pre_bkpt.pc(), info, [] (auto&&... args) {});
+      add_post(post_bkpt.pc(), info, [] (auto&&... args) {});
     } 
 
     return addr;
   }
 
-  void SyscallTracker::pre(uint8_t *addr) {
+  void SyscallTracker::pre(dbi::Tracee& tracee, uint8_t *addr) {
     syscall_args.add_call(tracee);
     g_conf.log() << "syscall " << syscall_args.no() << "\n";
     g_conf.add_syscall(syscall_args.no());
@@ -358,7 +359,7 @@ namespace memcheck {
     }
   }
 
-  void SyscallTracker::check() {
+  void SyscallTracker::check(dbi::Tracee& tracee) {
     /* make sure args to syscall aren't tainted */
     SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(), syscall_args,
 				   memcheck);
@@ -372,7 +373,7 @@ namespace memcheck {
   
   }
 
-  void SyscallTracker::post(uint8_t *addr) {
+  void SyscallTracker::post(dbi::Tracee& tracee, uint8_t *addr) {
     syscall_args.add_ret(tracee);
 
     switch (syscall_args.no()) {
@@ -447,7 +448,7 @@ namespace memcheck {
     syscall_checker.post();
   }
 
-  void LockTracker::check() {
+  void LockTracker::check(dbi::Tracee& tracee) {
     const auto addr = tracee.get_pc();
     g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee) << "\n";
   }
@@ -464,8 +465,8 @@ namespace memcheck {
   }
 
   // TODO: this is basically a duplicate of other sequence point add()'s...
-  uint8_t *RTMTracker::add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info,
-			   bool& match_) {
+  uint8_t *RTMTracker::add(uint8_t *addr, dbi::Instruction& inst,
+			   const Tracker::TransformerInfo& info, bool& match_) {
     match_ = match(inst);
 
     if (match_) {
@@ -475,8 +476,8 @@ namespace memcheck {
       auto post_bkpt = dbi::Instruction::int3(addr);
       addr = info.writer(post_bkpt);
     
-      add_pre(pre_bkpt.pc(), info, [] (const auto addr) {});
-      add_post(post_bkpt.pc(), info, [] (const auto addr) {});
+      add_pre(pre_bkpt.pc(), info, [] (auto&&... args) {});
+      add_post(post_bkpt.pc(), info, [] (auto&&... args) {});
     }
   
     return addr;
@@ -535,7 +536,7 @@ namespace memcheck {
     }
   }
 
-  void SharedMemSeqPt::check() {
+  void SharedMemSeqPt::check(dbi::Tracee& tracee) {
     const auto inst = dbi::Instruction(tracee.get_pc(), tracee);
     const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
     const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
@@ -547,7 +548,10 @@ namespace memcheck {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
     }
-    const auto status = tracee.singlestep();
+
+    tracee.singlestep();
+    dbi::Status status;
+    tracee.wait(status);
 
     tracee.assert_stopsig(status, SIGTRAP); (void) status;
   

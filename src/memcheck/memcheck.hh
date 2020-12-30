@@ -29,8 +29,7 @@ namespace memcheck {
     Loc orig_loc(uint8_t *addr);
 
   private:
-    dbi::Tracee tracee;
-    util::optional<dbi::Patcher> patcher;
+    dbi::Patcher patcher;
     MemcheckVariables vars;
     StackTracker stack_tracker;
     SyscallTracker syscall_tracker;
@@ -43,11 +42,13 @@ namespace memcheck {
   
     Maps maps_gen;
     PageSet tracked_pages;
-  
+
+    const dbi::Tracee& tracee() const { return patcher.tracee(); }
+    dbi::Tracee& tracee() { return patcher.tracee(); }
+    
     void transformer(uint8_t *addr, dbi::Instruction& inst,
 		     const dbi::Patcher::TransformerInfo& info);
   
-    static bool stopped_trace(int status);
     static bool is_sp_dec(const dbi::Instruction& inst);
     static bool is_jcc(const dbi::Instruction& inst);
 

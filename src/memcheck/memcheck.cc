@@ -14,46 +14,41 @@ namespace memcheck {
   const Memcheck::RoundArray<uint8_t> Memcheck::fills = {{0x00, 0xff}};
 
   Memcheck::Memcheck():
-    tracee(),
     patcher(),
     vars(),
-    stack_tracker(tracee, cur_fill_ptr(), vars),
-    syscall_tracker(tracee,
-		    SequencePoint(taint_state,
-				  [this] (auto addr) {
+    stack_tracker(cur_fill_ptr(), vars),
+    syscall_tracker(SequencePoint(taint_state,
+				  [this] (auto& tracee, auto addr) {
 				    this->sequence_point_handler_pre(syscall_tracker);
 				  },
-				  [this] (auto addr) { this->start_round(); }
+				  [this] (auto& tracee, auto addr) { this->start_round(); }
 				  ),
 		    tracked_pages,
 		    syscall_args,
 		    *this
 		    ),
-    call_tracker(tracee, cur_fill_ptr(), vars),
-    ret_tracker(tracee, cur_fill_ptr(), vars),
-    jcc_tracker(tracee, cksum, vars),
-    lock_tracker(tracee,
-		 SequencePoint(taint_state,
-			       [this] (auto addr) {
+    call_tracker(cur_fill_ptr(), vars),
+    ret_tracker(cur_fill_ptr(), vars),
+    jcc_tracker(cksum, vars),
+    lock_tracker(SequencePoint(taint_state,
+			       [this] (auto& tracee, auto addr) {
 				 this->sequence_point_handler_pre(lock_tracker);
 			       },
-			       [this] (auto addr) { this->start_round(); }
+			       [this] (auto& tracee, auto addr) { this->start_round(); }
 			       )
 		 ),
-    rtm_tracker(tracee,
-		SequencePoint(taint_state,
-			      [this] (auto addr) {
+    rtm_tracker(SequencePoint(taint_state,
+			      [this] (auto& tracee, auto addr) {
 				this->sequence_point_handler_pre(rtm_tracker);
 			      },
-			      [this] (auto addr) { this->start_round(); }
+			      [this] (auto& tracee, auto addr) { this->start_round(); }
 			      )
 		),
     rdtsc_tracker(taint_state,
-		  [this] (auto addr) {
+		  [this] (auto& tracee, auto addr) {
 		    this->sequence_point_handler_pre(rdtsc_tracker);
 		  },
-		  [this] (auto addr) { this->start_round(); },
-		  tracee
+		  [this] (auto& tracee, auto addr) { this->start_round(); }
 		  )
     
   {}
@@ -61,7 +56,7 @@ namespace memcheck {
 
   void Memcheck::write_maps() const {
     if (g_conf.map_file) {
-      tracee.cat_maps(g_conf.map_file).flush();
+      tracee().cat_maps(g_conf.map_file).flush();
     }
   }
 
@@ -77,35 +72,33 @@ namespace memcheck {
 	assert(getenv("LD_PRELOAD") != nullptr);
       }
     
-      ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
-      execvp(file, argv);
+      ::ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
+      ::execvp(file, argv);
       return false;
     }
 
-    signal(SIGINT, sigint_handler);
+    ::signal(SIGINT, sigint_handler);
 
     dbi::Decoder::Init(); // TODO: remove
 
-    int status;
-    wait(&status);
-    assert(stopped_trace(status));
-
-    tracee.open(child, file);
-    // TODO: open patcher
-    patcher = dbi::Patcher(tracee, [this] (auto&&... args) { return this->transformer(args...); });
-
-    vars.open(tracee, *patcher, cur_fill_ptr());
-
-    patcher->start();
+    dbi::Tracees tmp_tracees;
+    tmp_tracees.emplace_back(child, file, false);
+    patcher.open(std::move(tmp_tracees), [this] (auto&&... args) {
+      return this->transformer(args...);
+    });
+    
+    vars.open(tracee(), patcher, cur_fill_ptr());
+    
+    patcher.start();
 
     maps_gen.open(child);
     tracked_pages.add_maps(maps_gen);
    
-    patcher->signal(SIGSTOP, sigignore);
-    patcher->signal(SIGCONT, sigignore);
-    patcher->signal(SIGINT,  sigignore);
-    patcher->signal(SIGTSTP, sigignore);
-    patcher->sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
+    patcher.signal(SIGSTOP, sigignore);
+    patcher.signal(SIGCONT, sigignore);
+    patcher.signal(SIGINT,  sigignore);
+    patcher.signal(SIGTSTP, sigignore);
+    patcher.sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
 
     get_writable_pages();
     save_state(pre_state);
@@ -116,10 +109,6 @@ namespace memcheck {
     protect_map("[vvar]", PROT_NONE);
 
     return true;
-  }
-
-  bool Memcheck::stopped_trace(int status) {
-    return WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP;  
   }
 
   bool Memcheck::is_sp_dec(const dbi::Instruction& inst) {
@@ -214,7 +203,7 @@ namespace memcheck {
     if (inst.xed_iclass() == XED_ICLASS_RDTSC) {
       auto bkpt = dbi::Instruction::int3(addr);
       addr = info.writer(bkpt);
-      info.rb(bkpt.pc(), [] (const auto addr) {
+      info.rb(bkpt.pc(), [] (auto& tracee, auto addr) {
 	*dbi::g_conf.log << "RDTSC @ " << (void *) addr << "\n";
       });
       addr = info.writer(inst);
@@ -226,11 +215,11 @@ namespace memcheck {
 
   void Memcheck::run() {
     start_round();
-    patcher->run();
+    patcher.run();
   }
 
   void Memcheck::save_state(State& state) {
-    state.save(tracee, tmp_writable_pages.begin(), tmp_writable_pages.end());
+    state.save(tracee(), tmp_writable_pages.begin(), tmp_writable_pages.end());
   }
 
   State Memcheck::save_state() {
@@ -240,7 +229,7 @@ namespace memcheck {
   }
 
   void *Memcheck::stack_begin() {
-    const auto stack_end = dbi::pagealign_up(tracee.get_sp());
+    const auto stack_end = dbi::pagealign_up(tracee().get_sp());
     auto stack_begin = stack_end;
 
     while (true) {
@@ -260,7 +249,7 @@ namespace memcheck {
   /* Rewind to pre_state, flipping bits in taint_state */
   void Memcheck::set_state_with_taint(State& state, const State& taint) {
     state.xor_subset_inplace(taint);
-    state.restore(tracee);
+    state.restore(tracee());
   }
 
   template <typename InputIt>
@@ -305,14 +294,16 @@ namespace memcheck {
 			      const auto loc = this->orig_loc(addr);
 			      *dbi::g_conf.log << loc.first << " " << loc.second << "\n";
 			      *dbi::g_conf.log << "orig: "
-					       << dbi::Instruction((uint8_t *) loc.first, tracee)
+					       << dbi::Instruction((uint8_t *) loc.first,
+								   this->tracee())
 					       << "\n";
 			      *dbi::g_conf.log << "new:  "
-					       << dbi::Instruction((uint8_t *) addr + 1, tracee)
+					       << dbi::Instruction((uint8_t *) addr + 1,
+								   this->tracee())
 					       << "\n";
 			      *dbi::g_conf.log << "data: " << data1 << " vs " << data2 << "\n";
 			      if (ABORT_ON_TAINT) {
-				dbi::g_conf.abort(tracee);
+				dbi::g_conf.abort(this->tracee());
 			      }
 			    });
 			  });
@@ -334,11 +325,11 @@ namespace memcheck {
 		      }))
 	{
 	  *dbi::g_conf.log << "JCC incore and bkpt checksums disagree\n";
-	  dbi::g_conf.abort(tracee);
+	  dbi::g_conf.abort(tracee());
 	}
     }
 
-    seq_pt.check();
+    seq_pt.check(tracee());
   }
 
   template <typename InputIt>
@@ -350,13 +341,13 @@ namespace memcheck {
       }
       g_conf.log() << "\n";
       if (ABORT_ON_TAINT) {
-	g_conf.abort(tracee);
+	g_conf.abort(tracee());
       }
     }
   }
 
   Memcheck::Loc Memcheck::orig_loc(uint8_t *addr) {
-    const auto orig_addr = patcher->orig_block_addr(addr);
+    const auto orig_addr = patcher.orig_block_addr(addr);
     std::vector<Map> maps;
     maps_gen.get_maps(std::back_inserter(maps));
     for (const auto& map : maps) {
@@ -369,7 +360,7 @@ namespace memcheck {
 
   void Memcheck::start_subround() {
     if (!CHANGE_PRE_STATE) {
-      pre_state.restore(tracee);
+      pre_state.restore(tracee());
     } else {
       set_state_with_taint(pre_state, taint_state);
     }
@@ -402,11 +393,11 @@ namespace memcheck {
   }
 
   void Memcheck::start_round() {
-    dbi::for_each_page(stack_begin(), dbi::pageidx(dbi::pagealign_up(tracee.get_sp()), -16),
+    dbi::for_each_page(stack_begin(), dbi::pageidx(dbi::pagealign_up(tracee().get_sp()), -16),
 		  [this] (const auto pageaddr) {
 		    const auto it = tracked_pages.find(pageaddr);
 		    if (tracked_pages.tier(*it) == PageInfo::Tier::RDWR_UNLOCKED) {
-		      tracked_pages.lock(*it, tracee, PROT_WRITE);
+		      tracked_pages.lock(*it, this->tracee(), PROT_WRITE);
 		    }
 		  });
   
@@ -471,7 +462,7 @@ namespace memcheck {
 
     if (TAINT_STACK) {
       const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
-      taint_state.fill(stack_begin(), static_cast<char *>(tracee.get_sp()) - padding, -1);
+      taint_state.fill(stack_begin(), static_cast<char *>(tracee().get_sp()) - padding, -1);
     }
   }
 
@@ -485,7 +476,8 @@ namespace memcheck {
     maps_gen.get_maps(std::back_inserter(maps));
     for (const auto& map : maps) {
       if (map.desc == name) {
-	tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) map.begin, (uintptr_t) map.size(), prot);
+	tracee().syscall(dbi::Syscall::MPROTECT, (uintptr_t) map.begin, (uintptr_t) map.size(),
+			 prot);
 	return;
       }
     }
@@ -500,30 +492,34 @@ namespace memcheck {
     auto page_it = tracked_pages.find(pageaddr);
     if (page_it == tracked_pages.end()) {
       // TODO: Pass on to patcher
-      log_signal() << strsignal(signal) << "\n";
-      std::exit(139);
+      log_signal() << ::strsignal(signal) << "\n";
+      // std::exit(139);
+      const auto loc = orig_loc(tracee().get_pc());
+      g_conf.log() << "orig loc: " << loc.first << " " << loc.second << "\n";
+      g_conf.log() << "faultaddr = " << faultaddr << "\n";
+      g_conf.abort(tracee());
     }
 
     using Tier = PageInfo::Tier;
     switch (tracked_pages.tier(*page_it)) {
     case Tier::SHARED:
       {
-	const auto loc = orig_loc(tracee.get_pc());
+	const auto loc = orig_loc(tracee().get_pc());
 	*dbi::g_conf.log << loc.first << " " << loc.second << "\n";
-	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee)
+	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee())
 			 << "\n";
-	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
+	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee().get_pc(), tracee()) << "\n";
 	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
 
 	// TODO: properly specify permissions
-	SharedMemSeqPt seq_pt(tracee, *this, taint_state);
+	SharedMemSeqPt seq_pt(tracee(), *this, taint_state);
 	sequence_point_handler_pre(seq_pt);
       }
       break;
 
     case Tier::RDONLY:
     case Tier::RDWR_UNLOCKED:
-      dbi::g_conf.abort(tracee);
+      dbi::g_conf.abort(tracee());
       break;
 
     case Tier::RDWR_LOCKED:
@@ -531,13 +527,13 @@ namespace memcheck {
 	/* 1. Unlock
 	 * 2. Add to pre_state.
 	 */
-	tracked_pages.unlock(*page_it, tracee);
+	tracked_pages.unlock(*page_it, tracee());
 	assert(!pre_state.snapshot().contains(pageaddr));
-	pre_state.snapshot().add(pageaddr, tracee);
+	pre_state.snapshot().add(pageaddr, tracee());
 	const auto& taint_page = taint_state.snapshot().at(pageaddr);
 	auto& pre_state_page = pre_state.snapshot().at(pageaddr);
 	pre_state_page ^= taint_page;
-	pre_state_page.restore(pageaddr, tracee);
+	pre_state_page.restore(pageaddr, tracee());
       }
       break;
     
@@ -563,7 +559,7 @@ namespace memcheck {
   void Memcheck::lock_pages() {
     for (auto& page : tracked_pages) {
       if (tracked_pages.tier(page) == PageInfo::Tier::RDWR_UNLOCKED) {
-	tracked_pages.lock(page, tracee, PROT_WRITE);
+	tracked_pages.lock(page, tracee(), PROT_WRITE);
       }
     }
   }
@@ -571,7 +567,7 @@ namespace memcheck {
   void Memcheck::unlock_pages() {
     for (auto& page : tracked_pages) {
       if (tracked_pages.tier(page) == PageInfo::Tier::RDWR_LOCKED) {
-	tracked_pages.unlock(page, tracee);
+	tracked_pages.unlock(page, tracee());
       }
     }
   }

@@ -19,12 +19,7 @@ namespace memcheck {
   public:
     using BkptCallback = dbi::Terminator::BkptCallback;
     using TransformerInfo = dbi::Patcher::TransformerInfo;
-
-    Tracker(dbi::Tracee& tracee): tracee(tracee) {}
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) { abort(); }
-
-  protected:
-    dbi::Tracee& tracee;
+    Tracker() {}
   };
 
   class Filler {
@@ -47,6 +42,7 @@ namespace memcheck {
   class SequencePoint {
   public:
     using Callback = dbi::Terminator::BkptCallback;
+    using TransformerInfo = dbi::Patcher::TransformerInfo;
 
     SequencePoint(State& taint_state, const Callback& pre_callback, const Callback& post_callback):
       taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback) {}
@@ -57,18 +53,18 @@ namespace memcheck {
     Callback post_callback;
 
     template <typename Func>
-    void add_pre(uint8_t *addr, const Tracker::TransformerInfo& info, Func func) {
-      info.rb(addr, [this, func] (const auto addr) {
-	func(addr);
-	pre_callback(addr);
+    void add_pre(uint8_t *addr, const TransformerInfo& info, Func func) {
+      info.rb(addr, [this, func] (auto&&... args) {
+	func(args...);
+	pre_callback(args...);
       });
     }
 
     template <typename Func>
-    void add_post(uint8_t *addr, const Tracker::TransformerInfo& info, Func func) {
-      info.rb(addr, [this, func] (const auto addr) {
-	func(addr);
-	post_callback(addr);
+    void add_post(uint8_t *addr, const TransformerInfo& info, Func func) {
+      info.rb(addr, [this, func] (auto&&... args) {
+	func(args...);
+	post_callback(args...);
       });
     }
   };
@@ -93,18 +89,18 @@ namespace memcheck {
       if (match_) {
 	auto pre_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(pre_bkpt);
-	info.rb(pre_bkpt.pc(), [this] (const auto addr) {
-	  this->pre(addr);
-	  pre_callback(addr);
+	info.rb(pre_bkpt.pc(), [this] (auto&&... args) {
+	  this->pre(args...);
+	  pre_callback(args...);
 	});
       
 	addr = info.writer(inst);
       
 	auto post_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(post_bkpt);
-	info.rb(post_bkpt.pc(), [this] (const auto addr) {
-	  this->post(addr);
-	  post_callback(addr);
+	info.rb(post_bkpt.pc(), [this] (auto&&... args) {
+	  this->post(args...);
+	  post_callback(args...);
 	});
       }
     
@@ -119,7 +115,7 @@ namespace memcheck {
 
   class StackTracker: public Tracker, public Filler {
   public:
-    StackTracker(dbi::Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars);
+    StackTracker(fill_ptr_t fill_ptr, MemcheckVariables& vars);
   
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
   
@@ -145,11 +141,15 @@ namespace memcheck {
     using PostMC = dbi::MachineCode<0x3c, 5>;
     PostMC post_mc;
   
-    const BkptCallback pre_callback = [this] (auto... args) { return pre_handler(args...); };
-    const BkptCallback post_callback = [this] (auto... args) { return post_handler(args...); };
-
-    void pre_handler(uint8_t *addr);
-    void post_handler(uint8_t *addr);
+    const BkptCallback pre_callback = [this] (auto&&... args) {
+      return this->pre_handler(args...);
+    };
+    const BkptCallback post_callback = [this] (auto&&... args) {
+      return this->post_handler(args...);
+    };
+    
+    void pre_handler(dbi::Tracee& tracee, uint8_t *addr);
+    void post_handler(dbi::Tracee& tracee, uint8_t *addr);
 
     uint8_t *add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
     uint8_t *add_bkpt_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
@@ -159,13 +159,13 @@ namespace memcheck {
 
   class SyscallTracker: public Tracker, public SequencePoint {
   public:
-    SyscallTracker(dbi::Tracee& tracee, const SequencePoint& sequence_point, PageSet& page_set,
+    SyscallTracker(const SequencePoint& sequence_point, PageSet& page_set,
 		   dbi::SyscallArgs& syscall_args, Memcheck& memcheck):
-      Tracker(tracee), SequencePoint(sequence_point), page_set(page_set),
+      SequencePoint(sequence_point), page_set(page_set),
       syscall_args(syscall_args), memcheck(memcheck) {}
 
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const dbi::Patcher::TransformerInfo& info);
-    void check();
+    void check(dbi::Tracee& tracee);
   
   private:
     PageSet& page_set;
@@ -173,13 +173,13 @@ namespace memcheck {
     Memcheck& memcheck;
     void *brk = nullptr;
 
-    void pre(uint8_t *addr);
-    void post(uint8_t *addr);
+    void pre(dbi::Tracee& tracee, uint8_t *addr);
+    void post(dbi::Tracee& tracee, uint8_t *addr);
   };
 
   class CallTracker: public Tracker, public Filler {
   public:
-    CallTracker(dbi::Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars);
+    CallTracker(fill_ptr_t fill_ptr, MemcheckVariables& vars);
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
   private:
     using MC = dbi::MachineCode<0x2e, 4>;
@@ -188,18 +188,18 @@ namespace memcheck {
     uint8_t *add_bkpt(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
     uint8_t *add_incore(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
   
-    void handler(uint8_t *addr);
+    void handler(dbi::Tracee& tracee, uint8_t *addr);
   };
 
   class RetTracker: public Tracker, public Filler {
   public:
-    RetTracker(dbi::Tracee& tracee, fill_ptr_t fill_ptr, MemcheckVariables& vars);
+    RetTracker(fill_ptr_t fill_ptr, MemcheckVariables& vars);
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
   private:
     using MC = dbi::MachineCode<0x2e, 4>;
     MC mc;
   
-    void handler(uint8_t *addr);
+    void handler(dbi::Tracee& tracee, uint8_t *addr);
     uint8_t *add_bkpt(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
     uint8_t *add_incore(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
   };
@@ -207,8 +207,8 @@ namespace memcheck {
 
   class JccTracker: public Tracker, public Checksummer {
   public:
-    JccTracker(dbi::Tracee& tracee, FlagChecksum& cksum, MemcheckVariables& vars):
-      Tracker(tracee),
+    JccTracker(FlagChecksum& cksum, MemcheckVariables& vars):
+      Tracker(),
       Checksummer(cksum),
       cksum_ptr_ptr(vars.jcc_cksum_ptr_ptr()),
       post_code(MC::Content {
@@ -232,7 +232,7 @@ namespace memcheck {
     uint32_t * const *cksum_ptr_ptr;
     MC post_code;
   
-    void handler(uint8_t *addr);
+    void handler(dbi::Tracee& tracee, uint8_t *addr);
 
     uint8_t *add_incore(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
     uint8_t *add_bkpt(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
@@ -241,11 +241,11 @@ namespace memcheck {
   class LockTracker: public Tracker, public SequencePoint {
   public:
     template <typename SequencePointArg>
-    LockTracker(dbi::Tracee& tracee, const SequencePointArg& sequence_point):
-      Tracker(tracee), SequencePoint(sequence_point) {}
+    LockTracker(const SequencePointArg& sequence_point): Tracker(), SequencePoint(sequence_point) {}
 
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool& match);
-    void check();
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const Tracker::TransformerInfo& info,
+		 bool& match);
+    void check(dbi::Tracee& tracee);
   
   private:
     static constexpr uint8_t LOCK_PREFIX = 0xf0;
@@ -254,11 +254,11 @@ namespace memcheck {
   class RTMTracker: public Tracker, public SequencePoint {
   public:
     template <typename SequencePointArg>
-    RTMTracker(dbi::Tracee& tracee, const SequencePointArg& sequence_point):
-      Tracker(tracee), SequencePoint(sequence_point) {}
+    RTMTracker(const SequencePointArg& sequence_point): Tracker(), SequencePoint(sequence_point) {}
 
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool& match);
-    void check() {}
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const Tracker::TransformerInfo& info,
+		 bool& match);
+    void check(dbi::Tracee& tracee) {}
 
   private:
     bool match(const dbi::Instruction& inst) const;
@@ -266,16 +266,16 @@ namespace memcheck {
 
   class RDTSCTracker_: public Tracker {
   public:
-    RDTSCTracker_(dbi::Tracee& tracee): Tracker(tracee) {}
+    RDTSCTracker_(): Tracker() {}
 
-    void check() {}
+    void check(dbi::Tracee& tracee) {}
   
   protected:
     bool match(const dbi::Instruction& inst) const { return inst.xed_iclass() == XED_ICLASS_RDTSC; }
-    void pre(uint8_t *addr) {
+    void pre(dbi::Tracee& tracee, uint8_t *addr) {
       std::clog << "RDTSC\n";
     }
-    void post(uint8_t *addr) {}
+    void post(dbi::Tracee& tracee, uint8_t *addr) {}
   };
 
   using RDTSCTracker = SequencePoint_<RDTSCTracker_>;
@@ -285,7 +285,7 @@ namespace memcheck {
     SharedMemSeqPt(dbi::Tracee& tracee, Memcheck& memcheck, State& taint_state):
       tracee(tracee), memcheck(memcheck), taint_state(taint_state) {}
 
-    void check();
+    void check(dbi::Tracee& tracee);
   
   private:
     dbi::Tracee& tracee;
