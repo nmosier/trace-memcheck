@@ -29,8 +29,11 @@ namespace dbi {
     Tracee(): fd_(-1) {}
     Tracee(pid_t pid, const char *command, bool stopped) { open(pid, command, stopped); }
     ~Tracee();
-    Tracee(const Tracee& other) = delete;
+    Tracee(const Tracee& other);
     Tracee(Tracee&& other);
+
+    Tracee& operator=(const Tracee& other);
+    Tracee& operator=(Tracee&& other);
   
     bool good() const { return fd_ >= 0; }
     operator bool() const { return good(); }
@@ -159,6 +162,8 @@ namespace dbi {
       ptrace(PTRACE_SETOPTIONS, 0, options);
     }
 
+    void swap(Tracee& other);
+
   private:
     pid_t pid_;
     int fd_;
@@ -173,7 +178,7 @@ namespace dbi {
     void cache_fpregs();
     void flush_caches();
     void invalidate_caches();
-  
+
     /* Memory Cache */
     static constexpr size_t CACHE_PAGE_SIZE = PAGESIZE;
     struct Page {
@@ -183,7 +188,7 @@ namespace dbi {
     };
     using PageMap = std::map<const void *, Page>;
     PageMap memcache_;
-
+    
     template <typename T>
     static constexpr const T *cache_pagealign(const T *ptr) {
       return reinterpret_cast<const T *>(util::align_down(reinterpret_cast<uintptr_t>(ptr),
@@ -222,7 +227,17 @@ namespace dbi {
       }
       return res;
     }
-    
+
+    void set_bad() { fd_ = -1; }
+
   };
 
+}
+
+namespace std {
+  
+  template <> inline void swap(dbi::Tracee& a, dbi::Tracee& b) {
+    a.swap(b);
+  }
+  
 }

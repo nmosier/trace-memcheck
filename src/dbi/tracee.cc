@@ -27,6 +27,7 @@ namespace dbi {
     regs_good_ = false;
     fpregs_good_ = false;
     stopped_ = stopped;
+    memcache_.clear();
 
     /* stop if necessary */
     if (!stopped_) {
@@ -53,6 +54,16 @@ namespace dbi {
   }
 
   Tracee::Tracee(Tracee&& other) {
+    set_bad();
+    *this = other;
+  }
+
+  Tracee& Tracee::operator=(Tracee&& other) {
+    if (good()) {
+      close();
+    }
+
+    if (other.good()) {
       /* Copy members */
       pid_ = other.pid_;
       fd_ = other.fd_;
@@ -65,7 +76,44 @@ namespace dbi {
       memcache_ = other.memcache_;
 
       /* Mark other as closed */
-      other.fd_ = -1;
+      other.set_bad();
+    }
+
+    return *this;
+  }
+
+  Tracee::Tracee(const Tracee& other) {
+    set_bad();
+    *this = other;
+  }
+
+  Tracee& Tracee::operator=(const Tracee& other) {
+    if (good()) {
+      close();
+    }
+    assert(!good());
+
+    if (other.good()) {
+
+      /* Copy members (except fd) */
+      pid_ = other.pid_;
+      command = other.command;
+      stopped_ = other.stopped_;
+      regs_good_ = other.regs_good_;
+      regs_ = other.regs_;
+      fpregs_good_ = other.fpregs_good_;
+      fpregs_ = other.fpregs_;
+      memcache_ = other.memcache_;
+      
+      /* Duplicate file descriptor */
+      if ((fd_ = ::dup(other.fd_)) < 0) {
+	std::perror("dup");
+	std::abort();
+      }
+      
+    }
+
+    return *this;
   }
 
   Tracee::~Tracee(void) {
@@ -493,6 +541,17 @@ namespace dbi {
 	page.dirty = false;
       }
     });
+  }
+
+  void Tracee::swap(Tracee& other) {
+    std::swap(pid_, other.pid_);
+    std::swap(fd_, other.fd_);
+    std::swap(command, other.command);
+    std::swap(stopped_, other.stopped_);
+    std::swap(regs_good_, other.regs_good_);
+    std::swap(regs_, other.regs_);
+    std::swap(fpregs_good_, other.fpregs_good_);
+    std::swap(fpregs_, other.fpregs_);
   }
 
 }

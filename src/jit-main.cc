@@ -12,6 +12,7 @@
 #include <fstream>
 #include <getopt.h>
 #include <gperftools/profiler.h>
+#include <signal.h>
 
 #include "dbi/util.hh"
 #include "dbi/patch.hh"
@@ -169,6 +170,7 @@ int main(int argc, char *argv[]) {
   tracees[0].read(tmp, tracees[0].get_pc());
   
   dbi::Patcher patcher(std::move(tracees), transformer);
+  patcher.signal(SIGCHLD, [] (auto&&... args) {});
   patcher.start();
   patcher.run();
 

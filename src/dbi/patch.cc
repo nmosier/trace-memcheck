@@ -167,7 +167,7 @@ namespace dbi {
 
     assert(tracees.size() == 1);
 
-    while (true) {
+    while (tracees.size() > 0) {
       /* INVARIANT: All Tracees are stopped. */
       assert(std::all_of(tracees.begin(), tracees.end(), [] (const auto& tracee) {
 	return tracee.stopped();
@@ -188,17 +188,27 @@ namespace dbi {
       }
 
       /* Handle stops for all tracees */
-      for (unsigned i = 0; i < ntracees; ++i) {
-	const bool exited = handle_stop(tracees[i], statuses[i]);
+      /* NOTE: This is tricky, since handle_stop() can append to the tracees list and
+       *       exited tracees must be removed from the tracee list.
+       */
+      auto todo = tracees.size();
+      auto tracee_it = tracees.begin();
+      auto status_it = statuses.begin();
+      while (todo > 0) {
+	const bool exited = handle_stop(*tracee_it, *status_it);
 	if (exited) {
-	  status = statuses[i];
-	  goto exited; // TODO: continue until all threads exited
+	  *g_conf.log << "[" << tracee_it->pid() << "] exit status: "
+		      << status_it->exitstatus() << "\n";
+	  tracee_it = tracees.erase(tracee_it);
+	  status_it = statuses.erase(status_it);
+	} else {
+	  ++tracee_it;
+	  ++status_it;
 	}
+	--todo;
       }
     }
-    
-  exited:
-    fprintf(stderr, "exit status: %d\n", status.exitstatus());
+
   }
 
   bool Patcher::handle_stop(Tracee& tracee, Status status) {
