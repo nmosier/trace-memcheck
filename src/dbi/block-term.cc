@@ -12,22 +12,6 @@
 namespace dbi {
 
   std::string DirJccTerminator::last_decision(last_decision_bits, 'x');
-  xed_iclass_enum_t DirJccTerminator::last_iclass(void) const {
-    abort(); // TODO: Broken because block instructions were removed.
-#if 0
-    const auto it = block.insts().rbegin();
-    if (it == block.insts().rend()) {
-      return XED_ICLASS_INVALID;
-    } else {
-      return (**it).xed_iclass();
-    }
-#endif
-  }
-
-  const char *DirJccTerminator::last_iclass_str(void) const {
-    return xed_iclass_enum_t2str(last_iclass());
-  }
-
 
   Terminator *Terminator::Create(BlockPool& block_pool,
 				 PointerPool& ptr_pool,
@@ -157,21 +141,21 @@ namespace dbi {
     flush(tracees);
   }
 
-  DirJccTerminator::Prediction DirJccTerminator::get_prediction_iclass(void) const {
+  DirJccTerminator::Prediction DirJccTerminator::get_prediction_iclass() const {
     constexpr float thresh = 0.8f;
     bool jcc, fallthru;
 # include "jcc_iclass.inc"
     return Prediction {jcc, fallthru};
   }
 
-  DirJccTerminator::Prediction DirJccTerminator::get_prediction_iform(void) const {
+  DirJccTerminator::Prediction DirJccTerminator::get_prediction_iform() const {
     constexpr float thresh = 0.8f;
     bool jcc, fallthru;
 # include "jcc_iform.inc"
     return Prediction {jcc, fallthru};
   }
 
-  DirJccTerminator::Prediction DirJccTerminator::get_prediction_dir(void) const {
+  DirJccTerminator::Prediction DirJccTerminator::get_prediction_dir() const {
     if (dir == Direction::BACK) {
       return {true, true};
     } else {
@@ -179,7 +163,7 @@ namespace dbi {
     }
   }
 
-  DirJccTerminator::Prediction DirJccTerminator::get_prediction_last_iclass(void) const {
+  DirJccTerminator::Prediction DirJccTerminator::get_prediction_last_iclass() const {
     switch (last_iclass()) {
     case XED_ICLASS_XOR: return {false, true};
     case XED_ICLASS_SUB: return {true, true};
@@ -195,7 +179,7 @@ namespace dbi {
     }
   }
 
-  DirJccTerminator::Prediction DirJccTerminator::get_prediction(void) const {
+  DirJccTerminator::Prediction DirJccTerminator::get_prediction() const {
     switch (g_conf.prediction_mode) {
     case Config::PredictionMode::NONE:
       return get_prediction_none();
@@ -387,56 +371,20 @@ namespace dbi {
     data.relocate(addr());
     write(data);
 
-#if 1
-    write(PCRelDisp(addr() + 0x00 + 3, addr() + 0x07, (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
-    write(PCRelDisp(addr() + 0x08 + 3, addr() + 0x0f, (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsp_ptr]
-    write(PCRelDisp(addr() + 0x0f + 3, addr() + 0x16, (uint8_t *) rsb.end())); // cmp rsp, [rel rsb_end]
-    write(PCRelDisp(addr() + 0x18 + 2, addr() + 0x1e, (uint8_t *) new_ra_ptr)); // push qword [rel new_ra]
-    write(PCRelDisp(addr() + 0x1e + 2, addr() + 0x24, (uint8_t *) orig_ra_ptr)); // push qword [rel orig_ra]
-    write(PCRelDisp(addr() + 0x24 + 3, addr() + 0x2b, (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsb_ptr]
-    write(PCRelDisp(addr() + 0x2c + 3, addr() + 0x33, (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
-#elif 1
-    static const struct {
-      uint8_t pc;
-      uint8_t iend;
-    } disps[] = {{0x00 + 3, 0x07},
-		 {0x08 + 3, 0x0f},
-		 {0x0f + 3, 0x16},
-		 {0x18 + 2, 0x1e},
-		 {0x1e + 2, 0x24},
-		 {0x24 + 3, 0x2b},
-		 {0x2c + 3, 0x33},
-    };
-    uint8_t * const dsts [] = {
-      (uint8_t *) tmp_mem.rsp(),
-      (uint8_t *) rsb.ptr(),
-      (uint8_t *) rsb.end(),
-      (uint8_t *) new_ra_ptr,
-      (uint8_t *) orig_ra_ptr,
-      (uint8_t *) rsb.ptr(),
-      (uint8_t *) tmp_mem.rsp(),
-    };
-    static_assert(arrlen(disps) == arrlen(dsts), "lengths mismatch");
-
-    for (size_t i = 0; i < arrlen(disps); ++i) {
-      write(PCRelDisp(addr() + disps[i].pc, addr() + disps[i].iend, dsts[i]));
-    }
-#endif
-
-    /* post instructions */
-    // TODO: Should delete this
-    const auto bkpt = Instruction::int3(bkpt_addr);
-    write(bkpt);
-    rb(bkpt_addr, [&] (Tracee& tracee, auto addr) { this->handle_bkpt_ret(tracee); });
-  }
-
-  void CallTerminator::handle_bkpt_ret(Tracee& tracee) {
-    // TODO: REMOVE: this
-    std::abort();
-    std::cerr << "warning: return address misprediction" << std::endl;
-    uint8_t *new_ra_val = lookup_block(orig_ra_val);
-    tracee.write(&new_ra_val, sizeof(new_ra_val), new_ra_ptr);
-    tracee.set_pc(new_ra_val);
+    write(PCRelDisp(addr() + 0x00 + 3, addr() + 0x07,
+		    (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
+    write(PCRelDisp(addr() + 0x08 + 3, addr() + 0x0f,
+		    (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsp_ptr]
+    write(PCRelDisp(addr() + 0x0f + 3, addr() + 0x16,
+		    (uint8_t *) rsb.end())); // cmp rsp, [rel rsb_end]
+    write(PCRelDisp(addr() + 0x18 + 2, addr() + 0x1e,
+		    (uint8_t *) new_ra_ptr)); // push qword [rel new_ra]
+    write(PCRelDisp(addr() + 0x1e + 2, addr() + 0x24,
+		    (uint8_t *) orig_ra_ptr)); // push qword [rel orig_ra]
+    write(PCRelDisp(addr() + 0x24 + 3, addr() + 0x2b,
+		    (uint8_t *) rsb.ptr())); // xchg rsp, [rel rsb_ptr]
+    write(PCRelDisp(addr() + 0x2c + 3, addr() + 0x33,
+		    (uint8_t *) tmp_mem.rsp())); // xchg rsp, [rel tmp_rsp]
   }
 
   CallDirTerminator::CallDirTerminator(BlockPool& block_pool,

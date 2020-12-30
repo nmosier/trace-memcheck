@@ -10,15 +10,15 @@
 
 namespace dbi {
 
-  Patcher::Patcher(Tracees&& tmp_tracees, const Transformer& transformer):
-    tracees(std::move(tmp_tracees)),
-    block_pool(tracee(), block_pool_size), // done
-    ptr_pool(tracees, ptr_pool_size),
-    rsb(tracee(), rsb_size),
-    tmp_mem(tracee(), tmp_size),
-    transformer(transformer)
-  {}
-
+  void Patcher::open(Tracees&& tmp_tracees, const Transformer& transformer_) {
+    tracees = std::move(tmp_tracees);
+    block_pool.open(tracee(), block_pool_size);
+    ptr_pool.open(tracees, ptr_pool_size);
+    rsb.open(tracee(), tmp_size);
+    tmp_mem.open(tracee(), tmp_size);
+    transformer = transformer_;
+  }
+  
   bool Patcher::patch(uint8_t *start_pc) {
     const auto lb = [&] (uint8_t *addr) -> uint8_t * {
       const auto res = lookup_block_patch(addr, true);

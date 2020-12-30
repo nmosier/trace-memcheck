@@ -29,8 +29,16 @@ namespace dbi {
     };
     using Transformer = std::function<void (uint8_t *, Instruction&, const TransformerInfo&)>;
 
-    Patcher(Tracees&& tracees, const Transformer& transformer);
+    Patcher() {}
 
+    template <typename... Args>
+    Patcher(Args&&... args) { open(std::forward<Args>(args)...); }
+
+    bool good() const { return !tracees.empty(); }
+    operator bool() const { return good(); }
+    
+    void open(Tracees&& tracees, const Transformer& transformer);
+    
     using sighandler_t = std::function<void (int)>;
     void signal(int signum, const sighandler_t& handler);
     using sigaction_t = std::function<void (int, const siginfo_t&)>;

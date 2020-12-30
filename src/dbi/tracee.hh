@@ -112,9 +112,9 @@ namespace dbi {
     siginfo_t get_siginfo();
     auto get_flags() { return get_gpregs().eflags; }
   
-    void singlestep() { return resume<PTRACE_SINGLESTEP>(); }
-    void cont() { return resume<PTRACE_CONT>(); }
-    void cont_syscall() { return resume<PTRACE_SYSCALL>(); }
+    void singlestep(int sig = 0) { return resume<PTRACE_SINGLESTEP>(sig); }
+    void cont(int sig = 0) { return resume<PTRACE_CONT>(sig); }
+    void cont_syscall(int sig = 0) { return resume<PTRACE_SYSCALL>(sig); }
 
     void syscall(user_regs_struct& regs);
 
@@ -210,11 +210,11 @@ namespace dbi {
     size_t string(const char *addr, std::vector<char>& buf);
 
     template <__ptrace_request request>
-    void resume() {
+    void resume(int sig = 0) {
       assert(stopped());
       flush_caches();
       invalidate_caches();
-      ptrace(request, 0, 0);
+      ptrace(request, 0, sig);
       stopped_ = false;
     }
 

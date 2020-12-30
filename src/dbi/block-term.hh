@@ -138,8 +138,6 @@ namespace dbi {
     static constexpr unsigned last_decision_bits = 1;
     static std::string last_decision;
     static void add_decision(char c);
-    xed_iclass_enum_t last_iclass(void) const;
-    const char *last_iclass_str(void) const;
   
     const char *dir_str(void) const;
     static const char *bias_str(Bias bias);
@@ -152,11 +150,13 @@ namespace dbi {
       bool fallthru;
     };
   
-    Prediction get_prediction(void) const;
-    Prediction get_prediction_none(void) const { return {false, false}; }
-    Prediction get_prediction_iclass(void) const;
-    Prediction get_prediction_iform(void) const;
-    Prediction get_prediction_dir(void) const;
+    Prediction get_prediction() const;
+    Prediction get_prediction_none() const { return {false, false}; }
+    Prediction get_prediction_iclass() const;
+    Prediction get_prediction_iform() const;
+    Prediction get_prediction_dir() const;
+    xed_iclass_enum_t last_iclass() const { std::abort(); }
+    const char *last_iclass_str() const { return xed_iclass_enum_t2str(last_iclass()); }
     Prediction get_prediction_last_iclass(void) const;
   
     Bias get_bias(void) const;
@@ -216,8 +216,6 @@ namespace dbi {
     static constexpr size_t CALL_SIZE = CALL_SIZE_PRE + CALL_SIZE_POST;
     uint8_t *orig_ra_val;
     uint8_t **new_ra_ptr;
-
-    void handle_bkpt_ret(Tracee& tracee);  
   };
 
   class CallDirTerminator: public CallTerminator {

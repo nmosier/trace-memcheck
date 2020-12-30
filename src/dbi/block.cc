@@ -126,7 +126,6 @@ namespace dbi {
     case XED_REG_AH:
     case XED_REG_AL:
       scrap_reg = Instruction::reg_t::RCX;
-      // assert(false); // TODO
       break;
     default:
       scrap_reg = Instruction::reg_t::RAX;

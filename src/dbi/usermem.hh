@@ -18,7 +18,7 @@ namespace dbi {
     operator bool() const { return good(); }
 
     void open(Tracee& tracee, size_t size, int prot);
-    void close() {} // TODO: Only should close under some circumstances
+    void close() { user_map = MAP_FAILED; } // TODO: Only should close under some circumstances
   
     size_t size() const { return size_; }
 
@@ -33,7 +33,7 @@ namespace dbi {
 
   private:
     size_t size_;
-    void *user_map = MAP_FAILED;
+    void *user_map;
   };
 
   template <typename T>
@@ -43,6 +43,8 @@ namespace dbi {
 
     template <typename... Args>
     UserAllocator(Args&&... args) { open(args...); }
+
+    ~UserAllocator() {}
 
     bool good() const { return ptr_ != nullptr; }
     operator bool() const { return good(); }
@@ -56,6 +58,8 @@ namespace dbi {
       assert(mem);
       open(mem.begin<T>(), mem.end<T>());
     }
+
+    void close() { ptr_ = nullptr; }
   
     constexpr size_t rem() const { return end_ - ptr_; }
     constexpr T *peek() const { return ptr_; }

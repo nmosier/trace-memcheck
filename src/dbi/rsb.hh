@@ -11,8 +11,15 @@ namespace dbi {
 
   class ReturnStackBuffer {
   public:
-    ReturnStackBuffer(Tracee& tracee, size_t size);
+    ReturnStackBuffer() {}
+    ReturnStackBuffer(Tracee& tracee, size_t size) { open(tracee, size); }
 
+    bool good() const { return mem.good(); }
+    operator bool() const { return good(); }
+
+    void open(Tracee& tracee, size_t size);
+    void close() { mem.close(); }
+    
     uint8_t **begin() const { return begin_; }
     uint8_t **ptr() const { return ptr_; }
     uint8_t **end() const { return end_; }

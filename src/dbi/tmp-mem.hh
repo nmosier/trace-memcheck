@@ -8,11 +8,21 @@ namespace dbi {
 
   class TmpMem {
   public:
-    TmpMem(Tracee& tracee, size_t size):
-      mem(tracee, size, PROT_READ | PROT_WRITE), begin_(mem.begin<uint64_t>() + base_idx),
-      rsp_ptr_(reinterpret_cast<uint64_t **>(mem.begin<uint64_t>())), rsp_val_(mem.end<uint64_t>()) {
+    TmpMem() {}
+    TmpMem(Tracee& tracee, size_t size) { open(tracee, size); }
+
+    bool good() const { return mem.good(); }
+    operator bool() const { return good(); }
+
+    void open(Tracee& tracee, size_t size) {
+      mem.open(tracee, size, PROT_READ | PROT_WRITE);
+      begin_ = mem.begin<uint64_t>() + base_idx;
+      rsp_ptr_ = reinterpret_cast<uint64_t **>(mem.begin<uint64_t>());
+      rsp_val_ = mem.end<uint64_t>();
       tracee.write(&rsp_val_, sizeof(rsp_val_), rsp_ptr_);
     }
+
+    void close() { mem.close(); }
 
     size_t size() const { return mem.size(); }
     uint64_t *begin() const { return mem.begin<uint64_t>() + 1; }
@@ -28,9 +38,9 @@ namespace dbi {
   private:
     static constexpr size_t base_idx = 1;
     UserMemory mem;
-    uint64_t * const begin_;
-    uint64_t ** const rsp_ptr_;
-    uint64_t * const rsp_val_;
+    uint64_t *begin_;
+    uint64_t **rsp_ptr_;
+    uint64_t *rsp_val_;
   };
 
 }
