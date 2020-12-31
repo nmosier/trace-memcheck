@@ -18,3 +18,8 @@ ALTERNATIVE:
 ----------
 
 fork() after each sequence point
+
+-------
+
+In start_round(), fork process. (Be sure to register w/ patcher.)
+[ ] Tracee::syscall needs to support fork, or create separate fork call.

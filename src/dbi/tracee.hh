@@ -122,6 +122,8 @@ namespace dbi {
     uintptr_t syscall(Syscall syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
 		      uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
 
+    pid_t fork(Status& status, Tracee& forked_tracee);
+
     void gdb();
 
     std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
@@ -230,6 +232,8 @@ namespace dbi {
 
     void set_bad() { fd_ = -1; }
 
+  void fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
+		    const std::array<uint8_t, 2>& saved_code);
   };
 
 }

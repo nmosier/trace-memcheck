@@ -61,6 +61,8 @@ namespace dbi {
       return tracees.front();
     }
 
+    void add_tracee(Tracee&& tracee) { tracees.emplace_back(tracee); }
+
   private:
     using BlockMap = std::unordered_map<uint8_t *, Block *>;
     using BkptMap = std::unordered_map<uint8_t *, BkptCallback>;
@@ -98,8 +100,8 @@ namespace dbi {
     void post_syscall_handler();
 
     bool handle_stop(Tracee& tracee, Status status); // returns whether exited
-    void handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event);
-
+    void handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event);    
+    
     void print_ss(Tracee& tracee) const;
 
     template <typename F>

@@ -55,3 +55,4 @@
 [ ] Embed confs
 [ ] Propogate exit number correctly
 [ ] Add cksum_t in memcheck/types.hh and use consistently
+[ ] Make tracee calls thru patcher, not directly on tracee when in memcheck. Causes consistency issues.

@@ -248,7 +248,7 @@ namespace memcheck {
     return true; // TODO: Should be more conservative about this...
   }
   
-  void SyscallTracker_::pre(dbi::Tracee& tracee, uint8_t *addr) {
+  void SyscallTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
     syscall_args.add_call(tracee);
     g_conf.log() << "syscall " << syscall_args.no() << "\n";
     g_conf.add_syscall(syscall_args.no());
@@ -276,7 +276,7 @@ namespace memcheck {
   
   }
 
-  void SyscallTracker_::post(dbi::Tracee& tracee, uint8_t *addr) {
+  void SyscallTracker_::handler_post(dbi::Tracee& tracee, uint8_t *addr) {
     syscall_args.add_ret(tracee);
 
     switch (syscall_args.no()) {

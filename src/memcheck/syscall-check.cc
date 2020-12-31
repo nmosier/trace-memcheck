@@ -485,6 +485,7 @@ namespace memcheck {
   PRE_STUB(FCNTL)
 
   PRE_ABORT(MREMAP)
+  PRE_ABORT(FORK)
 
   void SyscallChecker::do_write(void *begin, void *end) {
     taint_state.fill(begin, end, 0);
@@ -764,5 +765,6 @@ namespace memcheck {
   POST_ABORT(FACCESSAT)
   POST_ABORT(GETTID)
   POST_ABORT(TGKILL)
+  POST_ABORT(FORK)
 
 }

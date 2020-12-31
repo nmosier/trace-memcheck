@@ -49,9 +49,6 @@ namespace memcheck {
     void transformer(uint8_t *addr, dbi::Instruction& inst,
 		     const dbi::Patcher::TransformerInfo& info);
   
-    static bool is_sp_dec(const dbi::Instruction& inst);
-    static bool is_jcc(const dbi::Instruction& inst);
-
     static constexpr size_t mprotect_bits = 12;
     static_assert(mprotect_bits >= 12, "bits must be greater than page size");
     static constexpr size_t mprotect_size = 1 << mprotect_bits;

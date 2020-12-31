@@ -289,6 +289,25 @@ namespace memcheck {
     }
   };
 
+#if 0
+  /* Required interface of base:
+   * static bool match(dbi::Instruction&);
+   * void handler_pre(...);
+   * void handler_post(...);
+   */
+  template <class Base>
+  class SequencePoint_ {
+  public:
+    template <typename... Args>
+    SequencePoint_(Args&&... args): base(std::forward<Args>(args)...) {}
+
+    
+    
+  private:
+    Base base;
+  };
+#endif
+  
   /* Required interface of Base:
    *  bool match();
    *  void pre(...); (BkptCallback)
@@ -313,7 +332,7 @@ namespace memcheck {
 	auto pre_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(pre_bkpt);
 	info.rb(pre_bkpt.pc(), [this] (auto&&... args) {
-	  this->pre(args...);
+	  this->handler_pre(args...);
 	  pre_callback(args...);
 	});
       
@@ -322,7 +341,7 @@ namespace memcheck {
 	auto post_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(post_bkpt);
 	info.rb(post_bkpt.pc(), [this] (auto&&... args) {
-	  this->post(args...);
+	  this->handler_post(args...);
 	  post_callback(args...);
 	});
 
@@ -339,8 +358,8 @@ namespace memcheck {
 
   class SequencePoint_Defaults {
   protected:
-    void pre(dbi::Tracee& tracee, uint8_t *addr) {}
-    void post(dbi::Tracee& tracee, uint8_t *addr) {}
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr) {}
+    void handler_post(dbi::Tracee& tracee, uint8_t *addr) {}
   };
 
   class StackTracker_Pre_Incore_Base: public TrackerHalfIncore_Base {
@@ -502,8 +521,8 @@ namespace memcheck {
     static bool match(const dbi::Instruction& inst) {
       return inst.xed_iclass() == XED_ICLASS_SYSCALL;
     }
-    void pre(dbi::Tracee& tracee, uint8_t *addr);
-    void post(dbi::Tracee& tracee, uint8_t *addr);
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr);
+    void handler_post(dbi::Tracee& tracee, uint8_t *addr);
     
   private:
     State& taint_state;
@@ -627,7 +646,7 @@ namespace memcheck {
   };
   using RTMTracker = SequencePoint_<RTMTracker_>;
 
-  class RDTSCTracker_: public Tracker {
+  class RDTSCTracker_: public Tracker, public SequencePoint_Defaults {
   public:
     RDTSCTracker_(): Tracker() {}
 
@@ -635,10 +654,7 @@ namespace memcheck {
   
   protected:
     bool match(const dbi::Instruction& inst) const { return inst.xed_iclass() == XED_ICLASS_RDTSC; }
-    void pre(dbi::Tracee& tracee, uint8_t *addr) {
-      std::clog << "RDTSC\n";
-    }
-    void post(dbi::Tracee& tracee, uint8_t *addr) {}
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr) { std::clog << "RDTSC\n"; }
   };
 
   using RDTSCTracker = SequencePoint_<RDTSCTracker_>;
