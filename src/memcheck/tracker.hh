@@ -21,6 +21,7 @@ namespace memcheck {
   /* Requires functions:
    *  uint8_t *add_pre(uint8_t *, dbi::Instruction&, const TransformerInfo&);
    *  uint8_t *add_post(uint8_t *, dbi::Instruction&, const TransformerInfo&);
+   *  bool match() const;
    */
   template <class Base>
   class Tracker_: public Base {
@@ -28,14 +29,14 @@ namespace memcheck {
     template <typename... Args>
     Tracker_(Args&&... args): Base(std::forward<Args>(args)...) {}
     
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
-      this->add_pre(addr, inst, info);
-      addr = info.writer(inst);
-      this->add_post(addr, inst, info);
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool& match_) {
+      if ((match_ = this->match(inst))) {
+	addr = this->add_pre(addr, inst, info);
+	addr = info.writer(inst);
+	addr = this->add_post(addr, inst, info);
+      }
       return addr;
     }
-    
-  private:
   };
 
   /* Requires functions:
@@ -324,6 +325,8 @@ namespace memcheck {
 	  this->post(args...);
 	  post_callback(args...);
 	});
+
+	
       }
       
       return addr;
@@ -439,6 +442,8 @@ namespace memcheck {
     StackTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
   
   protected:
+    static bool match(const dbi::Instruction& inst);
+    
     bool incore() const { return STACK_TRACKER_INCORE; }
     bool bkpt() const { return STACK_TRACKER_BKPT; }
     
@@ -494,7 +499,7 @@ namespace memcheck {
     void check(dbi::Tracee& tracee);
 
   protected:
-    bool match(const dbi::Instruction& inst) const {
+    static bool match(const dbi::Instruction& inst) {
       return inst.xed_iclass() == XED_ICLASS_SYSCALL;
     }
     void pre(dbi::Tracee& tracee, uint8_t *addr);
@@ -515,6 +520,10 @@ namespace memcheck {
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
 
   protected:
+    static bool match(const dbi::Instruction& inst) {
+      return inst.xed_iclass() == XED_ICLASS_CALL_NEAR;
+    }
+    
     bool incore() const { return CALL_TRACKER_INCORE; }
     bool bkpt() const { return CALL_TRACKER_BKPT; }
 
@@ -537,6 +546,10 @@ namespace memcheck {
     RetTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
 
   protected:
+    static bool match(const dbi::Instruction& inst) {
+      return inst.xed_iclass() == XED_ICLASS_RET_NEAR;
+    }
+    
     bool incore() const { return RET_TRACKER_INCORE; }
     bool bkpt() const { return RET_TRACKER_BKPT; }
 
@@ -574,6 +587,8 @@ namespace memcheck {
     {}
 
   protected:
+    static bool match(const dbi::Instruction& inst);
+    
     bool incore() const { return JCC_TRACKER_INCORE; }
     bool bkpt() const { return JCC_TRACKER_BKPT; }
 

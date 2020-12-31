@@ -104,46 +104,6 @@ namespace memcheck {
     return true;
   }
 
-  bool Memcheck::is_sp_dec(const dbi::Instruction& inst) {
-    if (inst.xed_reg0() != XED_REG_RSP) {
-      return false;
-    }
-
-    switch (inst.xed_iclass()) {
-    case XED_ICLASS_PUSH: return false;
-    default:
-      break;
-    }
-
-    return true; // TODO: Should be more conservative about this...
-  }
-
-  bool Memcheck::is_jcc(const dbi::Instruction& inst) {
-    switch (inst.xed_iclass()) {
-    case XED_ICLASS_JB:
-    case XED_ICLASS_JBE:
-    case XED_ICLASS_JCXZ:
-    case XED_ICLASS_JECXZ:
-    case XED_ICLASS_JL:
-    case XED_ICLASS_JLE:
-    case XED_ICLASS_JNB:
-    case XED_ICLASS_JNBE:
-    case XED_ICLASS_JNL:
-    case XED_ICLASS_JNLE:
-    case XED_ICLASS_JNO:
-    case XED_ICLASS_JNP:
-    case XED_ICLASS_JNS:
-    case XED_ICLASS_JNZ:
-    case XED_ICLASS_JO:
-    case XED_ICLASS_JP:
-    case XED_ICLASS_JRCXZ:
-    case XED_ICLASS_JS:
-    case XED_ICLASS_JZ:
-      return true;
-    default:
-      return false;
-    }
-  }
 
   void Memcheck::transformer(uint8_t *addr, dbi::Instruction& inst,
 			     const dbi::Patcher::TransformerInfo& info) {
@@ -151,40 +111,25 @@ namespace memcheck {
 
     bool match = false;
 
-    if (is_sp_dec(inst)) {
-      addr = stack_tracker.add(addr, inst, info);
-      return;
-    }
+    stack_tracker.add(addr, inst, info, match);
+    if (match) { return; }
 
-#if 0
-    if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
-      addr = syscall_tracker.add(addr, inst, info);
-      return;
-    }
-#else
     addr = syscall_tracker.add(addr, inst, info, match);
     if (match) { return; }
-#endif
 
     if (CALL_TRACKER) {
-      if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR) {
-	addr = call_tracker.add(addr, inst, info);
-	return;
-      }
+      addr = call_tracker.add(addr, inst, info, match);
+      if (match) { return; }
     }
 
     if (RET_TRACKER) {
-      if (inst.xed_iclass() == XED_ICLASS_RET_NEAR) {
-	addr = ret_tracker.add(addr, inst, info);
-	return;
-      }
+      addr = ret_tracker.add(addr, inst, info, match);
+      if (match) { return; }
     }
   
     if (JCC_TRACKER) {
-      if (is_jcc(inst)) {
-	addr = jcc_tracker.add(addr, inst, info);
-	return;
-      }
+      addr = jcc_tracker.add(addr, inst, info, match);
+      if (match) { return; }
     }
 
     if (LOCK_TRACKER) {
