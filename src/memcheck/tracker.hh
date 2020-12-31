@@ -89,6 +89,43 @@ namespace memcheck {
     }
   };
 
+  /* Requires signature:
+   *  handler_pre(dbi::Tracee& tracee, uint8_t *addr;
+   *  handler_post(dbi::Tracee& tracee, uint8_t *addr;
+   *  void add_bkpt_pre_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
+   *  void add_bkpt_post_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
+   */
+  template <class Base>
+  class AddBkpt_: public Base {
+  public:
+    template <typename... Args>
+    AddBkpt_(Args&&... args): Base(std::forward<Args>(args)...) {}
+    
+  protected:
+    uint8_t *add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      this->add_bkpt_pre_action(addr, inst, info);
+      auto bkpt = dbi::Instruction::int3(addr);
+      addr = info.writer(bkpt);
+      info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler_pre(args...); });
+      return addr;
+    }
+    uint8_t *add_bkpt_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      this->add_bkpt_post_action(addr, inst, info);
+      auto bkpt = dbi::Instruction::int3(addr);
+      addr = info.writer(bkpt);
+      info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler_post(args...); });
+      return addr;
+    }
+  };
+
+  class AddBkpt_Defaults {
+  protected:
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr) {}
+    void handler_post(dbi::Tracee& tracee, uint8_t *addr) {}
+    void add_bkpt_pre_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {}
+    void add_bkpt_post_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {}
+  };
+
   class Filler {
   public:
     Filler(fill_ptr_t fill_ptr): fill_ptr_(fill_ptr) {}
@@ -193,11 +230,22 @@ namespace memcheck {
   protected:
     bool incore() const { return STACK_TRACKER_INCORE; }
     bool bkpt() const { return STACK_TRACKER_BKPT; }
-    uint8_t *add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
-    uint8_t *add_bkpt_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
+    
+    void add_bkpt_pre_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      tmp_elem = std::make_shared<Elem>(inst);
+      map.emplace(addr, tmp_elem);      
+    }
+    
+    void add_bkpt_post_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      map.emplace(addr, tmp_elem);
+    }
+    
     uint8_t *add_incore_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
     uint8_t *add_incore_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
 
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr);
+    void handler_post(dbi::Tracee& tracee, uint8_t *addr);
+    
   private:
     // TODO: Can be optimized.
     struct Elem {
@@ -218,31 +266,21 @@ namespace memcheck {
 
     using PostMC = dbi::MachineCode<0x3c, 5>;
     PostMC post_mc;
-  
+
+#if 0
     const BkptCallback pre_callback = [this] (auto&&... args) {
-      return this->pre_handler(args...);
+      return this->handler_pre(args...);
     };
     const BkptCallback post_callback = [this] (auto&&... args) {
-      return this->post_handler(args...);
+      return this->handler_post(args...);
     };
-    
-    void pre_handler(dbi::Tracee& tracee, uint8_t *addr);
-    void post_handler(dbi::Tracee& tracee, uint8_t *addr);
-  };
+#endif
+      };
 
-  using StackTracker = Tracker_<IncoreTracker_<StackTracker_>>;
+  using StackTracker = Tracker_<IncoreTracker_<AddBkpt_<StackTracker_>>>;
 
   class SyscallTracker_ {
   public:
-#if 0
-    SyscallTracker(const SequencePoint& sequence_point, PageSet& page_set,
-		   dbi::SyscallArgs& syscall_args, Memcheck& memcheck):
-      SequencePoint(sequence_point), page_set(page_set),
-      syscall_args(syscall_args), memcheck(memcheck) {}
-
-    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const dbi::Patcher::TransformerInfo& info);
-#endif
-
     SyscallTracker_(State& taint_state, PageSet& page_set, dbi::SyscallArgs& syscall_args,
 		    Memcheck& memcheck):
       taint_state(taint_state),
@@ -269,7 +307,7 @@ namespace memcheck {
   };
   using SyscallTracker = SequencePoint_<SyscallTracker_>;
   
-  class CallTracker_: public Filler, public IncoreTracker_Defaults {
+  class CallTracker_: public Filler, public AddBkpt_Defaults {
   public:
     CallTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
@@ -277,36 +315,44 @@ namespace memcheck {
   protected:
     bool incore() const { return CALL_TRACKER_INCORE; }
     bool bkpt() const { return CALL_TRACKER_BKPT; }
-    uint8_t *add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
+
     uint8_t *add_incore_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
-      
+    uint8_t *add_incore_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      return addr;
+    }
+    
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr);
+    void handler_post(dbi::Tracee& tracee, uint8_t *addr) {}
+    
   private:
     using MC = dbi::MachineCode<0x2e, 4>;
     MC mc;
-
-    void handler(dbi::Tracee& tracee, uint8_t *addr);
   };
-  using CallTracker = Tracker_<IncoreTracker_<CallTracker_>>;
+  using CallTracker = Tracker_<IncoreTracker_<AddBkpt_<CallTracker_>>>;
 
-  class RetTracker_: public Filler, public IncoreTracker_Defaults {
+  class RetTracker_: public Filler, public AddBkpt_Defaults {
   public:
     RetTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
 
   protected:
     bool incore() const { return RET_TRACKER_INCORE; }
     bool bkpt() const { return RET_TRACKER_BKPT; }
-    uint8_t *add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
-    uint8_t *add_incore_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);    
+
+    uint8_t *add_incore_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
+    uint8_t *add_incore_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      return addr;
+    }
+    
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr);
 
   private:
     using MC = dbi::MachineCode<0x2e, 4>;
     MC mc;
-    void handler(dbi::Tracee& tracee, uint8_t *addr);
   };
-  using RetTracker = Tracker_<IncoreTracker_<RetTracker_>>;
+  using RetTracker = Tracker_<IncoreTracker_<AddBkpt_<RetTracker_>>>;
   
 
-  class JccTracker_: public Checksummer, public IncoreTracker_Defaults {
+  class JccTracker_: public Checksummer, public AddBkpt_Defaults {
   public:
     JccTracker_(FlagChecksum& cksum, MemcheckVariables& vars):
       Checksummer(cksum),
@@ -328,17 +374,20 @@ namespace memcheck {
   protected:
     bool incore() const { return JCC_TRACKER_INCORE; }
     bool bkpt() const { return JCC_TRACKER_BKPT; }
-    uint8_t *add_incore_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
-    uint8_t *add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
 
+    uint8_t *add_incore_pre(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
+    uint8_t *add_incore_post(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      return addr;
+    }
+
+    void handler_pre(dbi::Tracee& tracee, uint8_t *addr);
+    
   private:
     using MC = dbi::MachineCode<0x23, 4>;
     uint32_t * const *cksum_ptr_ptr;
-    MC post_code;
-  
-    void handler(dbi::Tracee& tracee, uint8_t *addr);
+    MC post_code;  
   };
-  using JccTracker = Tracker_<IncoreTracker_<JccTracker_>>;
+  using JccTracker = Tracker_<IncoreTracker_<AddBkpt_<JccTracker_>>>;
 
   class LockTracker_: public SequencePoint_Defaults {
   public:
@@ -379,13 +428,12 @@ namespace memcheck {
 
   class SharedMemSeqPt {
   public:
-    SharedMemSeqPt(dbi::Tracee& tracee, Memcheck& memcheck, State& taint_state):
-      tracee(tracee), memcheck(memcheck), taint_state(taint_state) {}
+    SharedMemSeqPt(Memcheck& memcheck, State& taint_state):
+      memcheck(memcheck), taint_state(taint_state) {}
 
     void check(dbi::Tracee& tracee);
   
   private:
-    dbi::Tracee& tracee;
     Memcheck& memcheck;
     State& taint_state;
 

@@ -12,14 +12,6 @@ extern "C" {
 
 namespace memcheck {
 
-  uint8_t *JccTracker_::add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst,
-				     const dbi::Patcher::TransformerInfo& info) {
-    auto bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
-    return addr;
-  }
-
   uint8_t *JccTracker_::add_incore_pre(uint8_t *addr, dbi::Instruction& inst,
 				       const dbi::Patcher::TransformerInfo& info) {
     post_code.patch(addr);
@@ -27,7 +19,7 @@ namespace memcheck {
     return addr;
   }
 
-  void JccTracker_::handler(dbi::Tracee& tracee, uint8_t *addr) {
+  void JccTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
     /* checksum flags */
     std::stringstream ss;
     if (JCC_RECORD_REGS) {
@@ -64,7 +56,7 @@ namespace memcheck {
       )
   {}
 
-  void StackTracker_::pre_handler(dbi::Tracee& tracee, uint8_t *addr) {
+  void StackTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
     const auto it = map.find(addr);
     assert(it != map.end());
     it->second->sp = tracee.get_sp();
@@ -75,7 +67,7 @@ namespace memcheck {
     }
   }
 
-  void StackTracker_::post_handler(dbi::Tracee& tracee, uint8_t *addr) {
+  void StackTracker_::handler_post(dbi::Tracee& tracee, uint8_t *addr) {
     const auto it = map.find(addr);
     assert(it != map.end());
     const auto post_sp = static_cast<char *>(tracee.get_sp()) - SHADOW_STACK_SIZE;
@@ -105,27 +97,6 @@ namespace memcheck {
       }
     }
 
-  }
-
-  uint8_t *StackTracker_::add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst,
-				      const TransformerInfo& info) {
-    tmp_elem = std::make_shared<Elem>(inst);
-    auto pre_bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(pre_bkpt);
-    const auto pre_addr = pre_bkpt.pc();
-    info.rb(pre_addr, pre_callback);
-    map.emplace(pre_addr, tmp_elem);
-    return addr;
-  }
-
-  uint8_t *StackTracker_::add_bkpt_post(uint8_t *addr, dbi::Instruction& inst,
-				       const TransformerInfo& info) {
-    auto post_bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(post_bkpt);
-    const auto post_addr = post_bkpt.pc();
-    info.rb(post_addr, post_callback);
-    map.emplace(post_addr, tmp_elem);
-    return addr;
   }
 
   uint8_t *StackTracker_::add_incore_pre(uint8_t *addr, dbi::Instruction& inst,
@@ -160,15 +131,6 @@ namespace memcheck {
       )
   {}
 
-  uint8_t *CallTracker_::add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst,
-				     const TransformerInfo& info)
-  {
-    auto bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
-    return addr;
-  }
-
   uint8_t *CallTracker_::add_incore_pre(uint8_t *addr, dbi::Instruction& inst,
 				       const TransformerInfo& info) {
     mc.patch(addr);
@@ -176,7 +138,7 @@ namespace memcheck {
     return addr;
   }
 
-  void CallTracker_::handler(dbi::Tracee& tracee, uint8_t *addr) {
+  void CallTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
     const auto sp = static_cast<char *>(tracee.get_sp());
 
     if (CALL_TRACKER_INCORE) {
@@ -210,15 +172,6 @@ namespace memcheck {
       )
   {}
 
-  uint8_t *RetTracker_::add_bkpt_pre(uint8_t *addr, dbi::Instruction& inst,
-				     const TransformerInfo& info) {
-    assert(inst.xed_iclass() == XED_ICLASS_RET_NEAR);
-    auto bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
-    return addr;
-  }
-
   uint8_t *RetTracker_::add_incore_pre(uint8_t *addr, dbi::Instruction& inst,
 				       const TransformerInfo& info) {
     mc.patch(addr);
@@ -226,7 +179,7 @@ namespace memcheck {
     return addr;
   }
 
-  void RetTracker_::handler(dbi::Tracee& tracee, uint8_t *addr) {
+  void RetTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
     const auto sp = static_cast<char *>(tracee.get_sp());
 
     if (RET_TRACKER_INCORE) {
@@ -251,23 +204,6 @@ namespace memcheck {
     inst_str = ss.str();
   }
 
-#if 0
-  uint8_t *SyscallTracker_::add(uint8_t *addr, dbi::Instruction& inst,
-				const dbi::Patcher::TransformerInfo& info)
-  {
-    auto pre_bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(pre_bkpt);
-    addr = info.writer(inst);
-    auto post_bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(post_bkpt);
-
-    add_pre(pre_bkpt.pc(), info, [this] (auto&&... args) { this->pre(args...); });
-    add_post(post_bkpt.pc(), info, [this] (auto&&... args) { this->post(args...); });
-  
-    return addr;
-  }
-#endif
-  
   void SyscallTracker_::pre(dbi::Tracee& tracee, uint8_t *addr) {
     syscall_args.add_call(tracee);
     g_conf.log() << "syscall " << syscall_args.no() << "\n";
@@ -402,7 +338,7 @@ namespace memcheck {
 	return 0x000000000000ff00;
       default: return 0x00000000000000ff;
       }
-    default: abort();
+    default: std::abort();
     }
   }
 
@@ -414,7 +350,7 @@ namespace memcheck {
   
     if ((val64 & mask_read(reg)) != 0) {
       error() << Error::TAINTED_REG << " " << xed_reg_enum_t2str(reg) << "\n";
-      g_conf.abort(tracee);
+      std::abort();
     }
   }
 
@@ -426,10 +362,10 @@ namespace memcheck {
   void SharedMemSeqPt::read_flags(uint32_t mask) const {
     if ((taint_state.gpregs().eflags() & mask) != 0) {
       error(Error::TAINTED_FLAGS);
-      g_conf.abort(tracee);
+      std::abort();
     }
   }
-
+  
   void SharedMemSeqPt::write_flags(uint32_t mask) {
     taint_state.gpregs().eflags() &= ~mask;
   }

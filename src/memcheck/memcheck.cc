@@ -510,7 +510,7 @@ namespace memcheck {
 	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
 
 	// TODO: properly specify permissions
-	SharedMemSeqPt seq_pt(tracee(), *this, taint_state);
+	SharedMemSeqPt seq_pt(*this, taint_state);
 	sequence_point_handler_pre(seq_pt);
       }
       break;
