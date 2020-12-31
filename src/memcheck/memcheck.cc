@@ -17,40 +17,33 @@ namespace memcheck {
     patcher(),
     vars(),
     stack_tracker(cur_fill_ptr(), vars),
-    syscall_tracker(SequencePoint(taint_state,
-				  [this] (auto& tracee, auto addr) {
-				    this->sequence_point_handler_pre(syscall_tracker);
-				  },
-				  [this] (auto& tracee, auto addr) { this->start_round(); }
-				  ),
-		    tracked_pages,
-		    syscall_args,
-		    *this
-		    ),
+    syscall_tracker([this] (auto& tracee, auto addr) {
+      this->sequence_point_handler_pre(syscall_tracker);
+    },
+      [this] (auto& tracee, auto addr) { this->start_round(); },
+      taint_state,
+      tracked_pages,
+      syscall_args,
+      *this
+      ),
     call_tracker(cur_fill_ptr(), vars),
     ret_tracker(cur_fill_ptr(), vars),
     jcc_tracker(cksum, vars),
-    lock_tracker(SequencePoint(taint_state,
-			       [this] (auto& tracee, auto addr) {
-				 this->sequence_point_handler_pre(lock_tracker);
-			       },
-			       [this] (auto& tracee, auto addr) { this->start_round(); }
-			       )
-		 ),
-    rtm_tracker(SequencePoint(taint_state,
-			      [this] (auto& tracee, auto addr) {
-				this->sequence_point_handler_pre(rtm_tracker);
-			      },
-			      [this] (auto& tracee, auto addr) { this->start_round(); }
-			      )
-		),
-    rdtsc_tracker(taint_state,
-		  [this] (auto& tracee, auto addr) {
-		    this->sequence_point_handler_pre(rdtsc_tracker);
-		  },
-		  [this] (auto& tracee, auto addr) { this->start_round(); }
-		  )
-    
+    lock_tracker([this] (auto& tracee, auto addr) {
+      this->sequence_point_handler_pre(lock_tracker);
+    },
+      [this] (auto& tracee, auto addr) { this->start_round(); }
+      ),
+    rtm_tracker([this] (auto& tracee, auto addr) {
+      this->sequence_point_handler_pre(rtm_tracker);
+    },
+      [this] (auto& tracee, auto addr) { this->start_round(); }
+      ),
+    rdtsc_tracker([this] (auto& tracee, auto addr) {
+      this->sequence_point_handler_pre(rdtsc_tracker);
+    },
+      [this] (auto& tracee, auto addr) { this->start_round(); }
+      )
   {}
   
 
@@ -156,15 +149,22 @@ namespace memcheck {
 			     const dbi::Patcher::TransformerInfo& info) {
     (void) addr;
 
+    bool match = false;
+
     if (is_sp_dec(inst)) {
       addr = stack_tracker.add(addr, inst, info);
       return;
     }
-  
+
+#if 0
     if (inst.xed_iclass() == XED_ICLASS_SYSCALL) {
       addr = syscall_tracker.add(addr, inst, info);
       return;
     }
+#else
+    addr = syscall_tracker.add(addr, inst, info, match);
+    if (match) { return; }
+#endif
 
     if (CALL_TRACKER) {
       if (inst.xed_iclass() == XED_ICLASS_CALL_NEAR) {
@@ -188,15 +188,13 @@ namespace memcheck {
     }
 
     if (LOCK_TRACKER) {
-      bool is_lock;
-      addr = lock_tracker.add(addr, inst, info, is_lock);
-      if (is_lock) { return; }
+      addr = lock_tracker.add(addr, inst, info, match);
+      if (match) { return; }
     }
 
     if (RDTSC_TRACKER) {
-      bool is_rdtsc = false;
-      addr = rdtsc_tracker.add(addr, inst, info, is_rdtsc);
-      if (is_rdtsc) { return; }
+      addr = rdtsc_tracker.add(addr, inst, info, match);
+      if (match) { return; }
     }
 
     // DEBUG

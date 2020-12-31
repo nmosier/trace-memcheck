@@ -15,3 +15,6 @@ One workaround would be to only let one thread ever execute a system call
 
 ALTERNATIVE:
 
+----------
+
+fork() after each sequence point
