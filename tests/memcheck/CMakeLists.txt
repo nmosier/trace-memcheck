@@ -1,3 +1,5 @@
+set(TEST_PREFIX ${TEST_PREFIX}memcheck-)
+
 function(create_test TESTNAME BIN SPEC)
   add_test(NAME ${TESTNAME}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run.sh -m $<TARGET_FILE:memcheck>
@@ -8,7 +10,7 @@ endfunction()
 function(create_local_test TEST)
   set(SPEC ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.env)
   foreach(OPTIM O0 O1 O2 O3)
-    set(TESTNAME ${TEST}-${OPTIM})
+    set(TESTNAME ${TEST_PREFIX}${TEST}-${OPTIM})
     add_executable(${TESTNAME} ${TEST}.c)
     create_test(${TESTNAME} $<TARGET_FILE:${TESTNAME}> ${SPEC} ${ARGN})
   endforeach()
@@ -28,10 +30,10 @@ endfunction()
 create_local_tests(bad-fd-read bad-return-value fib strlen bad-if)
 create_local_test(myls ${CMAKE_CURRENT_SOURCE_DIR}/myls-dir)
 
-create_system_test(ls ls ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
-create_system_test(ls-l ls -l ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
-create_system_test(ls-a ls -a ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
-create_system_test(ls-color ls --color ${CMAKE_CURRENT_SOURCE_DIR}/ls-dir)
+create_system_test(ls ls ${CMAKE_CURRENT_SOURCE_DIR}/../ls-dir)
+create_system_test(ls-l ls -l ${CMAKE_CURRENT_SOURCE_DIR}/../ls-dir)
+create_system_test(ls-a ls -a ${CMAKE_CURRENT_SOURCE_DIR}/../ls-dir)
+create_system_test(ls-color ls --color ${CMAKE_CURRENT_SOURCE_DIR}/../ls-dir)
 
 create_local_test(fork)
 
