@@ -3,6 +3,7 @@
 #include <cassert>
 #include <string>
 #include <vector>
+#include <type_traits>
 #include "dbi/block-term.hh"
 #include "dbi/patch.hh"
 #include "dbi/syscall-args.hh"
@@ -126,6 +127,122 @@ namespace memcheck {
     void add_bkpt_post_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {}
   };
 
+
+  /* This defines the interface */
+  class TrackerHalfBkpt_Base {
+  public:
+  protected:
+    void handler(dbi::Tracee& tracee, uint8_t *addr) {}
+    void add_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {}
+  };
+
+  /* This defines the functions built on top of the interface */
+  template <class Base>
+  class TrackerHalfBkpt_Derived: public Base {
+    static_assert(std::is_base_of<TrackerHalfBkpt_Base, Base>(), "");
+  public:
+    template <typename... Args>
+    TrackerHalfBkpt_Derived(Args&&... args): Base(std::forward<Args>(args)...) {}
+
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      this->add_action(addr, inst, info);
+      auto bkpt = dbi::Instruction::int3(addr);
+      addr = info.writer(bkpt);
+      info.rb(bkpt.pc(), [this] (auto&&... args) { this->handler(args...); });
+      return addr;
+    }
+  };
+
+  using TrackerHalfBkpt_None = TrackerHalfBkpt_Derived<TrackerHalfBkpt_Base>;
+
+  /* Additional requirements:
+   * protected:
+   *  MachineCode mc;
+   */
+  class TrackerHalfIncore_Base {
+  public:
+    void add_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {}
+  };
+
+  template <class Base>
+  class TrackerHalfIncore_Derived: public Base {
+    static_assert(std::is_base_of<TrackerHalfIncore_Base, Base>(), "");
+  public:
+    template <typename... Args>
+    TrackerHalfIncore_Derived(Args&&... args): Base(std::forward<Args>(args)...) {}
+
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      this->add_action(addr, inst, info);
+      this->mc.patch(addr);
+      addr = info.writer(this->mc);
+      return addr;
+    }
+  };
+
+  class TrackerHalfIncore_None_Base: public TrackerHalfIncore_Base {
+  public:
+    template <typename... Args>
+    TrackerHalfIncore_None_Base(Args&&... args):
+      TrackerHalfIncore_Base(std::forward<Args>(args)...),
+      mc(MC::Content(), MC::Relbrs())
+    {}
+  protected:
+    using MC = dbi::MachineCode<0,0>;
+    MC mc;
+  };
+  using TrackerHalfIncore_None = TrackerHalfIncore_Derived<TrackerHalfIncore_None_Base>;
+  
+  /* Additional requirements:
+   *  bool incore() const;
+   *  bool bkpt() const;
+   */
+  template <bool INCORE, bool BKPT, class Incore, class Bkpt>
+  class TrackerHalf_Derived {
+  public:
+    TrackerHalf_Derived(const Incore& incore, const Bkpt& bkpt):
+      incore(incore),
+      bkpt(bkpt)
+    {}
+
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      if (INCORE) {
+	addr = incore.add(addr, inst, info);
+      }
+      if (BKPT) {
+	addr = bkpt.add(addr, inst, info);
+      }
+      return addr;
+    }
+    
+  private:
+    Incore incore;
+    Bkpt bkpt;
+  };
+
+  using TrackerHalf_None =
+    TrackerHalf_Derived<false, false, TrackerHalfIncore_None, TrackerHalfBkpt_None>;
+
+  template <bool PRE, bool POST, class Pre, class Post>
+  class Tracker_Derived {
+  public:
+    Tracker_Derived(const Pre& pre, const Post& post): pre(pre), post(post) {}
+
+    uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      if (PRE) {
+	pre.add(addr, inst, info);
+      }
+      addr = info.writer(inst);
+      if (POST) {
+	post.add(addr, inst, info);
+      }
+      return addr;
+    }
+    
+  private:
+    Pre pre;
+    Post post;
+  };
+  
   class Filler {
   public:
     Filler(fill_ptr_t fill_ptr): fill_ptr_(fill_ptr) {}
