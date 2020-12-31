@@ -340,6 +340,100 @@ namespace memcheck {
     void post(dbi::Tracee& tracee, uint8_t *addr) {}
   };
 
+  class StackTracker_Pre_Incore_Base: public TrackerHalfIncore_Base {
+  public:
+    StackTracker_Pre_Incore_Base(MemcheckVariables& vars):
+      mc(MC::Content{0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00},
+	 MC::Relbrs{MC::Relbr(0x03, 0x07, vars.prev_sp_ptr_ptr())}
+	 )
+    {}
+  protected:
+    using MC = dbi::MachineCode<0x07, 1>;
+    MC mc;
+  };
+  using StackTracker_Pre_Incore = TrackerHalfIncore_Derived<StackTracker_Pre_Incore_Base>;
+
+  class StackTracker_Post_Incore_Base: public TrackerHalfIncore_Base {
+  public:
+    StackTracker_Post_Incore_Base(MemcheckVariables& vars):
+      mc(MC::Content{
+	0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x50, 0x57, 0x51, 0x48, 0x8b,
+	0x3d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x8b, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x48,
+	0x39, 0xcf, 0x7c, 0x03, 0x48, 0x87, 0xf9, 0x48, 0x29, 0xf9, 0x48, 0x8d, 0x7f,
+	0x80, 0x8a, 0x05, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xf3, 0xaa, 0x59, 0x5f, 0x58,
+	0x9d, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,
+      },
+	MC::Relbrs{
+	  MC::Relbr(0x03, 0x07, vars.tmp_rsp_ptr_ptr()),
+	  MC::Relbr(0x0e, 0x12, vars.prev_sp_ptr_ptr()),
+	  MC::Relbr(0x15, 0x19, vars.tmp_rsp_ptr_ptr()),
+	  MC::Relbr(0x2a, 0x2e, vars.fill_ptr_ptr()),
+	  MC::Relbr(0x38, 0x3c, vars.tmp_rsp_ptr_ptr())
+	}
+	)
+    {}
+  protected:
+    using MC = dbi::MachineCode<0x3c, 5>;
+    MC mc;
+  };
+  using StackTracker_Post_Incore = TrackerHalfIncore_Derived<StackTracker_Post_Incore_Base>;
+
+  class StackTracker_Bkpt_Info {
+  public:
+    struct Elem {
+      uint8_t *orig_addr;
+      std::string inst_str;
+      void *sp;
+    
+      Elem(const dbi::Instruction& inst);
+    };
+    using ElemPtr = std::shared_ptr<Elem>;
+    using Map = std::unordered_map<uint8_t *, std::shared_ptr<Elem>>;
+
+    StackTracker_Bkpt_Info(ElemPtr& tmp_elem, Map& map, const MemcheckVariables& vars):
+      tmp_elem(tmp_elem),
+      map(map),
+      prev_sp_ptr_ptr(vars.prev_sp_ptr_ptr())
+    {}
+
+    ElemPtr tmp_elem;
+    Map map;
+    uint64_t ** const * prev_sp_ptr_ptr;
+  };
+  
+  class StackTracker_Pre_Bkpt_Base: public TrackerHalfBkpt_Base {
+  public:
+    StackTracker_Pre_Bkpt_Base(StackTracker_Bkpt_Info& info): i(info) {}
+
+    void add_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      i.tmp_elem = std::make_shared<StackTracker_Bkpt_Info::Elem>(inst);
+      i.map.emplace(addr, i.tmp_elem);      
+    }
+    
+  private:
+    StackTracker_Bkpt_Info& i;
+  };
+  using StackTracker_Pre_Bkpt = TrackerHalfBkpt_Derived<StackTracker_Pre_Bkpt_Base>;
+
+  class StackTracker_Post_Bkpt_Base: public TrackerHalfBkpt_Base {
+  public:
+    StackTracker_Post_Bkpt_Base(StackTracker_Bkpt_Info& info): i(info) {}
+
+    void add_action(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info) {
+      i.map.emplace(addr, i.tmp_elem);
+    }
+    
+  private:
+    StackTracker_Bkpt_Info& i;
+  };
+  using StackTracker_Post_Bkpt = TrackerHalfBkpt_Derived<StackTracker_Post_Bkpt_Base>;
+  
+  using StackTracker_Pre = TrackerHalf_Derived<STACK_TRACKER_INCORE, STACK_TRACKER_BKPT,
+					       StackTracker_Pre_Incore, StackTracker_Pre_Bkpt>;
+  using StackTracker_Post = TrackerHalf_Derived<STACK_TRACKER_INCORE, STACK_TRACKER_BKPT,
+						StackTracker_Post_Incore, StackTracker_Post_Bkpt>;
+  using StackTracker__ = Tracker_Derived<true, true, StackTracker_Pre, StackTracker_Post>;
+
   class StackTracker_: public Filler {
   public:
     StackTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
@@ -383,16 +477,7 @@ namespace memcheck {
 
     using PostMC = dbi::MachineCode<0x3c, 5>;
     PostMC post_mc;
-
-#if 0
-    const BkptCallback pre_callback = [this] (auto&&... args) {
-      return this->handler_pre(args...);
-    };
-    const BkptCallback post_callback = [this] (auto&&... args) {
-      return this->handler_post(args...);
-    };
-#endif
-      };
+  };
 
   using StackTracker = Tracker_<IncoreTracker_<AddBkpt_<StackTracker_>>>;
 
