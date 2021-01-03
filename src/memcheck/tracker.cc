@@ -25,11 +25,11 @@ namespace memcheck {
     if (JCC_RECORD_REGS) {
       ss << dbi::GPRegisters(tracee.get_gpregs());
     }
-    cksum.add(addr, tracee, ss.str());
+    cksum(tracee).add(addr, tracee, ss.str());
 
     if (JCC_TRACKER_INCORE) {
       const auto incore_cksum = tracee.read_type(*cksum_ptr_ptr);
-      const auto bkpt_cksum = cksum.cksum();
+      const auto bkpt_cksum = cksum(tracee).cksum();
       assert(incore_cksum == bkpt_cksum); (void) incore_cksum; (void) bkpt_cksum;
     }
   }
@@ -62,8 +62,8 @@ namespace memcheck {
   }
   
 
-  StackTracker_::StackTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars):
-    Filler(fill_ptr),
+  StackTracker_::StackTracker_(const ThreadMap& thd_map, MemcheckVariables& vars):
+    Filler(thd_map),
     prev_sp_ptr_ptr(vars.prev_sp_ptr_ptr()),
     pre_mc(PreMC::Content{0x48, 0x89, 0x25, 0x00, 0x00, 0x00, 0x00},
 	   PreMC::Relbrs{PreMC::Relbr(0x03, 0x07, vars.prev_sp_ptr_ptr())}
@@ -103,26 +103,26 @@ namespace memcheck {
     const auto pre_sp = static_cast<char *>(it->second->sp) - SHADOW_STACK_SIZE;
   
     if (STACK_TRACKER_INCORE) {
-      static_assert(FILL_SP_DEC && FILL_SP_INC, "STACK_TRACKER_INCORE doesn't support configuration");
+      static_assert(util::implies(STACK_TRACKER_INCORE, FILL_SP_DEC && FILL_SP_INC), "STACK_TRACKER_INCORE doesn't support configuration");
       const auto begin = std::min(pre_sp, post_sp);
       const auto end = std::max(pre_sp, post_sp);
       const auto size = end - begin;
       std::vector<uint8_t> buf(size);
       tracee.read(buf.begin(), buf.end(), begin);
-      const auto eq = std::all_of(buf.begin(), buf.end(), [this] (auto byte) {
-	return byte == this->fill();
+      const auto eq = std::all_of(buf.begin(), buf.end(), [&] (auto byte) {
+	return byte == this->fill(tracee);
       });
       assert(eq); (void) eq;
     }
 
     if (FILL_SP_DEC) {
       if (post_sp < pre_sp) {
-	tracee.fill(fill(), post_sp, pre_sp);
+	tracee.fill(fill(tracee), post_sp, pre_sp);
       }
     }
     if (FILL_SP_INC) {
       if (pre_sp < post_sp) {
-	tracee.fill(fill(), pre_sp, post_sp);
+	tracee.fill(fill(tracee), pre_sp, post_sp);
       }
     }
 
@@ -144,8 +144,8 @@ namespace memcheck {
     return addr;
   }
 
-  CallTracker_::CallTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars):
-    Filler(fill_ptr),
+  CallTracker_::CallTracker_(const ThreadMap& thd_map, MemcheckVariables& vars):
+    Filler(thd_map),
     mc(MC::Content {
       0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48,
       0x8b, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x7f, 0x80, 0xb9, 0x78,
@@ -172,21 +172,21 @@ namespace memcheck {
     const auto sp = static_cast<char *>(tracee.get_sp());
 
     if (CALL_TRACKER_INCORE) {
-      static_assert(FILL_CALL, "");
+      static_assert(util::implies(CALL_TRACKER_INCORE, FILL_CALL), "");
       std::vector<uint8_t> buf(SHADOW_STACK_SIZE - 8);
       tracee.read(buf.begin(), buf.end(), sp - SHADOW_STACK_SIZE);
-      std::for_each(buf.begin(), buf.end(), [this] (uint8_t val) {
-	assert(val == this->fill());
+      std::for_each(buf.begin(), buf.end(), [&] (uint8_t val) {
+	assert(val == this->fill(tracee));
       });
     }
 
     if (FILL_CALL) {
-      tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp - 8);
+      tracee.fill(fill(tracee), sp - SHADOW_STACK_SIZE, sp - 8);
     }
   }
 
-  RetTracker_::RetTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars):
-    Filler(fill_ptr),
+  RetTracker_::RetTracker_(const ThreadMap& thd_map, MemcheckVariables& vars):
+    Filler(thd_map),
     mc(MC::Content {
       0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00, 0x9c, 0x57, 0x51, 0x50, 0x48,
       0x8b, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x48, 0x8d, 0x7f, 0x80, 0xb9, 0x80,
@@ -213,17 +213,17 @@ namespace memcheck {
     const auto sp = static_cast<char *>(tracee.get_sp());
 
     if (RET_TRACKER_INCORE) {
-      static_assert(FILL_RET, "");
+      static_assert(util::implies(RET_TRACKER_INCORE, FILL_RET), "");
       std::vector<uint8_t> buf(SHADOW_STACK_SIZE);
       tracee.read(buf.begin(), buf.end(), sp - SHADOW_STACK_SIZE);
-      std::for_each(buf.begin(), buf.end(), [this] (uint8_t val) {
-	assert(val == this->fill());
+      std::for_each(buf.begin(), buf.end(), [&] (uint8_t val) {
+	assert(val == this->fill(tracee));
       });
     }
   
     if (FILL_RET) {
       // TODO: is this ok that it doesn't taint the return address?    
-      tracee.fill(fill(), sp - SHADOW_STACK_SIZE, sp);
+      tracee.fill(fill(tracee), sp - SHADOW_STACK_SIZE, sp);
     }
   }
 

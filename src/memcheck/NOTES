@@ -22,4 +22,28 @@ fork() after each sequence point
 -------
 
 In start_round(), fork process. (Be sure to register w/ patcher.)
-[ ] Tracee::syscall needs to support fork, or create separate fork call.
+[X] Tracee::syscall needs to support fork, or create separate fork call.
+
+
+Memcheck::start_round():
+1. Unlock pages.
+2. Get writable pages.
+3. Save state.
+4. Update taint state.
+5. Fork.
+6. Set thread memory contents with taint.
+
+
+
+----
+
+Need to update the stack trackers on each fork?
+Also need to be able to translate in breakpoint from Tracee to fill value
+
+---
+
+Need API for suspending a thread (tracee) in patcher.
+Memcheck needs to suspend threads that hit sequence point until ALL threads have reached sequence point.
+
+Add method to Tracee to suspend it?
+No, add data in Patcher.

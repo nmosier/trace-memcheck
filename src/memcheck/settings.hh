@@ -9,6 +9,7 @@ namespace memcheck {
   constexpr bool TAINT_STACK           = true;
   constexpr bool TAINT_FLAGS           = true;
   constexpr bool CHANGE_PRE_STATE      = true;
+  
   constexpr bool ABORT_ON_TAINT        = false;
   constexpr bool CALL_TRACKER          = true;
   constexpr bool RET_TRACKER           = true;

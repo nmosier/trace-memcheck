@@ -13,11 +13,13 @@ namespace memcheck {
 #include "state.hh"
 #include "pageset.hh"
 #include "vars.hh"
+#include "thdmap.hh"
 
 namespace memcheck {
 
   class Memcheck {
   public:
+
     Memcheck(void);
   
     bool open(const char *file, char * const argv[]);
@@ -43,8 +45,11 @@ namespace memcheck {
     Maps maps_gen;
     PageSet tracked_pages;
 
-    const dbi::Tracee& tracee() const { return patcher.tracee(); }
-    dbi::Tracee& tracee() { return patcher.tracee(); }
+    const dbi::Tracee& tracee() const { return *std::next(patcher.tracees_begin(), 0); }
+    dbi::Tracee& tracee() { return *std::next(patcher.tracees_begin(), 0); }
+
+    const dbi::Tracee& tracee2() const { return *std::next(patcher.tracees_begin(), 1); }
+    dbi::Tracee& tracee2() { return *std::next(patcher.tracees_begin(), 1); }
     
     void transformer(uint8_t *addr, dbi::Instruction& inst,
 		     const dbi::Patcher::TransformerInfo& info);
@@ -61,64 +66,30 @@ namespace memcheck {
     void stop_round();
     template <typename SequencePoint> void check_round(SequencePoint& seq_pt);
     void start_subround();
-    bool next_subround();
     void stop_subround();
 
     template <typename SequencePoint> void sequence_point_handler_pre(SequencePoint& seq_pt);
     void sequence_point_handler_post();
 
-    void save_state(State& state);
-  
-    State save_state();
+    void save_state(dbi::Tracee& tracee, State& state);
 
     template <typename InputIt>
     void update_taint_state(InputIt begin, InputIt end, State& taint_state);
-    void set_state_with_taint(State& state, const State& taint);
+    void set_state_with_taint(dbi::Tracee& tracee, State& state, const State& taint);
   
     void init_taint(State& taint_state, bool taint_shadow_stack);
   
     dbi::SyscallArgs syscall_args;
   
-    static constexpr unsigned SUBROUNDS = 2;
-    unsigned subround_counter = 0;
+    static constexpr unsigned THREADS = 2;
     State pre_state;
 
     template <typename T>
-    using RoundArray = std::array<T, SUBROUNDS>;
+    using RoundArray = std::array<T, THREADS>;
 
     static const RoundArray<fill_t> fills;
-    fill_t cur_fill_;
-    RoundArray<State> post_states;
-    FlagChecksum cksum;
-    RoundArray<FlagChecksum> bkpt_cksums;
-    RoundArray<uint32_t> incore_cksums;
     State taint_state;
-
-    template <typename T>
-    const T& cur(const RoundArray<T>& arr) const {
-      assert(subround_counter < SUBROUNDS);
-      return arr[subround_counter];
-    }
-
-    template <typename T>
-    T& cur(RoundArray<T>& arr) {
-      assert(subround_counter < SUBROUNDS);
-      return arr[subround_counter];
-    }
-
-    void set_cur_fill() { cur_fill_ = cur(fills); }
-    fill_t cur_fill() const {
-      assert(cur_fill_ == cur(fills));
-      return cur(fills);
-    }
-    fill_ptr_t cur_fill_ptr() const { return &cur_fill_; }
-  
-    const State& cur_post_state() const { return cur(post_states); }
-    State& cur_post_state() { return cur(post_states); }
-    const FlagChecksum& cur_bkpt_cksum() const { return cur(bkpt_cksums); }
-    FlagChecksum& cur_bkpt_cksum() { return cur(bkpt_cksums); }
-    uint32_t cur_incore_cksum() const { return cur(incore_cksums); }
-    uint32_t& cur_incore_cksum() { return cur(incore_cksums); }
+    ThreadMap thd_map; // contains fills, checksums, etc.
 
     friend class SyscallChecker; // TEMPORARY
     friend class SharedMemSeqPt; // TEMPORARY
@@ -148,6 +119,8 @@ namespace memcheck {
     void get_writable_pages();
     void lock_pages();
     void unlock_pages();
+    void fork();
+    void kill();
   };
 
 }

@@ -23,3 +23,10 @@ add_executable(jit
   $<TARGET_OBJECTS:dbi>
   )
 add_dependencies(jit xed)
+
+add_executable(fork
+  fork-main.cc
+  $<TARGET_OBJECTS:dbi>
+  )
+add_dependencies(jit xed)
+

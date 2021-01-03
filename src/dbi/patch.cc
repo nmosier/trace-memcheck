@@ -166,8 +166,8 @@ namespace dbi {
   void Patcher::run(void) {
     Status status;
 
-    assert(tracees.size() == 1);
-
+    // assert(tracees.size() == 1);
+    
     while (tracees.size() > 0) {
       /* INVARIANT: All Tracees are stopped. */
       assert(std::all_of(tracees.begin(), tracees.end(), [] (const auto& tracee) {
@@ -184,10 +184,14 @@ namespace dbi {
       /* Wait on all tracees */
       const auto ntracees = tracees.size();
       std::vector<Status> statuses(ntracees);
-      for (unsigned i = 0; i < ntracees; ++i) {
-	tracees[i].wait(statuses[i]);
+      {
+	auto status_it = statuses.begin();
+	auto tracee_it = tracees.begin();
+	for (; tracee_it != tracees.end(); ++tracee_it, ++status_it) {
+	  tracee_it->wait(*status_it);
+	}
       }
-
+      
       /* Handle stops for all tracees */
       /* NOTE: This is tricky, since handle_stop() can append to the tracees list and
        *       exited tracees must be removed from the tracee list.
@@ -196,10 +200,18 @@ namespace dbi {
       auto tracee_it = tracees.begin();
       auto status_it = statuses.begin();
       while (todo > 0) {
-	const bool exited = handle_stop(*tracee_it, *status_it);
-	if (exited) {
-	  *g_conf.log << "[" << tracee_it->pid() << "] exit status: "
-		      << status_it->exitstatus() << "\n";
+	const bool killed = !tracee_it->good();
+	bool exited = false;
+	if (!killed) {
+	  exited = handle_stop(*tracee_it, *status_it);
+	}
+	if (exited || killed) {
+	  if (exited) {
+	    *g_conf.log << "[" << tracee_it->pid() << "] exit status: "
+			<< status_it->exitstatus() << "\n";
+	  } else if (killed) {
+	    *g_conf.log << "[" << tracee_it->pid() << "] killed\n";
+	  }
 	  tracee_it = tracees.erase(tracee_it);
 	  status_it = statuses.erase(status_it);
 	} else {

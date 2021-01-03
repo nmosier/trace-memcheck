@@ -119,7 +119,8 @@ namespace memcheck {
     if (!check_read(str)) {						\
     error() << args.no() << ": string at " << (void *) str		\
 	    << " contains uninitialized characters\n";			\
-      for (const State& state : memcheck.post_states) {			\
+    for (const auto& pair : memcheck.thd_map) {				\
+      const State& state = pair.second.state;				\
 	*dbi::g_conf.log << "'" << state.string(str) << "' ";		\
       }									\
       *dbi::g_conf.log << "\nstr @ " << (void *) str << ", sp @ "	\

@@ -21,3 +21,7 @@ add_library(memcheck-libc SHARED
 
 target_compile_definitions(memcheck PRIVATE MEMCHECK_LIBC=\"$<TARGET_FILE:memcheck-libc>\")
 
+add_executable(transform
+  transform-test.cc
+  )
+

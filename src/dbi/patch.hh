@@ -61,6 +61,24 @@ namespace dbi {
       return tracees.front();
     }
 
+    Tracees::iterator tracees_begin() { return tracees.begin(); }
+    Tracees::const_iterator tracees_begin() const { return tracees.begin(); }
+    Tracees::iterator tracees_end() { return tracees.end(); }
+    Tracees::const_iterator tracees_end() const { return tracees.end(); }
+    const auto& get_tracees() const { return tracees; }
+    auto& get_tracees() { return tracees; }
+    auto ntracees() const { return tracees.size(); }
+    
+    template <typename F>
+    void for_each_tracee(F f) const {
+      std::for_each(tracees.begin(), tracees.end(), f);
+    }
+
+    template <typename F>
+    void for_each_tracee(F f) {
+      std::for_each(tracees.begin(), tracees.end(), f);
+    }
+    
     void add_tracee(Tracee&& tracee) { tracees.emplace_back(tracee); }
 
   private:
@@ -104,16 +122,17 @@ namespace dbi {
     
     void print_ss(Tracee& tracee) const;
 
-    template <typename F>
-    void for_each_tracee(F f) const {
-      std::for_each(tracees.begin(), tracees.end(), f);
+#if 0
+    void prune_tracees() {
+      for (auto it = tracees.begin(); it != tracees.end(); ) {
+	if (!*it) {
+	  it = tracees.erase(it);
+	} else {
+	  ++it;
+	}
+      }
     }
-
-    template <typename F>
-    void for_each_tracee(F f) {
-      std::for_each(tracees.begin(), tracees.end(), f);
-    }
-
+#endif
   };
 
 }

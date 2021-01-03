@@ -246,19 +246,29 @@ namespace memcheck {
   
   class Filler {
   public:
-    Filler(fill_ptr_t fill_ptr): fill_ptr_(fill_ptr) {}
+    Filler(const ThreadMap& thd_map): thd_map(thd_map) {}
 
-    fill_t fill() const { return *fill_ptr_; }
-  
+    fill_t fill(pid_t pid) const { return thd_map.at(pid).fill; }
+    fill_t fill(const dbi::Tracee& tracee) const { return fill(tracee.pid()); }
+
   private:
-    fill_ptr_t fill_ptr_;
+    const ThreadMap& thd_map;
   };
 
   class Checksummer {
   public:
-    Checksummer(FlagChecksum& cksum): cksum(cksum) {}
+    Checksummer(ThreadMap& thd_map): thd_map(thd_map) {}
+    
   protected:
-    FlagChecksum& cksum;
+    const FlagChecksum& cksum(dbi::Tracee& tracee) const {
+      return thd_map.at(tracee.pid()).bkpt_cksum;
+    }
+    FlagChecksum& cksum(dbi::Tracee& tracee) {
+      return thd_map.at(tracee.pid()).bkpt_cksum;
+    }
+
+  private:
+    ThreadMap& thd_map;
   };
 
   class SequencePoint {
@@ -266,7 +276,7 @@ namespace memcheck {
     SequencePoint(State& taint_state, const BkptCallback& pre_callback,
 		  const BkptCallback& post_callback):
       taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback) {}
-
+    
   protected:
     State& taint_state;
     BkptCallback pre_callback;
@@ -458,7 +468,7 @@ namespace memcheck {
 
   class StackTracker_: public Filler {
   public:
-    StackTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
+    StackTracker_(const ThreadMap& thd_map, MemcheckVariables& vars);
   
   protected:
     static bool match(const dbi::Instruction& inst);
@@ -535,7 +545,7 @@ namespace memcheck {
   
   class CallTracker_: public Filler, public AddBkpt_Defaults {
   public:
-    CallTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
+    CallTracker_(const ThreadMap& thd_map, MemcheckVariables& vars);
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info);
 
   protected:
@@ -562,7 +572,7 @@ namespace memcheck {
 
   class RetTracker_: public Filler, public AddBkpt_Defaults {
   public:
-    RetTracker_(fill_ptr_t fill_ptr, MemcheckVariables& vars);
+    RetTracker_(const ThreadMap& thd_map, MemcheckVariables& vars);
 
   protected:
     static bool match(const dbi::Instruction& inst) {
@@ -588,8 +598,8 @@ namespace memcheck {
 
   class JccTracker_: public Checksummer, public AddBkpt_Defaults {
   public:
-    JccTracker_(FlagChecksum& cksum, MemcheckVariables& vars):
-      Checksummer(cksum),
+    JccTracker_(ThreadMap& thd_map, MemcheckVariables& vars):
+      Checksummer(thd_map),
       cksum_ptr_ptr(vars.jcc_cksum_ptr_ptr()),
       post_code(MC::Content {
 	0x48, 0x87, 0x05, 0x00, 0x00, 0x00, 0x00, 0x48, 0x87, 0x25, 0x00, 0x00, 0x00, 0x00,

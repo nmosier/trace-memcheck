@@ -57,7 +57,8 @@ namespace memcheck {
     template <typename T>
     void print_values(const T *addr) const {
       *dbi::g_conf.log << args.no() << ": ";
-      for (const auto& state : memcheck.post_states) {
+      for (const auto& pair : memcheck.thd_map) {
+	const State& state = pair.second.state;
 	T val;
 	state.read(addr, addr + 1, &val);
 	*dbi::g_conf.log << val << " ";
@@ -68,7 +69,8 @@ namespace memcheck {
     template <size_t N, typename T>
     void print_regs() const {
       *dbi::g_conf.log << args.no() << ": ";
-      for (const auto& state : memcheck.post_states) {
+      for (const auto& pair : memcheck.thd_map) {
+	const State& state = pair.second.state;
 	const dbi::SyscallArgs args(state.gpregs());
 	*dbi::g_conf.log << args.arg<N, T>() << " ";
       }

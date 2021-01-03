@@ -131,6 +131,7 @@ namespace dbi {
   }
 
   void Tracee::read(void *to_, size_t count, const void *from_) {
+    assert(good());
     assert(stopped());
     
     auto to = static_cast<char *>(to_);
@@ -182,6 +183,7 @@ namespace dbi {
   }
 
   void Tracee::write(const void *from_, size_t count, void *to_) {
+    assert(good());
     assert(stopped());
     auto from = static_cast<const char *>(from_);
     auto to = static_cast<char *>(to_);
@@ -318,7 +320,7 @@ namespace dbi {
     singlestep();
     const Status status = wait();
     assert(status.stopped_trap()); (void) status;
-
+    
     write(&saved_code, sizeof(saved_code), pc);
     get_regs(regs);
     set_regs(saved_regs);
@@ -341,10 +343,11 @@ namespace dbi {
   }
 
   pid_t Tracee::fork(Status& status, Tracee& forked_tracee) {
+    assert(stopped());
     const auto saved_regs = get_gpregs();
     auto fork_regs = saved_regs;
     fork_regs.rax = static_cast<unsigned>(Syscall::FORK);
-    set_regs(fork_regs);
+    set_gpregs(fork_regs);
     const auto pc = reinterpret_cast<uint8_t *>(saved_regs.rip);
     const std::array<uint8_t, 2> syscall = {0x0f, 0x05};
     std::array<uint8_t, 2> saved_code;
@@ -353,20 +356,31 @@ namespace dbi {
 
     singlestep();
     wait(status);
+    
     assert(status.stopped_trap());
     assert(status.ptrace_event() == PTRACE_EVENT_FORK);
-    
-    get_regs(fork_regs);
-    const auto pid = static_cast<pid_t>(fork_regs.rax);
 
-    if (pid >= 0) {
-      forked_tracee = Tracee(pid, filename(), false);
+#ifndef NASSERT
+    get_gpregs(fork_regs);
+    const auto reg_pid = static_cast<pid_t>(fork_regs.rax);
+#endif
+    const auto msg_pid = static_cast<pid_t>(geteventmsg());
+
+#ifndef NASSERT
+    if (reg_pid != msg_pid) {
+      *g_conf.log << "dbi: Tracee::fork: pid in %eax and PTRACE_GETEVENTMSG mismatch"
+		  << "(" << reg_pid << " != " << msg_pid << ")\n";
+    }
+#endif
+
+    if (msg_pid >= 0) {
+      forked_tracee = Tracee(msg_pid, filename(), false);
       forked_tracee.fork_cleanup(pc, saved_regs, saved_code);
     }
 
     fork_cleanup(pc, saved_regs, saved_code);
 
-    return pid;
+    return msg_pid;
   }
 
   void Tracee::fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
@@ -591,4 +605,11 @@ namespace dbi {
     std::swap(fpregs_, other.fpregs_);
   }
 
+  void Tracee::kill() {
+    std::clog << "killing pid " << pid() << "\n";
+    close();
+    const auto res = ::kill(pid(), SIGKILL);
+    assert(res == 0);
+  }
+  
 }

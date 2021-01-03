@@ -5,8 +5,10 @@
 #include <cassert>
 #include <string>
 #include <cstdint>
+
 #include "dbi/tracee.hh"
 #include "settings.hh"
+#include "util.hh"
 
 namespace memcheck {
 

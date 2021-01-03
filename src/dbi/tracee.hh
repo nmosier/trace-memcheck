@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
+#include <list>
 
 namespace dbi {
   class Tracee;
-  using Tracees = std::vector<Tracee>;
+  using Tracees = std::list<Tracee>;
 }
 
 #include <iostream>
@@ -123,6 +123,7 @@ namespace dbi {
 		      uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
 
     pid_t fork(Status& status, Tracee& forked_tracee);
+    void kill();
 
     void gdb();
 
