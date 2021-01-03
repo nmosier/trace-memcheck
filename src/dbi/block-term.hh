@@ -49,8 +49,8 @@ namespace dbi {
     void flush(Tracee& tracee);
     void flush(Tracees& tracees) {
       if (dirty_) {
-	std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) {
-	  this->flush_always(tracee);
+	std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee_pair) {
+	  this->flush_always(tracee_pair.tracee);
 	});
 	dirty_ = false;
       }

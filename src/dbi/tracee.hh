@@ -4,7 +4,6 @@
 
 namespace dbi {
   class Tracee;
-  using Tracees = std::list<Tracee>;
 }
 
 #include <iostream>

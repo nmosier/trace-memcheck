@@ -47,3 +47,5 @@ Memcheck needs to suspend threads that hit sequence point until ALL threads have
 
 Add method to Tracee to suspend it?
 No, add data in Patcher.
+
+Memcheck needs to track # of threads that have been suspended.

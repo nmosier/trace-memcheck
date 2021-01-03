@@ -38,8 +38,10 @@ namespace dbi {
   constexpr std::array<T, sizeof...(Args)> make_array(Args... args) {
     return std::array<T, sizeof...(Args)> {static_cast<T>(args)...};
   }
+  
+}
 
-  namespace util {
+namespace util {
 
     // TODO: Delete
     template <class Container, typename Cond>
@@ -119,7 +121,9 @@ namespace dbi {
       return div_down(val, align) * align;
     }
   
-  }
+}
+
+namespace dbi {
 
   constexpr size_t PAGESIZE = 0x1000;
 

@@ -21,7 +21,9 @@ namespace memcheck {
     void save(const void *pageaddr, dbi::Tracee& tracee) { tracee.read(buf_, pageaddr); }
     void save(const void *pageaddr, uint8_t fill) { std::fill(buf_.begin(), buf_.end(), fill); }
 
-    void restore(void *pageaddr, dbi::Tracee& tracee) const { tracee.write(buf_, pageaddr); }
+    void restore(void *pageaddr, dbi::Tracee& tracee) const {
+      tracee.write(buf_, pageaddr);
+    }
       
     auto begin() const { return buf_.begin(); }
     auto begin() { return buf_.begin(); }

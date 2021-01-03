@@ -36,16 +36,11 @@ namespace dbi {
       assert(status.stopped()); (void) status; // stopped status can be SIGSTOP or SIGTRAP
       assert(stopped_);
     }
-  
-    char *path;
-    if (asprintf(&path, "/proc/%d/mem", pid_) < 0) {
-      std::perror("asprintf");
-      throw std::bad_alloc();
-    }
-  
-    fd_ = ::open(path, O_RDWR);
 
-    free(path);
+    std::stringstream path;
+    path << "/proc/" << pid_ << "/mem";
+  
+    fd_ = ::open(path.str().c_str(), O_RDWR);
 
     if (fd_ < 0) {
       std::perror("open");
@@ -372,13 +367,22 @@ namespace dbi {
 		  << "(" << reg_pid << " != " << msg_pid << ")\n";
     }
 #endif
-
+    
     if (msg_pid >= 0) {
       forked_tracee = Tracee(msg_pid, filename(), false);
       forked_tracee.fork_cleanup(pc, saved_regs, saved_code);
     }
 
     fork_cleanup(pc, saved_regs, saved_code);
+
+#ifndef NASSERT
+    assert(get_pc() == forked_tracee.get_pc());
+    const auto orig_inst = Instruction(get_pc(), *this);
+    const auto fork_inst = Instruction(forked_tracee.get_pc(), forked_tracee);
+    assert(orig_inst.xed_iclass() == fork_inst.xed_iclass());
+    *g_conf.log << "dbi::Tracee::fork: [" << pid() << "] " << orig_inst << "\n";
+    *g_conf.log << "dbi::Tracee::fork: [" << forked_tracee.pid() << "] " << fork_inst << "\n";
+#endif
 
     return msg_pid;
   }

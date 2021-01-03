@@ -15,6 +15,7 @@
 #include "syscall-args.hh"
 #include "status.hh"
 #include "types.hh"
+#include "shared-util.hh"
 
 namespace dbi {
 
@@ -38,9 +39,9 @@ namespace dbi {
     
     void open(Tracees&& tracees, const Transformer& transformer);
     
-    using sighandler_t = std::function<void (int)>;
+    using sighandler_t = std::function<void (dbi::Tracee&, int)>;
     void signal(int signum, const sighandler_t& handler);
-    using sigaction_t = std::function<void (int, const siginfo_t&)>;
+    using sigaction_t = std::function<void (dbi::Tracee&, int, const siginfo_t&)>;
     void sigaction(int signum, const sigaction_t& sigaction);
   
     void start();
@@ -53,12 +54,12 @@ namespace dbi {
 
     const Tracee& tracee() const {
       assert(tracees.size() == 1);
-      return tracees.front();
+      return tracees.front().tracee;
     }
     
     Tracee& tracee() {
       assert(tracees.size() == 1);
-      return tracees.front();
+      return tracees.front().tracee;
     }
 
     Tracees::iterator tracees_begin() { return tracees.begin(); }
@@ -68,18 +69,54 @@ namespace dbi {
     const auto& get_tracees() const { return tracees; }
     auto& get_tracees() { return tracees; }
     auto ntracees() const { return tracees.size(); }
-    
+
     template <typename F>
-    void for_each_tracee(F f) const {
+    void for_each_tracee_pair(F f) const {
       std::for_each(tracees.begin(), tracees.end(), f);
     }
 
     template <typename F>
-    void for_each_tracee(F f) {
+    void for_each_tracee_pair(F f) {
       std::for_each(tracees.begin(), tracees.end(), f);
     }
     
-    void add_tracee(Tracee&& tracee) { tracees.emplace_back(tracee); }
+    template <typename F>
+    void for_each_tracee(F f) const {
+      const auto container = util::make_transform_container<const Tracee&>
+	(tracees, [] (const TraceePair& tracee_pair) -> const Tracee& {
+	  return static_cast<const Tracee&>(tracee_pair.tracee);
+	});
+      std::for_each(container.begin(), container.end(), f);
+    }
+
+    template <typename F>
+    void for_each_tracee(F f) {
+      const auto container = util::make_transform_container<Tracee&>
+	(tracees, [] (TraceePair& tracee_pair) -> Tracee& {
+	  return static_cast<Tracee&>(tracee_pair.tracee);
+	});
+      std::for_each(container.begin(), container.end(), f);
+    }
+    
+    void add_tracee(Tracee&& tracee) { tracees.emplace_back(std::move(tracee), false); }
+
+    void suspend(const Tracee& tracee) {
+      // TODO: OPTIM
+      for_each_tracee_pair([&tracee] (auto& tracee_pair) {
+	if (&tracee == &tracee_pair.tracee) {
+	  tracee_pair.info.suspended(true);
+	}
+      });
+    }
+
+    void unsuspend(const Tracee& tracee) {
+      // TODO: OPTIM
+      for_each_tracee_pair([&tracee] (auto& tracee_pair) {
+	if (&tracee == &tracee_pair.tracee) {
+	  tracee_pair.info.suspended(false);
+	}
+      });
+    }
 
   private:
     using BlockMap = std::unordered_map<uint8_t *, Block *>;
@@ -117,8 +154,8 @@ namespace dbi {
     void pre_syscall_handler();
     void post_syscall_handler();
 
-    bool handle_stop(Tracee& tracee, Status status); // returns whether exited
-    void handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event);    
+    bool handle_stop(TraceePair& tracee_pair, Status status); // returns whether exited
+    void handle_ptrace_event(TraceePair& tracee_pair, enum __ptrace_eventcodes event);    
     
     void print_ss(Tracee& tracee) const;
 

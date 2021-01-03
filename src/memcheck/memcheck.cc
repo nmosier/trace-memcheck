@@ -2,12 +2,14 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sstream>
+#include <set>
 
 #include "memcheck.hh"
 #include "syscall-check.hh"
 #include "flags.hh"
 #include "config.hh"
 #include "log.hh"
+#include "shared-util.hh"
 
 namespace memcheck {
 
@@ -18,7 +20,7 @@ namespace memcheck {
     vars(),
     stack_tracker(thd_map, vars),
     syscall_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(syscall_tracker);
+      this->sequence_point_handler_pre(tracee, syscall_tracker);
     },
       [this] (auto& tracee, auto addr) { this->start_round(); },
       taint_state,
@@ -30,17 +32,17 @@ namespace memcheck {
     ret_tracker(thd_map, vars),
     jcc_tracker(thd_map, vars),
     lock_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(lock_tracker);
+      this->sequence_point_handler_pre(tracee, lock_tracker);
     },
       [this] (auto& tracee, auto addr) { this->start_round(); }
       ),
     rtm_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(rtm_tracker);
+      this->sequence_point_handler_pre(tracee, rtm_tracker);
     },
       [this] (auto& tracee, auto addr) { this->start_round(); }
       ),
     rdtsc_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(rdtsc_tracker);
+      this->sequence_point_handler_pre(tracee, rdtsc_tracker);
     },
       [this] (auto& tracee, auto addr) { this->start_round(); }
       )
@@ -75,7 +77,7 @@ namespace memcheck {
     dbi::Decoder::Init(); // TODO: remove
 
     dbi::Tracees tmp_tracees;
-    tmp_tracees.emplace_back(child, file, false);
+    tmp_tracees.emplace_back(dbi::Tracee{child, file, false}, dbi::TraceeInfo{false});
     patcher.open(std::move(tmp_tracees), [this] (auto&&... args) {
       return this->transformer(args...);
     });
@@ -195,6 +197,7 @@ namespace memcheck {
   template <typename InputIt>
   void Memcheck::update_taint_state(InputIt begin, InputIt end, State& taint_state) {
     assert(std::distance(begin, end) >= 2);
+    assert(taint_state.gpregs().rip() == 0);
 
     /* taint stack */
     init_taint(taint_state, false); // TODO: Could be optimized.
@@ -205,6 +208,8 @@ namespace memcheck {
       assert(l_state.similar(r_state));
       taint_state.or_superset_inplace(l_state ^ r_state); // because the taint mask is a superset
     });
+
+    assert(taint_state.gpregs().rip() == 0);
   }
 
   template <class SequencePoint>
@@ -356,6 +361,8 @@ namespace memcheck {
     patcher.for_each_tracee([rax] (auto& tracee) {
       assert(tracee.get_gpregs().rax == rax);
     });
+
+    g_conf.log() << "[" << pid << "] forked\n";
   }
 
   void Memcheck::kill() {
@@ -365,6 +372,15 @@ namespace memcheck {
   }
   
   void Memcheck::start_round() {
+    /* assertions */
+    assert(patcher.ntracees() == 1);
+    assert(thd_map.size() == 1);
+
+    // 0: Unsuspend
+    patcher.get_tracees().front().info.suspended(false);
+    
+    suspended_count = 0;
+    
     // 1: Unlock pages.
     dbi::for_each_page(stack_begin(), dbi::pageidx(dbi::pagealign_up(tracee().get_sp()), -16),
 		  [this] (const auto pageaddr) {
@@ -396,11 +412,22 @@ namespace memcheck {
     // 5: Fork.
     fork();
 
+    assert(taint_state.gpregs().rip() == 0);
+
     // 6: Change the duplicate thread.
     if (CHANGE_PRE_STATE) {
       assert(patcher.ntracees() == 2);
       set_state_with_taint(tracee2(), pre_state, taint_state);
+    }    
+
+#ifndef NASSERT
+    {
+      const auto orig_inst = dbi::Instruction(tracee().get_pc(), tracee());
+      const auto forked_inst = dbi::Instruction(tracee2().get_pc(), tracee2());
+      assert(orig_inst.xed_iform() == forked_inst.xed_iform());
     }
+#endif
+
     
     // 7: Clear checksums
     for (auto& pair : thd_map) {
@@ -434,10 +461,25 @@ namespace memcheck {
   }
 
   template <typename SequencePoint>
-  void Memcheck::sequence_point_handler_pre(SequencePoint& seq_pt) {
+  void Memcheck::sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt) {
+    save_state(tracee, thd_map.at(tracee.pid()).state);
+
+    if (suspended_count < THREADS - 1) {
+      /* suspend thread */
+      patcher.suspend(tracee);
+      ++suspended_count;
+      return;
+    }
+
+    util::for_each_pair(patcher.tracees_begin(), patcher.tracees_end(), [&] (auto& l, auto& r) {
+      assert(l.tracee.get_pc() == r.tracee.get_pc());
+    });    
+
     stop_round();
+    
     check_round(seq_pt);
     kill(); // kill 2nd thread
+    patcher.unsuspend(this->tracee());
   }
 
   void Memcheck::sequence_point_handler_post() {
@@ -482,7 +524,7 @@ namespace memcheck {
     abort();
   }
 
-  void Memcheck::segfault_handler(int signal, const siginfo_t& siginfo) {
+  void Memcheck::segfault_handler(dbi::Tracee& tracee, int signal, const siginfo_t& siginfo) {
     /* check status of page at which fault occurred */
     void *faultaddr = siginfo.si_addr;
     void *pageaddr = dbi::pagealign(faultaddr);
@@ -492,32 +534,32 @@ namespace memcheck {
       // TODO: Pass on to patcher
       log_signal() << ::strsignal(signal) << "\n";
       // std::exit(139);
-      const auto loc = orig_loc(tracee().get_pc());
+      const auto loc = orig_loc(tracee.get_pc());
       g_conf.log() << "orig loc: " << loc.first << " " << loc.second << "\n";
       g_conf.log() << "faultaddr = " << faultaddr << "\n";
-      g_conf.abort(tracee());
+      g_conf.abort(tracee);
     }
 
     using Tier = PageInfo::Tier;
     switch (tracked_pages.tier(*page_it)) {
     case Tier::SHARED:
       {
-	const auto loc = orig_loc(tracee().get_pc());
+	const auto loc = orig_loc(tracee.get_pc());
 	*dbi::g_conf.log << loc.first << " " << loc.second << "\n";
-	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee())
+	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee)
 			 << "\n";
-	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee().get_pc(), tracee()) << "\n";
+	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
 	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
 
 	// TODO: properly specify permissions
 	SharedMemSeqPt seq_pt(*this, taint_state);
-	sequence_point_handler_pre(seq_pt);
+	sequence_point_handler_pre(tracee, seq_pt);
       }
       break;
 
     case Tier::RDONLY:
     case Tier::RDWR_UNLOCKED:
-      dbi::g_conf.abort(tracee());
+      dbi::g_conf.abort(tracee);
       break;
 
     case Tier::RDWR_LOCKED:
@@ -525,13 +567,13 @@ namespace memcheck {
 	/* 1. Unlock
 	 * 2. Add to pre_state.
 	 */
-	tracked_pages.unlock(*page_it, tracee());
+	tracked_pages.unlock(*page_it, tracee);
 	assert(!pre_state.snapshot().contains(pageaddr));
-	pre_state.snapshot().add(pageaddr, tracee());
+	pre_state.snapshot().add(pageaddr, tracee);
 	const auto& taint_page = taint_state.snapshot().at(pageaddr);
 	auto& pre_state_page = pre_state.snapshot().at(pageaddr);
 	pre_state_page ^= taint_page;
-	pre_state_page.restore(pageaddr, tracee());
+	pre_state_page.restore(pageaddr, tracee);
       }
       break;
     

@@ -2,6 +2,7 @@
 
 #include "usermem.hh"
 #include "tracee.hh"
+#include "tracees.hh"
 
 namespace dbi {
 
@@ -15,7 +16,7 @@ namespace dbi {
 
     void open(Tracees& tracees_, size_t size) {
       tracees = &tracees_;
-      mem.open(tracees->front(), size, PROT_READ);
+      mem.open(tracees->front().tracee, size, PROT_READ);
       allocator.open(mem.begin<uintptr_t>(), mem.end<uintptr_t>());
     }
 
@@ -23,9 +24,9 @@ namespace dbi {
 
     uintptr_t *add(uintptr_t val) {
       uintptr_t *ptr = alloc();
-      std::for_each(tracees->begin(), tracees->end(), [&] (auto& tracee) {
-	tracee.write(&val, sizeof(val), ptr);
-      });
+      std::for_each(tracees->begin(), tracees->end(), [&] (auto& tracee_pair) {
+	  tracee_pair.tracee.write(&val, sizeof(val), ptr);
+	});
       return ptr;
     }
   

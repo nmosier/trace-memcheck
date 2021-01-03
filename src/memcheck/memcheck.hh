@@ -45,11 +45,11 @@ namespace memcheck {
     Maps maps_gen;
     PageSet tracked_pages;
 
-    const dbi::Tracee& tracee() const { return *std::next(patcher.tracees_begin(), 0); }
-    dbi::Tracee& tracee() { return *std::next(patcher.tracees_begin(), 0); }
+    const dbi::Tracee& tracee() const { return std::next(patcher.tracees_begin(), 0)->tracee; }
+    dbi::Tracee& tracee() { return std::next(patcher.tracees_begin(), 0)->tracee; }
 
-    const dbi::Tracee& tracee2() const { return *std::next(patcher.tracees_begin(), 1); }
-    dbi::Tracee& tracee2() { return *std::next(patcher.tracees_begin(), 1); }
+    const dbi::Tracee& tracee2() const { return std::next(patcher.tracees_begin(), 1)->tracee; }
+    dbi::Tracee& tracee2() { return std::next(patcher.tracees_begin(), 1)->tracee; }
     
     void transformer(uint8_t *addr, dbi::Instruction& inst,
 		     const dbi::Patcher::TransformerInfo& info);
@@ -68,7 +68,8 @@ namespace memcheck {
     void start_subround();
     void stop_subround();
 
-    template <typename SequencePoint> void sequence_point_handler_pre(SequencePoint& seq_pt);
+    template <typename SequencePoint>
+    void sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt);
     void sequence_point_handler_post();
 
     void save_state(dbi::Tracee& tracee, State& state);
@@ -90,18 +91,19 @@ namespace memcheck {
     static const RoundArray<fill_t> fills;
     State taint_state;
     ThreadMap thd_map; // contains fills, checksums, etc.
+    unsigned suspended_count;
 
     friend class SyscallChecker; // TEMPORARY
     friend class SharedMemSeqPt; // TEMPORARY
 
-    static void sigignore(int signal) {}
+    static void sigignore(dbi::Tracee& tracee, int signal) {}
     void write_maps() const;
     static Memcheck *cur_memcheck;
     static void sigint_handler(int signum);
     void protect_map(const std::string& name, int prot);
 
     std::unordered_set<void *> shared_pages;
-    void segfault_handler(int signal, const siginfo_t& siginfo);
+    void segfault_handler(dbi::Tracee& tracee, int signal, const siginfo_t& siginfo);
 
     void assert_taint_zero() const {
       assert(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()));

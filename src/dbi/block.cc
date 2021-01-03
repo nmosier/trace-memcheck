@@ -32,8 +32,8 @@ namespace dbi {
 
     const auto flush = [&] (void) {
       assert(buf.size() == static_cast<size_t>(newit - block->pool_addr_));
-      std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee) {
-	tracee.write(buf.data(), buf.size(), block->pool_addr_);
+      std::for_each(tracees.begin(), tracees.end(), [&] (auto& tracee_pair) {
+	tracee_pair.tracee.write(buf.data(), buf.size(), block->pool_addr_);
       });
       block_pool.alloc(buf.size());
     };
@@ -93,7 +93,8 @@ namespace dbi {
     };
 
     Instruction inst;
-    Tracee& tracee = tracees.front(); // use front tracee for translating; code should be all same.
+    // use front tracee for translating; code should be all same.
+    Tracee& tracee = tracees.front().tracee; 
     while (!stop) {
       inst = Instruction(it, tracee);
 

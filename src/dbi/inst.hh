@@ -109,7 +109,9 @@ namespace dbi {
     // Instruction(uint8_t *pc, const Data& data);
 
     template <typename InputIt>
-    Instruction(uint8_t *pc, InputIt begin, InputIt end): Blob(pc), size_(std::distance(begin, end)) {
+    Instruction(uint8_t *pc, InputIt begin, InputIt end):
+      Blob(pc), size_(std::distance(begin, end))
+    {
       assert(size_ <= max_inst_len);
       std::copy(begin, end, data_.begin());
       decode();

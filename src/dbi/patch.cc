@@ -160,7 +160,9 @@ namespace dbi {
   }
 
   void Patcher::signal(int signum, const sighandler_t& handler) {
-    sigaction(signum, [&handler] (int signum, auto&&... args) { handler(signum); });
+    sigaction(signum, [&handler] (dbi::Tracee& tracee, int signum, auto&&... args) {
+      handler(tracee, signum);
+    });
   }
 
   void Patcher::run(void) {
@@ -170,15 +172,23 @@ namespace dbi {
     
     while (tracees.size() > 0) {
       /* INVARIANT: All Tracees are stopped. */
-      assert(std::all_of(tracees.begin(), tracees.end(), [] (const auto& tracee) {
-	return tracee.stopped();
+      assert(std::all_of(tracees.begin(), tracees.end(), [] (const auto& tracee_pair) {
+	return tracee_pair.tracee.stopped();
       }));
       
       /* Resume all tracees */
       if (g_conf.singlestep) {
-	for_each_tracee([] (auto& tracee) { tracee.singlestep(); });
+	for_each_tracee_pair([] (auto& tracee_pair) {
+	  if (!tracee_pair.info.suspended()) {
+	    tracee_pair.tracee.singlestep();
+	  }
+	});
       } else {
-	for_each_tracee([] (auto& tracee) { tracee.cont(); });
+	for_each_tracee_pair([] (auto& tracee_pair) {
+	  if (!tracee_pair.info.suspended()) {
+	    tracee_pair.tracee.cont();
+	  }
+	});
       }
 
       /* Wait on all tracees */
@@ -188,7 +198,9 @@ namespace dbi {
 	auto status_it = statuses.begin();
 	auto tracee_it = tracees.begin();
 	for (; tracee_it != tracees.end(); ++tracee_it, ++status_it) {
-	  tracee_it->wait(*status_it);
+	  if (!tracee_it->info.suspended()) {
+	    tracee_it->tracee.wait(*status_it);
+	  }
 	}
       }
       
@@ -200,31 +212,58 @@ namespace dbi {
       auto tracee_it = tracees.begin();
       auto status_it = statuses.begin();
       while (todo > 0) {
-	const bool killed = !tracee_it->good();
-	bool exited = false;
-	if (!killed) {
-	  exited = handle_stop(*tracee_it, *status_it);
+	enum class State {NONE, SUSPENDED, KILLED, EXITED} state;
+	if (!tracee_it->tracee.good()) {
+	  state = State::KILLED;
+	} else if (tracee_it->info.suspended()) {
+	  state = State::SUSPENDED;
+	} else {
+	  const bool exited = handle_stop(*tracee_it, *status_it);
+	  if (tracee_it->tracee.good()) {
+	    if (exited) {
+	      state = State::EXITED;
+	    } else {
+	      state = State::NONE;
+	    }
+	  } else {
+	    state = State::KILLED;
+	  }
 	}
-	if (exited || killed) {
-	  if (exited) {
-	    *g_conf.log << "[" << tracee_it->pid() << "] exit status: "
+
+	if (state == State::EXITED || state == State::KILLED) {
+	  const auto pid = tracee_it->tracee.pid();
+	  if (state == State::EXITED) {
+	    *g_conf.log << "[" << pid << "] exit status: "
 			<< status_it->exitstatus() << "\n";
-	  } else if (killed) {
-	    *g_conf.log << "[" << tracee_it->pid() << "] killed\n";
+	  } else {
+	    *g_conf.log << "[" << pid << "] killed\n";
 	  }
 	  tracee_it = tracees.erase(tracee_it);
-	  status_it = statuses.erase(status_it);
+	  status_it = statuses.erase(status_it); 
 	} else {
 	  ++tracee_it;
 	  ++status_it;
 	}
+
 	--todo;
       }
+
+      /* remove killed processes */
+      for (auto it = tracees.begin(); it != tracees.end(); ) {
+	if (!it->tracee.good()) {
+	  it = tracees.erase(it);
+	  *g_conf.log << "[" << it->tracee.pid() << "] killed\n";
+	} else {
+	  ++it;
+	}
+      }
+      
     }
 
   }
 
-  bool Patcher::handle_stop(Tracee& tracee, Status status) {
+  bool Patcher::handle_stop(TraceePair& tracee_pair, Status status) {
+    Tracee& tracee = tracee_pair.tracee;
     if (g_conf.execution_trace && !g_conf.singlestep) {
       if (status.stopped()) {
 	print_ss(tracee);
@@ -235,7 +274,7 @@ namespace dbi {
       const auto stopsig = status.stopsig();
 
       if (stopsig == SIGTRAP) {
-	handle_ptrace_event(tracee, status.ptrace_event());
+	handle_ptrace_event(tracee_pair, status.ptrace_event());
       } else {
 	handle_signal(tracee, stopsig);
       }
@@ -256,7 +295,8 @@ namespace dbi {
     return false;
   }
   
-  void Patcher::handle_ptrace_event(Tracee& tracee, enum __ptrace_eventcodes event) {
+  void Patcher::handle_ptrace_event(TraceePair& tracee_pair, enum __ptrace_eventcodes event) {
+    Tracee& tracee = tracee_pair.tracee;
     switch (event) {
     case 0: // (no event occurred; interpret as regular breakpoint)
       {
@@ -273,7 +313,7 @@ namespace dbi {
 	    bkpt_pc = tracee.get_pc();
 	    tracee.read(&pc_byte, 1, bkpt_pc);
 
-	    if (pc_byte != 0xcc) {
+	    if (pc_byte != 0xcc || tracee_pair.info.suspended() || !tracee) {
 	      break;
 	    }
 
@@ -298,7 +338,7 @@ namespace dbi {
 	const pid_t newpid = tracee.geteventmsg();
 
 	/* add to tracee list */
-	tracees.emplace_back(newpid, tracee.filename(), false);
+	tracees.emplace_back(Tracee{newpid, tracee.filename(), false}, TraceeInfo{false});
       }
       break;
 
@@ -320,7 +360,7 @@ namespace dbi {
       g_conf.abort(tracee);
     } else {
       auto siginfo = tracee.get_siginfo();
-      it->second(signum, siginfo);
+      it->second(tracee, signum, siginfo);
     }
   }
 

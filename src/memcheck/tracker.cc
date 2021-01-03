@@ -287,7 +287,7 @@ namespace memcheck {
 	  const int prot = syscall_args.arg<2, int>();
 	  const int flags = syscall_args.arg<3, int>();
 	  // DEBUG: omit shared pages
-	  const size_t length = dbi::util::align_up(syscall_args.arg<1, size_t>(), 4096);
+	  const size_t length = util::align_up(syscall_args.arg<1, size_t>(), 4096);
 	  std::clog << "MMAP -> " << (void *) rv << "-" << (void *) ((char *) rv + length) << "\n";
 	  if (util::implies(BLOCK_SHARED_MAPS, !(flags & MAP_SHARED))) {
 	    page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, prot});
@@ -325,7 +325,7 @@ namespace memcheck {
 	const auto rv = syscall_args.rv<int>();
 	if (rv >= 0) {
 	  void *addr = syscall_args.arg<0, void *>();
-	  const size_t size = dbi::util::align_up(syscall_args.arg<1, size_t>(), dbi::PAGESIZE);
+	  const size_t size = util::align_up(syscall_args.arg<1, size_t>(), dbi::PAGESIZE);
 	
 	  page_set.untrack_range(addr, (char *) addr + size);
 	}

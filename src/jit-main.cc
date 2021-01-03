@@ -17,6 +17,7 @@
 #include "dbi/util.hh"
 #include "dbi/patch.hh"
 #include "dbi/config.hh"
+#include "dbi/tracees.hh"
 
 namespace {
   bool log_syscalls = false;
@@ -164,10 +165,10 @@ int main(int argc, char *argv[]) {
   assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
 
   dbi::Tracees tracees;
-  tracees.emplace_back(child_pid, command[0], true);
+  tracees.emplace_back(dbi::Tracee{child_pid, command[0], true}, dbi::TraceeInfo{false});
 
   std::array<uint8_t, 1> tmp;
-  tracees[0].read(tmp, tracees[0].get_pc());
+  tracees.front().tracee.read(tmp, tracees.front().tracee.get_pc());
   
   dbi::Patcher patcher(std::move(tracees), transformer);
   assert(patcher);
