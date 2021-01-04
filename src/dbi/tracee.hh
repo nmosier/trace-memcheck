@@ -166,6 +166,8 @@ namespace dbi {
 
     void swap(Tracee& other);
 
+    void flush_caches();
+
   private:
     pid_t pid_;
     int fd_;
@@ -178,7 +180,6 @@ namespace dbi {
 
     void cache_regs();
     void cache_fpregs();
-    void flush_caches();
     void invalidate_caches();
 
     /* Memory Cache */
@@ -233,7 +234,7 @@ namespace dbi {
     void set_bad() { fd_ = -1; }
 
   void fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
-		    const std::array<uint8_t, 2>& saved_code);
+		    const std::array<uint8_t, 3>& saved_code);
   };
 
 }

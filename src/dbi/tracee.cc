@@ -344,17 +344,19 @@ namespace dbi {
     fork_regs.rax = static_cast<unsigned>(Syscall::FORK);
     set_gpregs(fork_regs);
     const auto pc = reinterpret_cast<uint8_t *>(saved_regs.rip);
-    const std::array<uint8_t, 2> syscall = {0x0f, 0x05};
-    std::array<uint8_t, 2> saved_code;
+    const std::array<uint8_t, 3> syscall = {0x0f, 0x05, 0x90};
+    std::array<uint8_t, 3> saved_code;
     read(saved_code, pc);
     write(syscall, pc);
-
+    
     singlestep();
     wait(status);
-    
     assert(status.stopped_trap());
     assert(status.ptrace_event() == PTRACE_EVENT_FORK);
-
+    singlestep();
+    wait(status);
+    assert(status.stopped_trap() && status.ptrace_event() == 0);
+    
 #ifndef NASSERT
     get_gpregs(fork_regs);
     const auto reg_pid = static_cast<pid_t>(fork_regs.rax);
@@ -388,7 +390,7 @@ namespace dbi {
   }
 
   void Tracee::fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
-			    const std::array<uint8_t, 2>& saved_code) {
+			    const std::array<uint8_t, 3>& saved_code) {
     write(saved_code, pc);
     set_regs(saved_regs);
   }

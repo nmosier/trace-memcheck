@@ -403,7 +403,9 @@ namespace dbi {
   void Patcher::print_ss(Tracee& tracee) const {
     *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
 		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
-		<< Instruction(tracee.get_pc(), tracee) << "\n";
+		<< Instruction(tracee.get_pc(), tracee)
+		<< " rax=" << (long int) tracee.get_gpregs().rax
+		<< "\n";
   }
   
 }

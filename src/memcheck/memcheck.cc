@@ -428,7 +428,6 @@ namespace memcheck {
     }
 #endif
 
-    
     // 7: Clear checksums
     for (auto& pair : thd_map) {
       ThreadEntry& entry = pair.second;
@@ -440,7 +439,7 @@ namespace memcheck {
       vars.init_for_subround(tracee);
     });
     
-  // start_subround();
+    // start_subround();
   
     assert_taint_zero();
     patcher.for_each_tracee([&] (auto& tracee) {
