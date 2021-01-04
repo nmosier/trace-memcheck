@@ -15,26 +15,8 @@ namespace memcheck {
   uint8_t *JccTracker_::add_incore_pre(uint8_t *addr, dbi::Instruction& inst,
 				       const dbi::Patcher::TransformerInfo& info) {
 
-    // DEBUG
-
-#if 0
     post_code.patch(addr);
     addr = info.writer(post_code);
-
-#else
-    auto bkpt = dbi::Instruction::int3(addr);
-    addr = info.writer(bkpt);
-    info.rb(bkpt.pc(), [] (auto& tracee, auto addr) {
-      if (g_conf.dbi.singlestep) {
-	g_conf.log() << "[" << tracee.pid() << "] ss " << "rax = " << tracee.get_gpregs().rax << ", "
-		     << "rdi = " << tracee.get_gpregs().rdi << ", "
-		     << "r9 = " << tracee.get_gpregs().r9 << ", "
-		     << "r10 = " << tracee.get_gpregs().r10 << ", "
-		     << "rcx = " << tracee.get_gpregs().rcx << "\n";
-      }
-    });
-#endif
-
     return addr;
   }
 

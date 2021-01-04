@@ -236,7 +236,9 @@ namespace dbi {
 	    *g_conf.log << "[" << pid << "] exit status: "
 			<< status_it->exitstatus() << "\n";
 	  } else {
+#if 0
 	    *g_conf.log << "[" << pid << "] killed\n";
+#endif
 	  }
 	  tracee_it = tracees.erase(tracee_it);
 	  status_it = statuses.erase(status_it); 
@@ -252,7 +254,9 @@ namespace dbi {
       for (auto it = tracees.begin(); it != tracees.end(); ) {
 	if (!it->tracee.good()) {
 	  it = tracees.erase(it);
+#if 0
 	  *g_conf.log << "[" << it->tracee.pid() << "] killed\n";
+#endif
 	} else {
 	  ++it;
 	}

@@ -161,6 +161,7 @@ namespace memcheck {
       return;
     }
 
+#if 0
     // DEBUG
     if (inst.xed_iform() == XED_IFORM_JMP_GPRv && ((uintptr_t) inst.pc() & 0xfff) == 0xbc9) {
       auto bkpt = dbi::Instruction::int3(addr);
@@ -169,6 +170,7 @@ namespace memcheck {
 	g_conf.log() << "[" << tracee.pid() << "] ss r10 = " << tracee.get_gpregs().r10 << "\n";
       });
     }
+#endif
   
     addr = info.writer(inst);
   }
@@ -349,7 +351,7 @@ namespace memcheck {
 #endif
 
   void Memcheck::fork() {
-    const auto ntracees = patcher.ntracees_good();
+    const auto ntracees = patcher.ntracees_good(); (void) ntracees;
     assert(ntracees == 1);
 #ifndef NASSERT
     const auto rax = tracee().get_gpregs().rax;
@@ -372,7 +374,9 @@ namespace memcheck {
       assert(tracee.get_gpregs().rax == rax);
     });
 
+#if 0
     g_conf.log() << "[" << pid << "] forked\n";
+#endif
   }
 
   void Memcheck::kill() {
@@ -430,7 +434,7 @@ namespace memcheck {
       set_state_with_taint(tracee2(), pre_state, taint_state);
     }    
 
-#ifndef NASSERT
+#ifndef NDEBUG
     {
       const auto orig_inst = dbi::Instruction(tracee().get_pc(), tracee());
       const auto forked_inst = dbi::Instruction(tracee2().get_pc(), tracee2());
@@ -477,7 +481,9 @@ namespace memcheck {
       /* suspend thread */
       patcher.suspend(tracee);
       ++suspended_count;
+#if 0
       g_conf.log() << "[" << tracee.pid() << "] suspended\n";
+#endif
       return false;
     }
 

@@ -15,3 +15,5 @@ CMakeCache.txt
 *#*
 *.log
 *._*
+*.txt
+!CMakeLists.txt

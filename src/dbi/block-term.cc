@@ -573,6 +573,7 @@ namespace dbi {
     }
 
     // DEBUG
+#if 0
     *g_conf.log << "[" << tracee.pid() << "] ss INCACHE ";
     *g_conf.log << "orig_pc = " << (void *) orig_pc << ", new_pc = " << (void *) new_pc;
     for (auto i = 0UL; i < CACHELEN; ++i) {
@@ -580,6 +581,7 @@ namespace dbi {
 		  << (void *) newjmps[i].branch_dst() << ", ";
     }
     *g_conf.log << "\n";
+#endif
   }
 
   template <size_t CACHELEN>

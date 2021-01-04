@@ -369,6 +369,8 @@ namespace dbi {
 		  << "(" << reg_pid << " != " << msg_pid << ")\n";
     }
 #endif
+
+    // std::clog << "msg_pid=" << msg_pid << "\n";
     
     if (msg_pid >= 0) {
       forked_tracee = Tracee(msg_pid, filename(), false);
@@ -606,7 +608,7 @@ namespace dbi {
     std::clog << "killing pid " << pid() << "\n";
     close();
     const auto res = ::kill(pid(), SIGKILL);
-    assert(res == 0);
+    assert(res == 0); (void) res;
   }
   
 }
