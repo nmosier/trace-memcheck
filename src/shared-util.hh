@@ -19,7 +19,11 @@ namespace util {
     transform_iterator(It it, Func func): it(it), func(func) {}
 
     transform_iterator& operator++() { ++it; return *this; }
-    transform_iterator& operator++(int i) { return ++*this; }
+    transform_iterator operator++(int i) {
+      auto old = *this;
+      ++*this;
+      return old;
+    }
     bool operator==(const transform_iterator& other) const { return it == other.it; }
     bool operator!=(const transform_iterator& other) const { return !(*this == other); }
     Ret operator*() const { return func(*it); }

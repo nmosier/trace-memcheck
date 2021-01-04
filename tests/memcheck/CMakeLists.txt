@@ -36,4 +36,6 @@ create_system_test(ls-a ls -a ${CMAKE_CURRENT_SOURCE_DIR}/../ls-dir)
 create_system_test(ls-color ls --color ${CMAKE_CURRENT_SOURCE_DIR}/../ls-dir)
 
 create_local_test(fork)
+create_local_test(strlen2)
+create_local_test(memchr)
 
