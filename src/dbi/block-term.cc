@@ -453,9 +453,10 @@ namespace dbi {
     Terminator(block_pool, jmp_ind_size(jmp), jmp, tracees, lb)
   {
     /* make orig pointers */
-    for (auto& orig : origs) {
-      orig = (uint8_t **) ptr_pool.add((uintptr_t) nullptr);
+    for (auto& orig_ptr : orig_ptrs) {
+      orig_ptr = (uint8_t **) ptr_pool.add((uintptr_t) nullptr);
     }
+    std::fill(orig_vals.begin(), orig_vals.end(), nullptr);
   
     uint8_t *it = addr();
 
@@ -476,7 +477,8 @@ namespace dbi {
 
     /* comparisons */
     for (size_t i = 0; i < CACHELEN; ++i) {
-      const auto cmp = Instruction::cmp_mem64(it, Instruction::reg_t::RAX, (uint8_t *) origs[i]);
+      const auto cmp = Instruction::cmp_mem64(it, Instruction::reg_t::RAX,
+					      (uint8_t *) orig_ptrs[i]);
       it += cmp.size();
       const auto je = Instruction::je_b(it,  match_addr(i, jmp));
       it += je.size();
@@ -547,14 +549,37 @@ namespace dbi {
     uint8_t *new_pc;
     Terminator::handle_bkpt_singlestep(tracee, orig_pc, new_pc);
 
-    /* Update cache: shift origs & newjmps down, add new pair at front.
-     */
-    const auto i = eviction_index;
-    tracee.write(&orig_pc, sizeof(orig_pc), (uint8_t *) origs[i]);
-    newjmps[i].retarget(new_pc);
-    write(newjmps[i]);
-    flush(tracee);
-    eviction_index = (eviction_index + 1) % CACHELEN;
+    /* Check if cache was already updated -- shouldn't be necessary for correctness? */
+    const auto it = std::find(orig_vals.begin(), orig_vals.end(), orig_pc);
+    if (it == orig_vals.end()) {
+      
+      /* Update cache: shift origs & newjmps down, add new pair at front.
+       */
+      const auto i = eviction_index;
+      orig_vals[i] = orig_pc;
+      tracee.write(&orig_vals[i], sizeof(orig_vals[i]), (uint8_t *) orig_ptrs[i]);
+      newjmps[i].retarget(new_pc);
+      write(newjmps[i]);
+      flush(tracee);
+      eviction_index = (eviction_index + 1) % CACHELEN;
+
+    } else {
+      
+      const auto i = it - orig_vals.begin();
+      tracee.write(&orig_vals[i], sizeof(orig_vals[i]), (uint8_t *) orig_ptrs[i]);
+      write(newjmps[i]);
+      flush(tracee);
+
+    }
+
+    // DEBUG
+    *g_conf.log << "[" << tracee.pid() << "] ss INCACHE ";
+    *g_conf.log << "orig_pc = " << (void *) orig_pc << ", new_pc = " << (void *) new_pc;
+    for (auto i = 0UL; i < CACHELEN; ++i) {
+      *g_conf.log << ", *(" << (void *) orig_ptrs[i] << ") = " << (void *) orig_vals[i] << " -> "
+		  << (void *) newjmps[i].branch_dst() << ", ";
+    }
+    *g_conf.log << "\n";
   }
 
   template <size_t CACHELEN>

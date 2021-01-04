@@ -68,6 +68,7 @@ namespace dbi {
 #define SYS_GETTIMEOFDAY GETTIMEOFDAY, 96, int, 2, struct timeval *, tv, struct timezone *, tz,
 #define SYS_TIME TIME, 201, time_t, 1, time_t *, tloc,
 #define SYS_FORK FORK, 57, pid_t, 0,
+#define SYS_WRITEV WRITEV, 20, ssize_t, 3, unsigned long, fd, const struct iovec *, iov, unsigned long, iovcnt,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -129,6 +130,7 @@ namespace dbi {
   sysx(e, SYS_GETTIMEOFDAY)			\
   sysx(e, SYS_TIME)				\
   sysx(e, SYS_FORK)				\
+  sysx(e, SYS_WRITEV)				\
 
   
 #define SYSCALL(m, s) sysx(m, s)

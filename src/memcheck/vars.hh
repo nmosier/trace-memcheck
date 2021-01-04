@@ -52,6 +52,8 @@ namespace memcheck {
     template <typename T> T read_type(dbi::Tracee& tracee, const T *addr) {
       return tracee.read_type(addr);
     }
+
+    friend class Memcheck;
   };
 
 }

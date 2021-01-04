@@ -69,6 +69,12 @@ namespace dbi {
     const auto& get_tracees() const { return tracees; }
     auto& get_tracees() { return tracees; }
     auto ntracees() const { return tracees.size(); }
+    auto ntracees_good() const {
+      return std::accumulate(tracees.begin(), tracees.end(), 0UL,
+			     [] (auto acc, const auto& tracee_pair) {
+			       return acc + static_cast<bool>(tracee_pair.tracee);
+			     });
+    }
 
     template <typename F>
     void for_each_tracee_pair(F f) const {
@@ -97,7 +103,66 @@ namespace dbi {
 	});
       std::for_each(container.begin(), container.end(), f);
     }
+
+    template <typename F>
+    void for_each_tracee_good(F f) {
+      for (auto& pair : tracees) {
+	auto& tracee = pair.tracee;
+	if (tracee.good()) {
+	  f(tracee);
+	}
+      }
+    }
+
+    template <typename F>
+    void for_each_tracee_good(F f) const {
+      for (const auto& pair : tracees) {
+	const auto& tracee = pair.tracee;
+	if (tracee.good()) {
+	  f(tracee);
+	}
+      }
+    }
     
+    template <typename Idx>
+    const Tracee& tracee_good(Idx idx) const {
+      auto it = tracees.begin();
+      while (true) {
+#ifndef NASSERT
+	if (it == tracees.end()) {
+	  std::abort();
+	}
+#endif
+	if (it->tracee.good()) {
+	  if (idx == 0) {
+	    return it->tracee;
+	  }
+	  --idx;
+	}
+	
+	++it;
+      }
+    }
+    
+    template <typename Idx>
+    Tracee& tracee_good(Idx idx) {
+      auto it = tracees.begin();
+      while (true) {
+#ifndef NASSERT
+	if (it == tracees.end()) {
+	  std::abort();
+	}
+#endif
+	if (it->tracee.good()) {
+	  if (idx == 0) {
+	    return it->tracee;
+	  }
+	  --idx;
+	}
+	
+	++it;
+      }
+    }
     void add_tracee(Tracee&& tracee) { tracees.emplace_back(std::move(tracee), false); }
 
     void suspend(const Tracee& tracee) {

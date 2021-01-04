@@ -377,15 +377,6 @@ namespace dbi {
 
     fork_cleanup(pc, saved_regs, saved_code);
 
-#ifndef NASSERT
-    assert(get_pc() == forked_tracee.get_pc());
-    const auto orig_inst = Instruction(get_pc(), *this);
-    const auto fork_inst = Instruction(forked_tracee.get_pc(), forked_tracee);
-    assert(orig_inst.xed_iclass() == fork_inst.xed_iclass());
-    *g_conf.log << "dbi::Tracee::fork: [" << pid() << "] " << orig_inst << "\n";
-    *g_conf.log << "dbi::Tracee::fork: [" << forked_tracee.pid() << "] " << fork_inst << "\n";
-#endif
-
     return msg_pid;
   }
 

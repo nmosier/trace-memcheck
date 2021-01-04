@@ -464,6 +464,17 @@ namespace memcheck {
     return true;
   }
 
+  bool SyscallChecker::pre_WRITEV() {
+    PRE_DEF_CHK(WRITEV);
+    for (auto i = 0UL; i < iovcnt; ++i) {
+      PRE_READ_TYPE(&iov[i]);
+      struct iovec cur_iov;
+      read_struct(&iov[i], cur_iov);
+      PRE_READ_BUF(cur_iov.iov_base, cur_iov.iov_len);
+    }
+    return true;
+  }
+
   PRE_TRUE(MMAP)
   PRE_TRUE(CLOSE)
   PRE_TRUE(MPROTECT)
@@ -745,6 +756,7 @@ namespace memcheck {
   POST_TRUE(FADVISE64)
   POST_TRUE(SETRLIMIT)
   POST_TRUE(SENDTO)
+  POST_TRUE(WRITEV)
 
   POST_STAT(STAT)
   POST_STAT(LSTAT)

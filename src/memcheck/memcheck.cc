@@ -96,11 +96,12 @@ namespace memcheck {
     patcher.sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
 
     get_writable_pages();
+    
     save_state(tracee(), pre_state);
     init_taint(taint_state, true); // also taint shadow stack
 
     /* initialize thread map */
-    patcher.for_each_tracee([&] (const dbi::Tracee& tracee) {
+    patcher.for_each_tracee_good([&] (const dbi::Tracee& tracee) {
       thd_map.emplace(tracee.pid(), ThreadEntry{fills[thd_map.size()], FlagChecksum{}, 0, State{}});
     });
 
@@ -158,6 +159,15 @@ namespace memcheck {
       });
       addr = info.writer(inst);
       return;
+    }
+
+    // DEBUG
+    if (inst.xed_iform() == XED_IFORM_JMP_GPRv && ((uintptr_t) inst.pc() & 0xfff) == 0xbc9) {
+      auto bkpt = dbi::Instruction::int3(addr);
+      addr = info.writer(bkpt);
+      info.rb(bkpt.pc(), [](auto& tracee, auto addr) {
+	g_conf.log() << "[" << tracee.pid() << "] ss r10 = " << tracee.get_gpregs().r10 << "\n";
+      });
     }
   
     addr = info.writer(inst);
@@ -339,7 +349,7 @@ namespace memcheck {
 #endif
 
   void Memcheck::fork() {
-    const auto ntracees = patcher.ntracees();
+    const auto ntracees = patcher.ntracees_good();
     assert(ntracees == 1);
 #ifndef NASSERT
     const auto rax = tracee().get_gpregs().rax;
@@ -356,9 +366,9 @@ namespace memcheck {
     /* update fill map */
     thd_map.emplace(pid, ThreadEntry{fills[1], FlagChecksum{}, 0, State{}});
 
-    assert(patcher.ntracees() == 2);
+    assert(patcher.ntracees_good() == 2);
     assert(thd_map.size() == 2);
-    patcher.for_each_tracee([rax] (auto& tracee) {
+    patcher.for_each_tracee_good([rax] (auto& tracee) {
       assert(tracee.get_gpregs().rax == rax);
     });
 
@@ -373,7 +383,7 @@ namespace memcheck {
   
   void Memcheck::start_round() {
     /* assertions */
-    assert(patcher.ntracees() == 1);
+    assert(patcher.ntracees_good() == 1);
     assert(thd_map.size() == 1);
 
     // 0: Unsuspend
@@ -416,7 +426,7 @@ namespace memcheck {
 
     // 6: Change the duplicate thread.
     if (CHANGE_PRE_STATE) {
-      assert(patcher.ntracees() == 2);
+      assert(patcher.ntracees_good() == 2);
       set_state_with_taint(tracee2(), pre_state, taint_state);
     }    
 
@@ -435,50 +445,58 @@ namespace memcheck {
     }
   
     // 8: Set variables in all threads
-    patcher.for_each_tracee([&] (dbi::Tracee& tracee) {
+    patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
       vars.init_for_subround(tracee);
     });
     
     // start_subround();
   
     assert_taint_zero();
-    patcher.for_each_tracee([&] (auto& tracee) {
+    patcher.for_each_tracee_good([&] (auto& tracee) {
       assert(vars.jcc_cksum_val(tracee) == 0U);
     });
   }
 
   void Memcheck::stop_round() {
     /* save state of each thread */
-    patcher.for_each_tracee([&] (dbi::Tracee& tracee) {
+    patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
       save_state(tracee, thd_map.at(tracee.pid()).state);
     });
 
     /* save incore breakpoints */
-    patcher.for_each_tracee([&] (dbi::Tracee& tracee) {
+    patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
       thd_map.at(tracee.pid()).incore_cksum = vars.jcc_cksum_val(tracee);
     });
   }
 
   template <typename SequencePoint>
-  void Memcheck::sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt) {
+  bool Memcheck::sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt) {
     save_state(tracee, thd_map.at(tracee.pid()).state);
 
     if (suspended_count < THREADS - 1) {
       /* suspend thread */
       patcher.suspend(tracee);
       ++suspended_count;
-      return;
+      g_conf.log() << "[" << tracee.pid() << "] suspended\n";
+      return false;
     }
 
+#ifndef NASSERT
     util::for_each_pair(patcher.tracees_begin(), patcher.tracees_end(), [&] (auto& l, auto& r) {
-      assert(l.tracee.get_pc() == r.tracee.get_pc());
-    });    
+      if (l.tracee && r.tracee) {
+	std::clog << (void *) l.tracee.get_pc() << " " << (void *) r.tracee.get_pc() << "\n";
+	g_conf.assert_(l.tracee.get_pc() == r.tracee.get_pc(), tracee);
+      }
+    });
+#endif
 
     stop_round();
     
     check_round(seq_pt);
     kill(); // kill 2nd thread
     patcher.unsuspend(this->tracee());
+
+    return true;
   }
 
   void Memcheck::sequence_point_handler_post() {
@@ -552,7 +570,9 @@ namespace memcheck {
 
 	// TODO: properly specify permissions
 	SharedMemSeqPt seq_pt(*this, taint_state);
-	sequence_point_handler_pre(tracee, seq_pt);
+	if (sequence_point_handler_pre(tracee, seq_pt)) {
+	  start_round();
+	}
       }
       break;
 
@@ -593,6 +613,8 @@ namespace memcheck {
 	break;
       }
     }
+
+    tmp_writable_pages.erase(vars.mem.base<void *>());
   }
 
   void Memcheck::lock_pages() {

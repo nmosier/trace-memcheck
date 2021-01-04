@@ -74,9 +74,14 @@ namespace memcheck {
   bool Snapshot::is_zero() const {
     return std::all_of(map.begin(), map.end(), [] (const auto& pair) {
       const auto& entry = pair.second;
-      return std::all_of(entry.begin(), entry.end(), [&] (const auto& elem) {
+      const auto res = std::all_of(entry.begin(), entry.end(), [&] (const auto& elem) {
 	return elem == 0;
       });
+      if (res) {
+	return true;
+      } else {
+	return false;
+      }
     });
   }
 

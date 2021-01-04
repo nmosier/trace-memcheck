@@ -309,7 +309,7 @@ namespace dbi {
 	    if (g_conf.execution_trace) {
 	      print_ss(tracee);
 	    }
-
+	    
 	    bkpt_pc = tracee.get_pc();
 	    tracee.read(&pc_byte, 1, bkpt_pc);
 
@@ -319,6 +319,11 @@ namespace dbi {
 
 	    tracee.set_pc(bkpt_pc + 1);
 	    handle_bkpt(tracee, bkpt_pc);
+
+	    /* check if tracee was killed */
+	    if (!tracee.good()) {
+	      break;
+	    }
 	  }
 	} else {
 	  bkpt_pc = tracee.get_pc() - 1;
@@ -404,8 +409,6 @@ namespace dbi {
     *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
 		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
 		<< Instruction(tracee.get_pc(), tracee)
-		<< " rax=" << (long int) tracee.get_gpregs().rax
 		<< "\n";
   }
-  
 }

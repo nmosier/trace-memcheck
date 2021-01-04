@@ -181,9 +181,12 @@ namespace dbi {
     uint8_t *match_addr(size_t n, const Instruction& jmp) const;
   
     void handle_bkpt(Tracee& tracee);
-  
-    std::array<uint8_t **, CACHELEN> origs;
-    std::array<Instruction, CACHELEN> newjmps;
+
+    template <typename T>
+    using CacheArray = std::array<T, CACHELEN>;
+    CacheArray<uint8_t **> orig_ptrs;
+    CacheArray<uint8_t *> orig_vals;
+    CacheArray<Instruction> newjmps;
     unsigned eviction_index = 0; // next entry to evict. Always in range [0, CACHELEN).
   };
 

@@ -20,7 +20,7 @@ namespace memcheck {
       map_file.flush();
       dbi.abort(tracee);
     }
-    void assert_(bool pred, dbi::Tracee& tracee) { dbi.assert_(pred, tracee); }
+    void assert_(bool pred, dbi::Tracee& tracee) { if (!pred) { abort(tracee); } }
 
     void ss_syscall(dbi::Syscall syscall, unsigned count) { syscall_counts[syscall] = {0, count}; }
     void ss_syscall(const char *syscall, unsigned count) {

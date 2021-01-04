@@ -14,6 +14,7 @@ namespace memcheck {
 #include "pageset.hh"
 #include "vars.hh"
 #include "thdmap.hh"
+#include "config.hh"
 
 namespace memcheck {
 
@@ -45,11 +46,11 @@ namespace memcheck {
     Maps maps_gen;
     PageSet tracked_pages;
 
-    const dbi::Tracee& tracee() const { return std::next(patcher.tracees_begin(), 0)->tracee; }
-    dbi::Tracee& tracee() { return std::next(patcher.tracees_begin(), 0)->tracee; }
+    const dbi::Tracee& tracee() const { return patcher.tracee_good(0); }
+    dbi::Tracee& tracee() { return patcher.tracee_good(0); }
 
-    const dbi::Tracee& tracee2() const { return std::next(patcher.tracees_begin(), 1)->tracee; }
-    dbi::Tracee& tracee2() { return std::next(patcher.tracees_begin(), 1)->tracee; }
+    const dbi::Tracee& tracee2() const { return patcher.tracee_good(1); }
+    dbi::Tracee& tracee2() { return patcher.tracee_good(1); }
     
     void transformer(uint8_t *addr, dbi::Instruction& inst,
 		     const dbi::Patcher::TransformerInfo& info);
@@ -68,8 +69,9 @@ namespace memcheck {
     void start_subround();
     void stop_subround();
 
+    /* returns whether all threads have reached the sequence point and checking occurred */
     template <typename SequencePoint>
-    void sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt);
+    bool sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt); 
     void sequence_point_handler_post();
 
     void save_state(dbi::Tracee& tracee, State& state);
@@ -105,8 +107,8 @@ namespace memcheck {
     std::unordered_set<void *> shared_pages;
     void segfault_handler(dbi::Tracee& tracee, int signal, const siginfo_t& siginfo);
 
-    void assert_taint_zero() const {
-      assert(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()));
+    void assert_taint_zero() {
+      g_conf.assert_(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()), tracee());
     }
 
     template <typename InputIt>
