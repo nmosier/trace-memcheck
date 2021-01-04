@@ -20,8 +20,8 @@
 #include "settings.hh"
 
 namespace dbi {
-
-  void Tracee::open(pid_t pid, const char *command, bool stopped) {
+  
+  void Tracee::attach(pid_t pid, const char *command, bool stopped) {
     pid_ = pid;
     this->command = command;
     regs_good_ = false;

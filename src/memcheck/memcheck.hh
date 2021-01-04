@@ -20,18 +20,20 @@ namespace memcheck {
 
   class Memcheck {
   public:
-
-    Memcheck(void);
+    Memcheck();
   
     bool open(const char *file, char * const argv[]);
     bool open(char * const argv[]) { return open(argv[0], argv); }
-    void run(void);
+    void run();
   
     void *stack_begin(); // TODO: should be private. Fix issue that makes it need to be public.
     using Loc = std::pair<void *, std::string>;
     Loc orig_loc(uint8_t *addr);
 
   private:
+    static constexpr unsigned THREADS = 2;
+    template <typename T>
+    using RoundArray = std::array<T, THREADS>;
     dbi::Patcher patcher;
     MemcheckVariables vars;
     StackTracker stack_tracker;
@@ -42,89 +44,73 @@ namespace memcheck {
     LockTracker lock_tracker;
     RTMTracker rtm_tracker;
     RDTSCTracker rdtsc_tracker;
-  
     Maps maps_gen;
     PageSet tracked_pages;
-
-    const dbi::Tracee& tracee() const { return patcher.tracee_good(0); }
-    dbi::Tracee& tracee() { return patcher.tracee_good(0); }
-
-    const dbi::Tracee& tracee2() const { return patcher.tracee_good(1); }
-    dbi::Tracee& tracee2() { return patcher.tracee_good(1); }
-    
-    void transformer(uint8_t *addr, dbi::Instruction& inst,
-		     const dbi::Patcher::TransformerInfo& info);
-  
-    static constexpr size_t mprotect_bits = 12;
-    static_assert(mprotect_bits >= 12, "bits must be greater than page size");
-    static constexpr size_t mprotect_size = 1 << mprotect_bits;
-    static void *mprotect_ptr(void *ptr) {
-      return (void *) (((uintptr_t) ptr) & ~(mprotect_size - 1));
-    }
-
-    /* Round API */
-    void start_round();
-    void stop_round();
-    template <typename SequencePoint> void check_round(SequencePoint& seq_pt);
-    void start_subround();
-    void stop_subround();
-
-    /* returns whether all threads have reached the sequence point and checking occurred */
-    template <typename SequencePoint>
-    bool sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt); 
-    void sequence_point_handler_post();
-
-    void save_state(dbi::Tracee& tracee, State& state);
-
-    template <typename InputIt>
-    void update_taint_state(InputIt begin, InputIt end, State& taint_state);
-    void set_state_with_taint(dbi::Tracee& tracee, State& state, const State& taint);
-  
-    void init_taint(State& taint_state, bool taint_shadow_stack);
-  
     dbi::SyscallArgs syscall_args;
-  
-    static constexpr unsigned THREADS = 2;
     State pre_state;
-
-    template <typename T>
-    using RoundArray = std::array<T, THREADS>;
-
     static const RoundArray<fill_t> fills;
     State taint_state;
     ThreadMap thd_map; // contains fills, checksums, etc.
     unsigned suspended_count;
-
-    friend class SyscallChecker; // TEMPORARY
-    friend class SharedMemSeqPt; // TEMPORARY
-
-    static void sigignore(dbi::Tracee& tracee, int signal) {}
-    void write_maps() const;
-    static Memcheck *cur_memcheck;
-    static void sigint_handler(int signum);
-    void protect_map(const std::string& name, int prot);
-
+    std::unordered_set<void *> tmp_writable_pages;
     std::unordered_set<void *> shared_pages;
+    static Memcheck *cur_memcheck; // used to dump maps on interrupt
+
+    const dbi::Tracee& tracee() const { return patcher.tracee_good(0); }
+    dbi::Tracee& tracee() { return patcher.tracee_good(0); }
+    const dbi::Tracee& tracee2() const { return patcher.tracee_good(1); }
+    dbi::Tracee& tracee2() { return patcher.tracee_good(1); }
+
+    /* Patcher Callbacks */
+    void transformer(uint8_t *addr, dbi::Instruction& inst,
+		     const dbi::Patcher::TransformerInfo& info);
+    static void sigignore(dbi::Tracee& tracee, int signal) {}
     void segfault_handler(dbi::Tracee& tracee, int signal, const siginfo_t& siginfo);
-
-    void assert_taint_zero() {
-      g_conf.assert_(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()), tracee());
-    }
-
+  
+    /* Round API */
+    void start_round();
+    void stop_round();
+    template <typename SequencePoint> void check_round(SequencePoint& seq_pt);
     template <typename InputIt>
     void check_checksums(InputIt begin, InputIt end, const char *desc = nullptr);
-
     template <typename Container>
     void check_checksums(const Container& container, const char *desc = nullptr) {
       return check_checksums(container.begin(), container.end(), desc);
     }
 
-    std::unordered_set<void *> tmp_writable_pages;
+    /* Sequence Point Handlers */
+    /** Returns whether all threads have reached the sequence point and checking occurred 
+     */
+    template <typename SequencePoint>
+    bool sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt); 
+    void sequence_point_handler_post();
+
+    /* State Functions */
+    void save_state(dbi::Tracee& tracee, State& state);
+    template <typename InputIt>
+    void update_taint_state(InputIt begin, InputIt end, State& taint_state);
+    void set_state_with_taint(dbi::Tracee& tracee, State& state, const State& taint);
+    void init_taint(State& taint_state, bool taint_shadow_stack);
+
+    /* Debugging Functions */
+    void assert_taint_zero() {
+      g_conf.assert_(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()), tracee());
+    }
+    static void sigint_handler(int signum);
+    void write_maps() const;
+
+    /* Page Functions */
     void get_writable_pages();
     void lock_pages();
     void unlock_pages();
+    void protect_map(const std::string& name, int prot);
+
+    /* Thread Management Functions */
     void fork();
     void kill();
+
+    friend class SyscallChecker; // TEMPORARY
+    friend class SharedMemSeqPt; // TEMPORARY
   };
 
 }

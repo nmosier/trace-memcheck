@@ -26,7 +26,9 @@ namespace dbi {
   class Tracee {
   public:
     Tracee(): fd_(-1) {}
-    Tracee(pid_t pid, const char *command, bool stopped) { open(pid, command, stopped); }
+    Tracee(pid_t pid, const char *command, bool stopped) { attach(pid, command, stopped); }
+    template <typename Func>
+    Tracee(const char *file, char * const argv[], Func func) { open(file, argv, func); }
     ~Tracee();
     Tracee(const Tracee& other);
     Tracee(Tracee&& other);
@@ -38,8 +40,28 @@ namespace dbi {
     operator bool() const { return good(); }
 
     bool stopped() const { return stopped_; }
-  
-    void open(pid_t pid, const char *command, bool stopped);
+
+    template <typename Func>
+    void open(const char *file, char * const argv[], Func func) {
+      const auto child = ::fork();
+      if (child == 0) {
+	func();
+	if (::ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
+	  std::perror("ptrace");
+	  std::abort();
+	}
+	::execvp(file, argv);
+	std::perror("execvp");
+	std::abort();
+      } else if (child < 0) {
+	std::perror("fork");
+	std::abort();
+      } else {
+	attach(child, file, false);
+      }
+    }
+    
+    void attach(pid_t pid, const char *command, bool stopped);
     void close(void);
   
     pid_t pid() const { return pid_; }

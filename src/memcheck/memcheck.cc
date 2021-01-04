@@ -13,8 +13,11 @@
 
 namespace memcheck {
 
+  /*** Static Variables ***/
+  Memcheck *Memcheck::cur_memcheck = nullptr;
   const Memcheck::RoundArray<uint8_t> Memcheck::fills = {{0x00, 0xff}};
 
+  /*** Memcheck Initializers ***/
   Memcheck::Memcheck():
     patcher(),
     vars(),
@@ -47,37 +50,21 @@ namespace memcheck {
       [this] (auto& tracee, auto addr) { this->start_round(); }
       )
   {}
-  
-
-  void Memcheck::write_maps() const {
-    if (g_conf.map_file) {
-      tracee().cat_maps(g_conf.map_file).flush();
-    }
-  }
-
-  Memcheck *Memcheck::cur_memcheck = nullptr;
 
   bool Memcheck::open(const char *file, char * const argv[]) {
+    /* Target-Independent Initialization */
     cur_memcheck = this;
-  
-    const pid_t child = ::fork();
-    if (child == 0) {
-      if (g_conf.preload) {
-	setenv("LD_PRELOAD", MEMCHECK_LIBC, true);
-	assert(getenv("LD_PRELOAD") != nullptr);
-      }
-    
-      ::ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
-      ::execvp(file, argv);
-      return false;
-    }
-
     ::signal(SIGINT, sigint_handler);
-
     dbi::Decoder::Init(); // TODO: remove
-
+    
     dbi::Tracees tmp_tracees;
-    tmp_tracees.emplace_back(dbi::Tracee{child, file, false}, dbi::TraceeInfo{false});
+    tmp_tracees.emplace_back(dbi::Tracee(file, argv, [=] () {
+      if (g_conf.preload) {
+	::setenv("LD_PRELOAD", MEMCHECK_LIBC, true);
+	assert(::getenv("LD_PRELOAD") != nullptr);
+      }
+    }), dbi::TraceeInfo(false));
+
     patcher.open(std::move(tmp_tracees), [this] (auto&&... args) {
       return this->transformer(args...);
     });
@@ -86,7 +73,7 @@ namespace memcheck {
     
     patcher.start();
 
-    maps_gen.open(child);
+    maps_gen.open(tracee().pid());
     tracked_pages.add_maps(maps_gen);
    
     patcher.signal(SIGSTOP, sigignore);
@@ -309,7 +296,7 @@ namespace memcheck {
 	return {orig_addr, map.desc};
       }
     }
-    abort();
+    std::abort();
   }
 
   void Memcheck::fork() {
@@ -605,4 +592,13 @@ namespace memcheck {
     }
   }
 
+  /*** Debugging Functions ***/
+
+  void Memcheck::write_maps() const {
+    if (g_conf.map_file) {
+      tracee().cat_maps(g_conf.map_file).flush();
+    }
+  }
+  
+  
 }
