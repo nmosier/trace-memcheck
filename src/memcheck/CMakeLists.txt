@@ -25,3 +25,6 @@ add_executable(transform
   transform-test.cc
   )
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/profile.sh
+  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )

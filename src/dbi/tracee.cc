@@ -605,7 +605,6 @@ namespace dbi {
   }
 
   void Tracee::kill() {
-    std::clog << "killing pid " << pid() << "\n";
     close();
     const auto res = ::kill(pid(), SIGKILL);
     assert(res == 0); (void) res;

@@ -161,17 +161,6 @@ namespace memcheck {
       return;
     }
 
-#if 0
-    // DEBUG
-    if (inst.xed_iform() == XED_IFORM_JMP_GPRv && ((uintptr_t) inst.pc() & 0xfff) == 0xbc9) {
-      auto bkpt = dbi::Instruction::int3(addr);
-      addr = info.writer(bkpt);
-      info.rb(bkpt.pc(), [](auto& tracee, auto addr) {
-	g_conf.log() << "[" << tracee.pid() << "] ss r10 = " << tracee.get_gpregs().r10 << "\n";
-      });
-    }
-#endif
-  
     addr = info.writer(inst);
   }
 
@@ -323,39 +312,9 @@ namespace memcheck {
     abort();
   }
 
-#if 0
-  void Memcheck::start_subround() {
-    if (!CHANGE_PRE_STATE) {
-      pre_state.restore(tracee());
-    } else {
-      set_state_with_taint(pre_state, taint_state);
-    }
-
-    cksum.clear();
-    set_cur_fill(); // MUST come before used by vars.init_for_subround()
-    vars.init_for_subround();
-  }
-#endif
-
-#if 0
-  void Memcheck::stop_subround() {
-    save_state(cur_post_state());
-
-    if (JCC_TRACKER_BKPT) {
-      cur_bkpt_cksum() = cksum;
-    }
-    if (JCC_TRACKER_INCORE) {
-      cur_incore_cksum() = vars.jcc_cksum_val();
-    }
-  }
-#endif
-
   void Memcheck::fork() {
     const auto ntracees = patcher.ntracees_good(); (void) ntracees;
     assert(ntracees == 1);
-#ifndef NASSERT
-    const auto rax = tracee().get_gpregs().rax;
-#endif
     dbi::Status status;
     dbi::Tracee forked_tracee;
     const auto pid = tracee().fork(status, forked_tracee);
@@ -370,9 +329,6 @@ namespace memcheck {
 
     assert(patcher.ntracees_good() == 2);
     assert(thd_map.size() == 2);
-    patcher.for_each_tracee_good([rax] (auto& tracee) {
-      assert(tracee.get_gpregs().rax == rax);
-    });
 
 #if 0
     g_conf.log() << "[" << pid << "] forked\n";
@@ -454,11 +410,13 @@ namespace memcheck {
     });
     
     // start_subround();
-  
+    
     assert_taint_zero();
+#ifndef NDEBUG
     patcher.for_each_tracee_good([&] (auto& tracee) {
       assert(vars.jcc_cksum_val(tracee) == 0U);
     });
+#endif
   }
 
   void Memcheck::stop_round() {
@@ -487,7 +445,7 @@ namespace memcheck {
       return false;
     }
 
-#ifndef NASSERT
+#ifndef NDEBUG
     util::for_each_pair(patcher.tracees_begin(), patcher.tracees_end(), [&] (auto& l, auto& r) {
       if (l.tracee && r.tracee) {
 	std::clog << (void *) l.tracee.get_pc() << " " << (void *) r.tracee.get_pc() << "\n";
@@ -512,7 +470,10 @@ namespace memcheck {
 
   void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
     /* taint memory below stack */
+#if 0
+    const auto npages = tracked_pages.size();
     std::vector<void *> orig_writable_pages;
+    orig_writable_pages.reserve(npages);
     for (auto& page : tracked_pages) {
       switch (tracked_pages.tier(page)) {
       case PageInfo::Tier::RDWR_LOCKED:
@@ -522,6 +483,9 @@ namespace memcheck {
       }
     }
     taint_state.save(orig_writable_pages.begin(), orig_writable_pages.end(), 0);
+#else
+    taint_state.save(tmp_writable_pages.begin(), tmp_writable_pages.end(), 0);
+#endif
 
     if (TAINT_STACK) {
       const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
@@ -567,12 +531,14 @@ namespace memcheck {
     switch (tracked_pages.tier(*page_it)) {
     case Tier::SHARED:
       {
+#ifndef NDEBUG
 	const auto loc = orig_loc(tracee.get_pc());
 	*dbi::g_conf.log << loc.first << " " << loc.second << "\n";
 	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee)
 			 << "\n";
 	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
 	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
+#endif
 
 	// TODO: properly specify permissions
 	SharedMemSeqPt seq_pt(*this, taint_state);
