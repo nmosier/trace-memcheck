@@ -49,3 +49,18 @@ Add method to Tracee to suspend it?
 No, add data in Patcher.
 
 Memcheck needs to track # of threads that have been suspended.
+
+
+---
+
+Some system calls actually shouldn't be considered sequence points, since they don't affect the external world. E.g. since fstat depends on fd, not path, it should return the same results.
+
+- FSTAT (ok if file is removed when open, permissions changed, etc.)
+- GETDENTS
+- GETEUID
+- GETRLIMIT
+- GETUID
+- GETGID
+- GETPID
+- GETPPID
+- GETUNAME

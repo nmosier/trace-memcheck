@@ -249,7 +249,7 @@ namespace memcheck {
     return true; // TODO: Should be more conservative about this...
   }
   
-  void SyscallTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
+  bool SyscallTracker_::handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
     syscall_args.add_call(tracee);
     g_conf.log() << "syscall " << syscall_args.no() << "\n";
     g_conf.add_syscall(syscall_args.no());
@@ -261,23 +261,39 @@ namespace memcheck {
 	brk = (void *) tracee.syscall(dbi::Syscall::BRK, (uintptr_t) nullptr);
       }
     }
+
+    return is_seq_pt(syscall_args.no());
   }
 
   void SyscallTracker_::check(dbi::Tracee& tracee) {
     /* make sure args to syscall aren't tainted */
     SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
 				   syscall_args, memcheck);
-  
+    
     if (!syscall_checker.pre()) {
       /* DEBUG: Translate */
       const auto loc = memcheck.orig_loc(tracee.get_pc());
       g_conf.log() << loc.first << " " << loc.second << "\n";
       dbi::g_conf.abort(tracee);
     }
-  
+    
   }
 
-  void SyscallTracker_::handler_post(dbi::Tracee& tracee, uint8_t *addr) {
+  bool SyscallTracker_::is_seq_pt(dbi::Syscall no) {
+    switch (no) {
+    case dbi::Syscall::FSTAT:
+    case dbi::Syscall::POLL:
+      return false;
+    default:
+      return true;
+    }
+  }
+
+  bool SyscallTracker_::handler_post(dbi::Tracee& tracee, uint8_t *addr) {
+    if (!is_seq_pt(syscall_args.no())) {
+      return false;
+    }
+
     syscall_args.add_ret(tracee);
 
     switch (syscall_args.no()) {
@@ -350,6 +366,8 @@ namespace memcheck {
     SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
 				   syscall_args, memcheck);
     syscall_checker.post();
+
+    return true;
   }
 
   void LockTracker_::check(dbi::Tracee& tracee) {

@@ -299,25 +299,6 @@ namespace memcheck {
     }
   };
 
-#if 0
-  /* Required interface of base:
-   * static bool match(dbi::Instruction&);
-   * void handler_pre(...);
-   * void handler_post(...);
-   */
-  template <class Base>
-  class SequencePoint_ {
-  public:
-    template <typename... Args>
-    SequencePoint_(Args&&... args): base(std::forward<Args>(args)...) {}
-
-    
-    
-  private:
-    Base base;
-  };
-#endif
-  
   /* Required interface of Base:
    *  bool match();
    *  void pre(...); (BkptCallback)
@@ -342,8 +323,9 @@ namespace memcheck {
 	auto pre_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(pre_bkpt);
 	info.rb(pre_bkpt.pc(), [this] (auto&&... args) {
-	  this->handler_pre(args...);
-	  pre_callback(args...);
+	  if (this->handler_pre(args...)) {
+	    pre_callback(args...);
+	  }
 	});
       
 	addr = info.writer(inst);
@@ -351,8 +333,9 @@ namespace memcheck {
 	auto post_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(post_bkpt);
 	info.rb(post_bkpt.pc(), [this] (auto&&... args) {
-	  this->handler_post(args...);
-	  post_callback(args...);
+	  if (this->handler_post(args...)) {
+	    post_callback(args...);
+	  }
 	});
 
 	
@@ -368,8 +351,8 @@ namespace memcheck {
 
   class SequencePoint_Defaults {
   protected:
-    void handler_pre(dbi::Tracee& tracee, uint8_t *addr) {}
-    void handler_post(dbi::Tracee& tracee, uint8_t *addr) {}
+    bool handler_pre(dbi::Tracee& tracee, uint8_t *addr) { return true; }
+    bool handler_post(dbi::Tracee& tracee, uint8_t *addr) { return true; }
   };
 
   class StackTracker_Pre_Incore_Base: public TrackerHalfIncore_Base {
@@ -531,8 +514,8 @@ namespace memcheck {
     static bool match(const dbi::Instruction& inst) {
       return inst.xed_iclass() == XED_ICLASS_SYSCALL;
     }
-    void handler_pre(dbi::Tracee& tracee, uint8_t *addr);
-    void handler_post(dbi::Tracee& tracee, uint8_t *addr);
+    bool handler_pre(dbi::Tracee& tracee, uint8_t *addr);
+    bool handler_post(dbi::Tracee& tracee, uint8_t *addr);
     
   private:
     State& taint_state;
@@ -540,6 +523,8 @@ namespace memcheck {
     dbi::SyscallArgs& syscall_args;
     Memcheck& memcheck;
     void *brk = nullptr;
+
+    static bool is_seq_pt(dbi::Syscall no);
   };
   using SyscallTracker = SequencePoint_<SyscallTracker_>;
   
@@ -664,7 +649,10 @@ namespace memcheck {
   
   protected:
     bool match(const dbi::Instruction& inst) const { return inst.xed_iclass() == XED_ICLASS_RDTSC; }
-    void handler_pre(dbi::Tracee& tracee, uint8_t *addr) { std::clog << "RDTSC\n"; }
+    bool handler_pre(dbi::Tracee& tracee, uint8_t *addr) {
+      std::clog << "RDTSC\n";
+      return true;
+    }
   };
 
   using RDTSCTracker = SequencePoint_<RDTSCTracker_>;
