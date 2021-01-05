@@ -512,6 +512,13 @@ namespace memcheck {
 
     void check(dbi::Tracee& tracee);
 
+    std::string desc() const {
+      std::stringstream ss;
+      ss << "syscall ";
+      ss << syscall_args.no();
+      return ss.str();
+    }
+
   protected:
     static bool match(const dbi::Instruction& inst) {
       return inst.xed_iclass() == XED_ICLASS_SYSCALL;
@@ -626,6 +633,7 @@ namespace memcheck {
   class LockTracker_: public SequencePoint_Defaults {
   public:
     void check(dbi::Tracee& tracee);
+    static const char *desc() { return "lock"; }
 
   protected:
     bool match(const dbi::Instruction& inst) const { return inst.data()[0] == LOCK_PREFIX; }
@@ -638,6 +646,7 @@ namespace memcheck {
   class RTMTracker_ {
   public:
     void check(dbi::Tracee& tracee) {}
+    static const char *desc() { return "rtm"; }
 
   protected:
     bool match(const dbi::Instruction& inst) const;
@@ -649,6 +658,7 @@ namespace memcheck {
     RDTSCTracker_(): Tracker() {}
 
     void check(dbi::Tracee& tracee) {}
+    static const char *desc() { return "rdtsc"; }
   
   protected:
     bool match(const dbi::Instruction& inst) const { return inst.xed_iclass() == XED_ICLASS_RDTSC; }
@@ -666,7 +676,8 @@ namespace memcheck {
       memcheck(memcheck), taint_state(taint_state), sys(sys) {}
 
     void check(dbi::Tracee& tracee);
-  
+    static const char *desc() { return "shared_mem"; }
+    
   private:
     Memcheck& memcheck;
     State& taint_state;

@@ -64,3 +64,15 @@ Some system calls actually shouldn't be considered sequence points, since they d
 - GETPID
 - GETPPID
 - GETUNAME
+
+---
+
+New approach:
+1. Fork before sequence point; keep this thread suspended until next sequence point.
+2. Pass thru any system calls that can be re-run... but this causes issues for multi-threaded programs. Also won't result in much of a performance boost.
+3.
+
+
+---
+
+Instead of spawning new processes at the start of each round, keep the same one and just update contents of memory using the system call. This will result in fewer reads & writes, so it should result in significant speed-up. Just fork before to have exact replica for replaying if necessary.

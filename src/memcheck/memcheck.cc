@@ -424,6 +424,8 @@ namespace memcheck {
 
   template <typename SequencePoint>
   bool Memcheck::sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt) {
+    g_conf.log() << "seq_pt " << seq_pt.desc() << "\n";
+    
     save_state(tracee, thd_map.at(tracee.pid()).state);
 
     if (suspended_count < THREADS - 1) {
