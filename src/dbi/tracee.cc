@@ -18,6 +18,7 @@
 #include "decoder.hh"
 #include "config.hh"
 #include "settings.hh"
+#include "shared-util.hh"
 
 namespace dbi {
   
@@ -144,17 +145,44 @@ namespace dbi {
 	count -= cur_count;
       }
     } else {
-      const ssize_t bytes_read = ::pread(fd(), to, count, reinterpret_cast<off_t>(from));
+      const struct iovec local_iov {to_, count};
+      const struct iovec remote_iov {const_cast<void *>(from_), count};
+      const auto bytes_read = ::process_vm_readv(pid(), &local_iov, 1, &remote_iov, 1, 0);
       if (bytes_read < 0) {
-	std::perror("pread");
+	std::perror("process_vm_readv");
 	std::fprintf(stderr, "pc = %p\n", (void *) get_pc());
 	g_conf.abort(*this);
       } else if (bytes_read == 0) {
-	std::cerr << "pread: unexpected EOF\n";
+	std::cerr << "process_vm_readv: partial read occurred\n";
 	std::abort();
       }
       assert(static_cast<size_t>(bytes_read) == count);
     }
+  }
+
+  void Tracee::readv(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
+		     size_t from_count, size_t total_bytes) {
+    const auto bytes_read = ::process_vm_readv(pid(), to_iov, to_count, from_iov, from_count, 0);
+    if (bytes_read < 0) {
+      std::perror("process_vm_readv");
+      std::abort();
+    } else if (static_cast<size_t>(bytes_read) != total_bytes) {
+      std::abort();
+    }
+
+#ifndef NDEBUG
+    const auto count_iov_bytes = [] (const struct iovec *iov, auto count) {
+      const auto transform = [] (const struct iovec& iov) { return iov.iov_len; };
+      const auto begin = util::make_transform_iterator<size_t>(iov, transform);
+      const auto end = util::make_transform_iterator<size_t>(iov + count, transform);
+      return std::accumulate(begin, end, 0UL);
+    };
+    const auto from_bytes = count_iov_bytes(from_iov, from_count);
+    const auto to_bytes = count_iov_bytes(to_iov, to_count);
+    assert(from_bytes == total_bytes);
+    assert(to_bytes == total_bytes);
+#endif
+    
   }
 
   void Tracee::readv(const struct iovec *iov, int iovcnt, const void *from) {
@@ -552,6 +580,7 @@ namespace dbi {
   }
 
   Tracee::Page& Tracee::read_page(const void *pageaddr) {
+    std::abort(); // TODO: dones't work with newer version
     assert(stopped());
     /* TODO: optimize using preadv */
     const auto it = memcache_.find(pageaddr);

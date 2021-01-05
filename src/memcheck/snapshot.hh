@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <array>
 #include <type_traits>
+#include <sys/uio.h>
 
 #include "dbi/tracee.hh"
 #include "util.hh"
@@ -19,6 +20,13 @@ namespace memcheck {
     SnapshotPage(Args&&... args) { save(args...); }
 
     void save(const void *pageaddr, dbi::Tracee& tracee) { tracee.read(buf_, pageaddr); }
+
+    template <typename OutputIt> 
+    void save(const void *pageaddr, OutputIt to_iov, OutputIt from_iov) {
+      *to_iov = iovec{static_cast<void *>(buf_.data()), dbi::PAGESIZE};
+      *from_iov = iovec{const_cast<void *>(pageaddr), dbi::PAGESIZE};
+    }
+    
     void save(const void *pageaddr, uint8_t fill) { std::fill(buf_.begin(), buf_.end(), fill); }
 
     void restore(void *pageaddr, dbi::Tracee& tracee) const {
@@ -66,6 +74,7 @@ namespace memcheck {
 
     auto size() const { return map.size() * dbi::PAGESIZE; }
 
+#if 0
     template <typename InputIt, typename... Args>
     void save(InputIt begin, InputIt end, Args&&... args) {
       // TODO: optimize
@@ -74,6 +83,36 @@ namespace memcheck {
 	this->add(pageaddr, args...);
       });
     }
+#endif
+
+    template <typename InputIt>
+    void save(InputIt begin, InputIt end, uint8_t fill) {
+      map.clear();
+      std::for_each(begin, end, [&] (const auto pageaddr) {
+	this->add(pageaddr, fill);
+      });
+    }
+
+    template <typename InputIt>
+    void save(InputIt begin, InputIt end, dbi::Tracee& tracee) {
+      map.clear();
+      std::for_each(begin, end, [&] (const auto pageaddr) {
+	map.emplace(pageaddr, SnapshotPage());
+      });
+
+      using Vec = std::vector<struct iovec>;
+      Vec to_iovs;
+      Vec from_iovs;
+      const auto to_it = std::back_inserter(to_iovs);
+      const auto from_it = std::back_inserter(from_iovs);
+      for (auto& pair : map) {
+	pair.second.save(pair.first, to_it, from_it);
+      }
+      
+      tracee.readv(to_iovs.data(), to_iovs.size(), from_iovs.data(), from_iovs.size(),
+		   map.size() * dbi::PAGESIZE);
+    }
+
 
     bool operator==(const Snapshot& other) const { return map == other.map; }
     bool operator!=(const Snapshot& other) const { return !(*this == other); }

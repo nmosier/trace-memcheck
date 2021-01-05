@@ -15,6 +15,7 @@ namespace dbi {
 #include <map>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+#include <sys/uio.h>
 
 #include "inst.hh"
 #include "syscall.hh"
@@ -69,7 +70,10 @@ namespace dbi {
 
     void read(void *to, size_t count, const void *from);
     void readv(const struct iovec *iov, int iovcnt, const void *from);
-  
+
+    void readv(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
+	       size_t from_count, size_t total_bytes);
+    
     bool try_read(void *to, size_t count, const void *from);
 
     template <typename OutputIt>
