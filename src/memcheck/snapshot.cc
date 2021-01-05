@@ -19,9 +19,15 @@ namespace memcheck {
   }
 
   void Snapshot::restore(dbi::Tracee& tracee) const {
-    std::for_each(map.begin(), map.end(), [&tracee] (const auto& pair) {
-      pair.second.restore(pair.first, tracee);
-    });
+    using Vec = std::vector<struct iovec>;
+    const auto count = map.size();
+    Vec to_iovs(count);
+    Vec from_iovs(count);
+    auto map_it = map.begin();
+    for (size_t i = 0; i < count; ++i, ++map_it) {
+      map_it->second.restore(map_it->first, &to_iovs[i], &from_iovs[i]);
+    }
+    tracee.writev(to_iovs.data(), count, from_iovs.data(), count, count * dbi::PAGESIZE);
   }
 
   void Snapshot::zero() {

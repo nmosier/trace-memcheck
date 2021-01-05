@@ -32,6 +32,12 @@ namespace memcheck {
     void restore(void *pageaddr, dbi::Tracee& tracee) const {
       tracee.write(buf_, pageaddr);
     }
+
+    template <typename OutputIt>
+    void restore(void *pageaddr, OutputIt to_iov, OutputIt from_iov) const {
+      *to_iov = iovec{pageaddr, dbi::PAGESIZE};
+      *from_iov = iovec{const_cast<uint8_t *>(buf_.data()), dbi::PAGESIZE};
+    }
       
     auto begin() const { return buf_.begin(); }
     auto begin() { return buf_.begin(); }

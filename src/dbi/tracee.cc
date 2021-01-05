@@ -160,6 +160,28 @@ namespace dbi {
     }
   }
 
+  size_t Tracee::iovec_bytes(const struct iovec *iov, size_t count) {
+    const auto make_it = [] (const struct iovec *iov) {
+      return util::make_transform_iterator<size_t>(iov, [] (const struct iovec& iov) {
+	return iov.iov_len;
+      });
+    };
+    const auto begin = make_it(iov);
+    const auto end = make_it(iov + count);
+    return std::accumulate(begin, end, 0UL);
+  }
+
+  void Tracee::iovec_check(const struct iovec *to_iov, size_t to_count,
+			     const struct iovec *from_iov, size_t from_count, size_t total_bytes) {
+#ifndef NDEBUG
+    const auto from_bytes = iovec_bytes(from_iov, from_count);
+    const auto to_bytes = iovec_bytes(to_iov, to_count);
+    assert(from_bytes == total_bytes);
+    assert(to_bytes == total_bytes);
+#endif
+  }
+  
+
   void Tracee::readv(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
 		     size_t from_count, size_t total_bytes) {
     const auto bytes_read = ::process_vm_readv(pid(), to_iov, to_count, from_iov, from_count, 0);
@@ -167,23 +189,28 @@ namespace dbi {
       std::perror("process_vm_readv");
       std::abort();
     } else if (static_cast<size_t>(bytes_read) != total_bytes) {
+      std::cerr << "process_vm_readv: partial read occurred\n";
       std::abort();
     }
 
-#ifndef NDEBUG
-    const auto count_iov_bytes = [] (const struct iovec *iov, auto count) {
-      const auto transform = [] (const struct iovec& iov) { return iov.iov_len; };
-      const auto begin = util::make_transform_iterator<size_t>(iov, transform);
-      const auto end = util::make_transform_iterator<size_t>(iov + count, transform);
-      return std::accumulate(begin, end, 0UL);
-    };
-    const auto from_bytes = count_iov_bytes(from_iov, from_count);
-    const auto to_bytes = count_iov_bytes(to_iov, to_count);
-    assert(from_bytes == total_bytes);
-    assert(to_bytes == total_bytes);
-#endif
-    
+    iovec_check(to_iov, to_count, from_iov, from_count, total_bytes);
   }
+
+  void Tracee::writev(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
+		      size_t from_count, size_t total_bytes) {
+    const auto bytes_written = ::process_vm_writev(pid(), from_iov, from_count, to_iov, to_count,
+						   0);
+    if (bytes_written < 0) {
+      std::perror("process_vm_writev");
+      std::abort();
+    } else if (static_cast<size_t>(bytes_written) != total_bytes) {
+      std::cerr << "process_vm_writev: partial write occurred\n";
+      std::abort();
+    }
+
+    iovec_check(to_iov, to_count, from_iov, from_count, total_bytes);
+  }
+  
 
   void Tracee::readv(const struct iovec *iov, int iovcnt, const void *from) {
     assert(stopped());

@@ -381,3 +381,6 @@ One approach: gradually migrate existing Memcheck class to use thread model. Sta
 
 ----
 
+---
+
+Faster alternative to waitpid: just write to shared memory. OR signal caller? No, that'd be as slow as waitpid().

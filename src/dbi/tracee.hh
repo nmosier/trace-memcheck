@@ -88,6 +88,9 @@ namespace dbi {
 
     void write(const void *from, size_t count, void *to);
     void writev(const struct iovec *iov, int iovcnt, void *to);
+    void writev(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
+		size_t from_count, size_t total_bytes);
+    
 	      
     template <typename T, size_t N>
     void write(const std::array<T,N>& from, void *to) {
@@ -261,6 +264,10 @@ namespace dbi {
 
   void fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
 		    const std::array<uint8_t, 3>& saved_code);
+
+  static size_t iovec_bytes(const struct iovec *iov, size_t count);
+  static void iovec_check(const struct iovec *to_iov, size_t to_count,
+			    const struct iovec *from_iov, size_t from_count, size_t total_bytes);
   };
 
 }
