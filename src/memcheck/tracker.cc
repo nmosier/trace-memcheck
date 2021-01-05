@@ -258,7 +258,7 @@ namespace memcheck {
     switch (syscall_args.no()) {
     case dbi::Syscall::BRK:
       if (brk == nullptr) {
-	brk = (void *) tracee.syscall(dbi::Syscall::BRK, (uintptr_t) nullptr);
+	brk = sys.syscall<void *>(tracee, dbi::Syscall::BRK, nullptr);
       }
     }
 
@@ -309,7 +309,9 @@ namespace memcheck {
 	  if (util::implies(BLOCK_SHARED_MAPS, !(flags & MAP_SHARED))) {
 	    page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, prot});
 	  } else {
-	    tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) rv, length, PROT_NONE);
+	    const auto res =
+	      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, rv, length, PROT_NONE);
+	    assert(res == 0); (void) res;
 	    page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, PROT_NONE});
 	  }
 	}
@@ -444,10 +446,10 @@ namespace memcheck {
     const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
     const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
 
-    const auto aligned_fault =
-      reinterpret_cast<uintptr_t>(dbi::pagealign(tracee.get_siginfo().si_addr));
-    g_conf.log() << "aligned_fault = " << (void *) aligned_fault << "\n";
-    if ((int) tracee.syscall(dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_READ) < 0) {
+    const auto aligned_fault = dbi::pagealign(tracee.get_siginfo().si_addr);
+    g_conf.log() << "aligned_fault = " << aligned_fault << "\n";
+    if (sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_READ)
+	< 0) {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
     }
@@ -458,7 +460,9 @@ namespace memcheck {
 
     tracee.assert_stopsig(status, SIGTRAP); (void) status;
   
-    tracee.syscall(dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_NONE);  
+    const auto res =
+      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_NONE);
+    assert(res == 0); (void) res;
   
     (void) mem_written;
     (void) mem_read;

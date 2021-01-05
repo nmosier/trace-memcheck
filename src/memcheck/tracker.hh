@@ -507,7 +507,9 @@ namespace memcheck {
       syscall_args(syscall_args),
       memcheck(memcheck)
     {}
-    
+
+    void init(const Syscaller& sys) { this->sys = sys; }
+
     void check(dbi::Tracee& tracee);
 
   protected:
@@ -523,6 +525,7 @@ namespace memcheck {
     dbi::SyscallArgs& syscall_args;
     Memcheck& memcheck;
     void *brk = nullptr;
+    Syscaller sys;
 
     static bool is_seq_pt(dbi::Syscall no);
   };
@@ -659,14 +662,15 @@ namespace memcheck {
 
   class SharedMemSeqPt {
   public:
-    SharedMemSeqPt(Memcheck& memcheck, State& taint_state):
-      memcheck(memcheck), taint_state(taint_state) {}
+    SharedMemSeqPt(Memcheck& memcheck, State& taint_state, const Syscaller& sys):
+      memcheck(memcheck), taint_state(taint_state), sys(sys) {}
 
     void check(dbi::Tracee& tracee);
   
   private:
     Memcheck& memcheck;
     State& taint_state;
+    Syscaller sys;
 
     void read(xed_reg_enum_t reg) const;
     void write(xed_reg_enum_t reg);

@@ -145,12 +145,20 @@ namespace dbi {
     void cont_syscall(int sig = 0) { return resume<PTRACE_SYSCALL>(sig); }
 
     void syscall(user_regs_struct& regs);
+    void syscall(void *syscall_ptr, user_regs_struct& regs);
 
-    // TODO: Replace uintptr with decltype of regs.rip, e.g.
-    uintptr_t syscall(Syscall syscallno, uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
-		      uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
+    template <typename Ret, typename... Args>
+    Ret syscall(Syscall no, Args&&... args) {
+      return (Ret) syscall_bare(nullptr, no, ((uintptr_t) args)...);
+    }
 
-    pid_t fork(Status& status, Tracee& forked_tracee);
+    template <typename Ret, typename... Args>
+    Ret syscall(void *syscall_ptr, Syscall no, Args&&... args) {
+      return (Ret) syscall_bare(syscall_ptr, no, ((uintptr_t) args)...);
+    }
+
+    pid_t fork(Status& status, Tracee& forked_tracee, void *syscall_ptr = nullptr);
+    
     void kill();
 
     void gdb();
@@ -262,12 +270,17 @@ namespace dbi {
 
     void set_bad() { fd_ = -1; }
 
-  void fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
+    void fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs, bool restore_code,
 		    const std::array<uint8_t, 3>& saved_code);
 
   static size_t iovec_bytes(const struct iovec *iov, size_t count);
   static void iovec_check(const struct iovec *to_iov, size_t to_count,
 			    const struct iovec *from_iov, size_t from_count, size_t total_bytes);
+
+    // TODO: Replace uintptr with decltype of regs.rip, e.g.
+    uintptr_t syscall_bare(void *syscall_ptr, Syscall syscallno,
+			   uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
+			   uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
   };
 
 }

@@ -15,6 +15,8 @@ namespace memcheck {
 #include "vars.hh"
 #include "thdmap.hh"
 #include "config.hh"
+#include "execmem.hh"
+#include "syscaller.hh"
 
 namespace memcheck {
 
@@ -55,6 +57,7 @@ namespace memcheck {
     std::unordered_set<void *> tmp_writable_pages;
     std::unordered_set<void *> shared_pages;
     static Memcheck *cur_memcheck; // used to dump maps on interrupt
+    ExecMemory exec_mem;
 
     const dbi::Tracee& tracee() const { return patcher.tracee_good(0); }
     dbi::Tracee& tracee() { return patcher.tracee_good(0); }
@@ -104,11 +107,21 @@ namespace memcheck {
     void lock_pages();
     void unlock_pages();
     void protect_map(const std::string& name, int prot);
-
+    
     /* Thread Management Functions */
     void fork();
     void kill();
+    
+    /* Other */
+    template <typename Ret, typename... Args>
+    Ret syscall(dbi::Tracee& tracee, Args&&... args) {
+      return syscaller().syscall<Ret>(tracee, std::forward<Args>(args)...);
+    }
 
+    Syscaller syscaller() const {
+      return Syscaller(exec_mem.syscall_ptr());
+    }
+    
     friend class SyscallChecker; // TEMPORARY
     friend class SharedMemSeqPt; // TEMPORARY
   };

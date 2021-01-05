@@ -70,12 +70,16 @@ namespace memcheck {
     });
     
     vars.open(tracee(), patcher, thd_map);
+    exec_mem.open(tracee());
     
     patcher.start();
 
     maps_gen.open(tracee().pid());
+    tracked_pages.open(syscaller());
     tracked_pages.add_maps(maps_gen);
-   
+
+    syscall_tracker.init(syscaller());
+    
     patcher.signal(SIGSTOP, sigignore);
     patcher.signal(SIGCONT, sigignore);
     patcher.signal(SIGINT,  sigignore);
@@ -304,7 +308,7 @@ namespace memcheck {
     assert(ntracees == 1);
     dbi::Status status;
     dbi::Tracee forked_tracee;
-    const auto pid = tracee().fork(status, forked_tracee);
+    const auto pid = syscaller().fork(tracee(), status, forked_tracee);
     if (pid < 0) {
       internal_error() << "failed to fork process\n";
       g_conf.abort(tracee());
@@ -490,8 +494,8 @@ namespace memcheck {
     maps_gen.get_maps(std::back_inserter(maps));
     for (const auto& map : maps) {
       if (map.desc == name) {
-	tracee().syscall(dbi::Syscall::MPROTECT, (uintptr_t) map.begin, (uintptr_t) map.size(),
-			 prot);
+	const auto res = syscall<int>(tracee(), dbi::Syscall::MPROTECT, map.begin, map.size(), prot);
+	assert(res == 0); (void) res;
 	return;
       }
     }
@@ -526,9 +530,9 @@ namespace memcheck {
 	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
 	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
 #endif
-
+	
 	// TODO: properly specify permissions
-	SharedMemSeqPt seq_pt(*this, taint_state);
+	SharedMemSeqPt seq_pt(*this, taint_state, syscaller());
 	if (sequence_point_handler_pre(tracee, seq_pt)) {
 	  start_round();
 	}

@@ -42,7 +42,7 @@ namespace memcheck {
     dbi::for_each_page(begin, end, [this] (void *pageaddr) { untrack_page(pageaddr); });    
   }
 
-  void PageInfo::lock(void *pageaddr, dbi::Tracee& tracee, int mask) {
+  void PageInfo::lock(void *pageaddr, dbi::Tracee& tracee, const Syscaller& sys, int mask) {
     if (dbi::g_conf.verbosity >= 1) {
       *dbi::g_conf.log << "LOCKING PAGE " << (void *) pageaddr << "\n";
     }
@@ -51,21 +51,25 @@ namespace memcheck {
   
     assert(orig_prot_ == cur_prot_);
     assert((orig_prot_ & mask) == mask);
-    tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) pageaddr, dbi::PAGESIZE, cur_prot_);
+    const auto res =
+      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, pageaddr, dbi::PAGESIZE, cur_prot_);
+    assert(res == 0); (void) res;
 
     prot(orig_prot_, orig_prot_ & ~mask);
   
     assert(tier() == Tier::RDWR_LOCKED);
   }
 
-  void PageInfo::unlock(void *pageaddr, dbi::Tracee& tracee) {
+  void PageInfo::unlock(void *pageaddr, dbi::Tracee& tracee, const Syscaller& sys) {
     if (dbi::g_conf.verbosity >= 1) {
       *dbi::g_conf.log << "UNLOCKING PAGE " << (void *) pageaddr << "\n";
     }
   
     assert(tier() == Tier::RDWR_LOCKED);
-  
-    tracee.syscall(dbi::Syscall::MPROTECT, (uintptr_t) pageaddr, dbi::PAGESIZE, orig_prot_);
+
+    const auto res =
+      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, pageaddr, dbi::PAGESIZE, orig_prot_);
+    assert(res == 0); (void) res;
     ++count_;
     prot(orig_prot_, orig_prot_);
   
@@ -93,14 +97,14 @@ namespace memcheck {
       const auto pageaddr = rit->second->first;
       PageInfo& page_info = rit->second->second;
       if (page_info.tier() == PageInfo::Tier::RDWR_LOCKED) {
-	page_info.unlock(pageaddr, tracee);
+	page_info.unlock(pageaddr, tracee, sys);
       }
     }
     for (; rit != counts_map.rend(); ++rit) {
       const auto pageaddr = rit->second->first;
       PageInfo& page_info = rit->second->second;
       if (page_info.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
-	page_info.lock(pageaddr, tracee, mask);
+	page_info.lock(pageaddr, tracee, sys, mask);
       }
     }
   }

@@ -6,6 +6,7 @@ class PageSet;
 #include <list>
 #include "maps.hh"
 #include "state.hh"
+#include "syscaller.hh"
 
 namespace memcheck {
 
@@ -42,8 +43,8 @@ namespace memcheck {
 
     void recompute_tier();
 
-    void lock(void *pageaddr, dbi::Tracee& tracee, int mask);
-    void unlock(void *pageaddr, dbi::Tracee& tracee);
+    void lock(void *pageaddr, dbi::Tracee& tracee, const Syscaller& sys, int mask);
+    void unlock(void *pageaddr, dbi::Tracee& tracee, const Syscaller& sys);
 
     Tier tier() const { return tier_; }
     
@@ -56,7 +57,14 @@ namespace memcheck {
   public:
     using Map = std::unordered_map<void *, PageInfo>;
   
-    PageSet() {} 
+    PageSet() {}
+
+    template <typename... Args>
+    PageSet(Args&&... args) { open(std::forward<Args>(args)...); }
+
+    bool good() const { return sys.good(); }
+    void open(const Syscaller& sys) { this->sys = sys; }
+    void close() { sys.close(); }
   
     void add_maps(Maps& maps_gen);
 
@@ -118,11 +126,11 @@ namespace memcheck {
     void lock_top_counts(unsigned n, dbi::Tracee& tracee, int mask);
 
     void lock(Map::value_type& it, dbi::Tracee& tracee, int mask) {
-      it.second.lock(it.first, tracee, mask);
+      it.second.lock(it.first, tracee, sys, mask);
     }
 
     void unlock(Map::value_type& it, dbi::Tracee& tracee) {
-      it.second.unlock(it.first, tracee);
+      it.second.unlock(it.first, tracee, sys);
     }
 
     PageInfo::Tier tier(const Map::value_type& it) const {
@@ -131,6 +139,7 @@ namespace memcheck {
   
   private:
     Map map; // pageaddr -> page info
+    Syscaller sys;
   };
 
 }

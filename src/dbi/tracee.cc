@@ -356,28 +356,39 @@ namespace dbi {
   }
 
   void Tracee::syscall(user_regs_struct& regs) {
-    assert(static_cast<Syscall>(regs.rax) != Syscall::FORK);
-    
-    const user_regs_struct saved_regs = get_gpregs();
+    const auto pc = reinterpret_cast<void *>(regs.rip);
+    using Code = std::array<uint8_t, 2>;
+    const Code syscall = {0x0f, 0x05};
+    Code saved_code;
+    read(saved_code, pc);
+    write(syscall, pc);
+
+    this->syscall(pc, regs);
+
+    write(saved_code, pc);
+  }
+
+  void Tracee::syscall(void *syscall_ptr, user_regs_struct& regs) {
+    switch (static_cast<Syscall>(regs.rax)) {
+    case Syscall::FORK:
+      assert(false);
+      break;
+    }
+
+    regs.rip = reinterpret_cast<unsigned long>(syscall_ptr);
+    const auto saved_regs = get_gpregs();
     set_regs(regs);
-    void *pc = (void *) regs.rip;
-    const uint8_t syscall[] = {0x0f, 0x05};
-    uint8_t saved_code[arrlen(syscall)];
-
-    read(&saved_code, sizeof(saved_code), pc);
-    write(&syscall, sizeof(syscall), pc);
-
-    singlestep();
-    const Status status = wait();
-    assert(status.stopped_trap()); (void) status;
     
-    write(&saved_code, sizeof(saved_code), pc);
+    singlestep();
+    const auto status = wait();
+    assert(status.stopped_trap()); (void) status;
+
     get_regs(regs);
     set_regs(saved_regs);
   }
 
-  uintptr_t Tracee::syscall(Syscall syscallno, uintptr_t a0, uintptr_t a1, uintptr_t a2,
-			    uintptr_t a3, uintptr_t a4, uintptr_t a5) {
+  uintptr_t Tracee::syscall_bare(void *syscall_ptr, Syscall syscallno, uintptr_t a0, uintptr_t a1,
+				 uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5) {
     user_regs_struct regs = get_gpregs();
     regs.rax = static_cast<unsigned>(syscallno);
     regs.rdi = a0;
@@ -386,23 +397,34 @@ namespace dbi {
     regs.r10 = a3;
     regs.r8  = a4;
     regs.r9  = a5;
-  
-    syscall(regs);
+
+    if (syscall_ptr == nullptr) {
+      syscall(regs);
+    } else {
+      syscall(syscall_ptr, regs);
+    }
 
     return regs.rax;
   }
 
-  pid_t Tracee::fork(Status& status, Tracee& forked_tracee) {
+  pid_t Tracee::fork(Status& status, Tracee& forked_tracee, void *syscall_ptr) {
     assert(stopped());
+    const bool rewrite = syscall_ptr == nullptr;
     const auto saved_regs = get_gpregs();
     auto fork_regs = saved_regs;
     fork_regs.rax = static_cast<unsigned>(Syscall::FORK);
+    if (!rewrite) {
+      fork_regs.rip = reinterpret_cast<unsigned long>(syscall_ptr);
+    }
     set_gpregs(fork_regs);
     const auto pc = reinterpret_cast<uint8_t *>(saved_regs.rip);
-    const std::array<uint8_t, 3> syscall = {0x0f, 0x05, 0x90};
+    static const std::array<uint8_t, 3> syscall = {0x0f, 0x05, 0x90};
     std::array<uint8_t, 3> saved_code;
     read(saved_code, pc);
-    write(syscall, pc);
+
+    if (rewrite) {
+      write(syscall, pc);
+    }
     
     singlestep();
     wait(status);
@@ -425,21 +447,22 @@ namespace dbi {
     }
 #endif
 
-    // std::clog << "msg_pid=" << msg_pid << "\n";
-    
     if (msg_pid >= 0) {
       forked_tracee = Tracee(msg_pid, filename(), false);
-      forked_tracee.fork_cleanup(pc, saved_regs, saved_code);
+      forked_tracee.fork_cleanup(pc, saved_regs, rewrite, saved_code);
     }
 
-    fork_cleanup(pc, saved_regs, saved_code);
+    fork_cleanup(pc, saved_regs, rewrite, saved_code);
 
     return msg_pid;
   }
 
-  void Tracee::fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs,
+  void Tracee::fork_cleanup(uint8_t *pc, const user_regs_struct& saved_regs, bool restore_code,
 			    const std::array<uint8_t, 3>& saved_code) {
-    write(saved_code, pc);
+    if (restore_code) {
+      write(saved_code, pc);
+    }
+    
     set_regs(saved_regs);
   }
 
