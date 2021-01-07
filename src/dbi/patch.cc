@@ -160,7 +160,7 @@ namespace dbi {
   }
 
   void Patcher::signal(int signum, const sighandler_t& handler) {
-    sigaction(signum, [&handler] (dbi::Tracee& tracee, int signum, auto&&... args) {
+    sigaction(signum, [handler] (dbi::Tracee& tracee, int signum, auto&&... args) {
       handler(tracee, signum);
     });
   }
@@ -413,6 +413,10 @@ namespace dbi {
     *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
 		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
 		<< Instruction(tracee.get_pc(), tracee)
+#if 0
+		<< " | " << GPRegisters(tracee)
+		<< std::dec
+#endif
 		<< "\n";
   }
 }

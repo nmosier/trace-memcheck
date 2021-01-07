@@ -69,6 +69,7 @@ namespace dbi {
 #define SYS_TIME TIME, 201, time_t, 1, time_t *, tloc,
 #define SYS_FORK FORK, 57, pid_t, 0,
 #define SYS_WRITEV WRITEV, 20, ssize_t, 3, unsigned long, fd, const struct iovec *, iov, unsigned long, iovcnt,
+#define SYS_WAIT4 WAIT4, 61, pid_t, 4, pid_t, pid, int *, status, int, options, struct rusage *, rusage,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -131,7 +132,8 @@ namespace dbi {
   sysx(e, SYS_TIME)				\
   sysx(e, SYS_FORK)				\
   sysx(e, SYS_WRITEV)				\
-
+  sysx(e, SYS_WAIT4)				\
+  
   
 #define SYSCALL(m, s) sysx(m, s)
 

@@ -50,6 +50,7 @@ namespace memcheck {
     PageSet tracked_pages;
     dbi::SyscallArgs syscall_args;
     State pre_state;
+    dbi::Tracee pre_tracee;
     static const RoundArray<fill_t> fills;
     State taint_state;
     ThreadMap thd_map; // contains fills, checksums, etc.
@@ -94,6 +95,7 @@ namespace memcheck {
     void update_taint_state(InputIt begin, InputIt end, State& taint_state);
     void set_state_with_taint(dbi::Tracee& tracee, State& state, const State& taint);
     void init_taint(State& taint_state, bool taint_shadow_stack);
+    void save_pre_state();
 
     /* Debugging Functions */
     void assert_taint_zero() {

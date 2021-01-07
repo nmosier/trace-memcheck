@@ -76,3 +76,12 @@ New approach:
 ---
 
 Instead of spawning new processes at the start of each round, keep the same one and just update contents of memory using the system call. This will result in fewer reads & writes, so it should result in significant speed-up. Just fork before to have exact replica for replaying if necessary.
+
+STEPS:
+- Rewrite system call checking -- these will first need to generate list of pointers to fetch, get data & taint mask, etc.
+
+- Write code for converting copying system call data.
+
+----
+
+Problem: need to have other tracee wait for exited process. This will likely result in significant slowdown...

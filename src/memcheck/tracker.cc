@@ -274,7 +274,7 @@ namespace memcheck {
       /* DEBUG: Translate */
       const auto loc = memcheck.orig_loc(tracee.get_pc());
       g_conf.log() << loc.first << " " << loc.second << "\n";
-      dbi::g_conf.abort(tracee);
+      g_conf.abort(tracee);
     }
     
   }

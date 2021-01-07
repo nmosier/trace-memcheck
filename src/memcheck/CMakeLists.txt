@@ -28,3 +28,7 @@ add_executable(transform
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/profile.sh
   DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
   )
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/thdsplit.sh
+  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )

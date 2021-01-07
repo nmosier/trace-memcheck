@@ -69,13 +69,10 @@ namespace dbi {
     int fd() const { return fd_; }
 
     void read(void *to, size_t count, const void *from);
-    void readv(const struct iovec *iov, int iovcnt, const void *from);
 
     void readv(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
 	       size_t from_count, size_t total_bytes);
     
-    bool try_read(void *to, size_t count, const void *from);
-
     template <typename OutputIt>
     void read(OutputIt begin, OutputIt end, const void *from) {
       read(&*begin, end - begin, from);
@@ -175,7 +172,7 @@ namespace dbi {
 
     std::ostream& xmm_print(std::ostream& os, unsigned idx);
 
-    auto geteventmsg() {
+    long geteventmsg() {
       assert(stopped());
       unsigned long eventmsg;
       ptrace(PTRACE_GETEVENTMSG, 0, &eventmsg); // TODO: check return value
@@ -241,10 +238,6 @@ namespace dbi {
 							CACHE_PAGE_SIZE));
     }
 
-    Page& read_page(const void *pageaddr);
-
-    Page& write_page(const void *pageaddr);
-  
     void flush_memcache();
   
     size_t string(const char *addr, std::vector<char>& buf);

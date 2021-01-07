@@ -84,11 +84,12 @@ namespace memcheck {
     patcher.signal(SIGCONT, sigignore);
     patcher.signal(SIGINT,  sigignore);
     patcher.signal(SIGTSTP, sigignore);
+    patcher.signal(SIGCHLD, sigignore);
     patcher.sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
 
     get_writable_pages();
-    
-    save_state(tracee(), pre_state);
+
+    save_pre_state();
     init_taint(taint_state, true); // also taint shadow stack
 
     /* initialize thread map */
@@ -162,6 +163,17 @@ namespace memcheck {
 
   void Memcheck::save_state(dbi::Tracee& tracee, State& state) {
     state.save(tracee, tmp_writable_pages.begin(), tmp_writable_pages.end());
+  }
+
+  void Memcheck::save_pre_state() {
+    save_state(tracee(), pre_state);
+#if 0
+    if (pre_tracee) {
+      pre_tracee.kill();
+    }
+    dbi::Status status;
+    syscaller().fork(tracee(), status, pre_tracee);
+#endif
   }
 
   void *Memcheck::stack_begin() {
@@ -325,11 +337,28 @@ namespace memcheck {
     g_conf.log() << "[" << pid << "] forked\n";
 #endif
   }
-
+  
   void Memcheck::kill() {
-    dbi::Tracee& tracee = tracee2();
-    thd_map.erase(tracee.pid());
-    tracee.kill();
+    dbi::Tracee& tracee2 = this->tracee2();
+    const auto pid2 = tracee2.pid(); (void) pid2;
+    thd_map.erase(tracee2.pid());
+    tracee2.kill();
+    
+    // patcher.unsuspend(tracee2);
+#if 1
+    dbi::Status status;
+    const pid_t res = ::waitpid(pid2, &status.status(), 0);
+    assert(res == pid2); (void) res;
+    assert(status.signaled() && status.termsig() == SIGKILL);
+
+    tracee().cont();
+    tracee().wait(status);
+    assert(status.stopped());
+    assert(status.stopsig() == SIGCHLD);
+
+    const auto res2 = syscaller().syscall<pid_t>(tracee(), dbi::Syscall::WAIT4, pid2, nullptr, 0, nullptr);
+    assert(res2 == pid2); (void) res2;
+#endif
   }
   
   void Memcheck::start_round() {
@@ -354,8 +383,8 @@ namespace memcheck {
     // 2: Get writable pages.
     get_writable_pages();
 
-    // 3: Save state.
-    save_state(tracee(), pre_state);
+    // 3: Save state/tracee.
+    save_pre_state();
 
     // 4: Update taint state.
     // TODO: OPTIM

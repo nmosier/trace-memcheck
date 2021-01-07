@@ -113,15 +113,15 @@ namespace dbi {
   }
 
   Tracee::~Tracee(void) {
-    if (fd_ >= 0) {
+    if (good()) {
       close();
     }
   }
 
   void Tracee::close(void) {
     if (::close(fd_) < 0) {
-      std::perror("close");
-      throw std::invalid_argument(strerror(errno));
+	std::perror("close");
+	throw std::invalid_argument(strerror(errno));
     }
     fd_ = -1;
   }
@@ -130,34 +130,18 @@ namespace dbi {
     assert(good());
     assert(stopped());
     
-    auto to = static_cast<char *>(to_);
-    auto from = static_cast<const char *>(from_);
-
-    if (TRACEE_MEMCACHE) {
-      while (count > 0) {
-	const auto from_pageaddr = cache_pagealign(from);
-	const Page& from_page = read_page(from_pageaddr);
-	const auto from_beginidx = from - from_pageaddr;
-	const auto cur_count = std::min<size_t>(from_pageaddr + CACHE_PAGE_SIZE - from, count);
-	std::copy_n(from_page.data.begin() + from_beginidx, cur_count, to);
-	from += cur_count;
-	to += cur_count;
-	count -= cur_count;
-      }
-    } else {
-      const struct iovec local_iov {to_, count};
-      const struct iovec remote_iov {const_cast<void *>(from_), count};
-      const auto bytes_read = ::process_vm_readv(pid(), &local_iov, 1, &remote_iov, 1, 0);
-      if (bytes_read < 0) {
-	std::perror("process_vm_readv");
-	std::fprintf(stderr, "pc = %p\n", (void *) get_pc());
-	g_conf.abort(*this);
-      } else if (bytes_read == 0) {
-	std::cerr << "process_vm_readv: partial read occurred\n";
-	std::abort();
-      }
-      assert(static_cast<size_t>(bytes_read) == count);
+    const struct iovec local_iov {to_, count};
+    const struct iovec remote_iov {const_cast<void *>(from_), count};
+    const auto bytes_read = ::process_vm_readv(pid(), &local_iov, 1, &remote_iov, 1, 0);
+    if (bytes_read < 0) {
+      std::perror("process_vm_readv");
+      std::fprintf(stderr, "pc = %p\n", (void *) get_pc());
+      g_conf.abort(*this);
+    } else if (bytes_read == 0) {
+      std::cerr << "process_vm_readv: partial read occurred\n";
+      std::abort();
     }
+    assert(static_cast<size_t>(bytes_read) == count);
   }
 
   size_t Tracee::iovec_bytes(const struct iovec *iov, size_t count) {
@@ -202,7 +186,7 @@ namespace dbi {
 						   0);
     if (bytes_written < 0) {
       std::perror("process_vm_writev");
-      std::abort();
+      g_conf.abort(*this);
     } else if (static_cast<size_t>(bytes_written) != total_bytes) {
       std::cerr << "process_vm_writev: partial write occurred\n";
       std::abort();
@@ -211,57 +195,19 @@ namespace dbi {
     iovec_check(to_iov, to_count, from_iov, from_count, total_bytes);
   }
   
-
-  void Tracee::readv(const struct iovec *iov, int iovcnt, const void *from) {
-    assert(stopped());
-    const ssize_t bytes_read = preadv(fd(), iov, iovcnt, reinterpret_cast<off_t>(from));
-    const ssize_t expected_bytes = std::accumulate(iov, iov + iovcnt, 0,
-						   [] (const auto acc, const auto& iov) {
-						     return acc + iov.iov_len;
-						   });
-    if (bytes_read != expected_bytes) {
-      abort();
-    }
-  }
-
-  bool Tracee::try_read(void *to, size_t count, const void *from) {
-    assert(stopped());
-    abort(); // TODO
-    
-    const ssize_t bytes_read = pread(fd(), to, count, reinterpret_cast<off_t>(from));
-    return bytes_read >= 0 && static_cast<size_t>(bytes_read) == count;
-  }
-
-  void Tracee::write(const void *from_, size_t count, void *to_) {
+  void Tracee::write(const void *from, size_t count, void *to) {
     assert(good());
     assert(stopped());
-    auto from = static_cast<const char *>(from_);
-    auto to = static_cast<char *>(to_);
-    if (TRACEE_MEMCACHE) {
-      while (count > 0) {
-	const auto to_pageaddr = cache_pagealign(to);
-	const auto cur_count = std::min<size_t>(to_pageaddr + CACHE_PAGE_SIZE - to, count);
-	Page *to_page;
-	if (cur_count == CACHE_PAGE_SIZE) {
-	  to_page = &write_page(to_pageaddr);
-	} else {
-	  to_page = &read_page(to_pageaddr);
-	}
-	const auto to_idx = to - to_pageaddr;
-	std::copy_n(from, cur_count, to_page->data.begin() + to_idx);
-	to_page->dirty = true;
-	from += cur_count;
-	to += cur_count;
-	count -= cur_count;
-      }
-    } else {
-      const ssize_t bytes_written = pwrite(fd(), from, count, (off_t) to);
-      if (bytes_written < 0) {
-	std::perror("pwrite");
-	abort();
-      }
-      assert((size_t) bytes_written == count);    
+
+    const auto bytes_written = ::pwrite(fd(), from, count, reinterpret_cast<off_t>(to));
+    if (bytes_written < 0) {
+      std::perror("pwrite");
+      std::abort();
+    } else if (static_cast<size_t>(bytes_written) != count) {
+      std::fprintf(stderr, "perror: partial write occurred\n");
+      std::abort();
     }
+
   }
 
   void Tracee::writev(const struct iovec *iov, int iovcnt, void *to) {
@@ -627,33 +573,6 @@ namespace dbi {
       os << std::hex << (unsigned) *it;
     }
     return os;
-  }
-
-  Tracee::Page& Tracee::read_page(const void *pageaddr) {
-    std::abort(); // TODO: dones't work with newer version
-    assert(stopped());
-    /* TODO: optimize using preadv */
-    const auto it = memcache_.find(pageaddr);
-    Page *page;
-    if (it == memcache_.end()) {
-      const auto res = memcache_.emplace(pageaddr, Page());
-      assert(res.second);
-      page = &res.first->second;
-      const auto bytes_read =
-	::pread(fd(), page->data.data(), page->data.size(), reinterpret_cast<off_t>(pageaddr));
-      assert(bytes_read == static_cast<ssize_t>(page->data.size())); (void) bytes_read;
-      page->dirty = false;
-    } else {
-      page = &it->second;
-    }
-    return *page;
-  }
-
-  Tracee::Page& Tracee::write_page(const void *pageaddr) {
-    assert(stopped());
-    Page& page = memcache_[pageaddr];
-    page.dirty = true;
-    return page;
   }
 
   void Tracee::flush_memcache() {

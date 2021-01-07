@@ -25,7 +25,11 @@ namespace dbi {
     }
     bool stopped_trap() const { return stopped() && stopsig() == SIGTRAP; }
     enum __ptrace_eventcodes ptrace_event() const {
+#if 0
       assert(stopsig() == SIGTRAP);
+#else
+      assert(stopped());
+#endif
       const auto res = ((status_ >> 8) & ~SIGTRAP) >> 8;
       assert(res >= 0 && res < 8);
       return static_cast<enum __ptrace_eventcodes>(res);
