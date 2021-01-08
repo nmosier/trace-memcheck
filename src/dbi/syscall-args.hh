@@ -32,6 +32,8 @@ namespace dbi {
     template <typename RV>
     RV rv() const { return (RV) rv_; }
 
+    void add_call(const GPRegisters& regs) { regs_ = regs; }
+   
     template <typename... Args>
     void add_call(Args&&... args) { regs_ = GPRegisters(args...); }
   

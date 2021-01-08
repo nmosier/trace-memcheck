@@ -167,7 +167,7 @@ namespace memcheck {
 
   void Memcheck::save_pre_state() {
     save_state(tracee(), pre_state);
-#if 0
+#if 1
     if (pre_tracee) {
       pre_tracee.kill();
     }
@@ -344,8 +344,6 @@ namespace memcheck {
     thd_map.erase(tracee2.pid());
     tracee2.kill();
     
-    // patcher.unsuspend(tracee2);
-#if 1
     dbi::Status status;
     const pid_t res = ::waitpid(pid2, &status.status(), 0);
     assert(res == pid2); (void) res;
@@ -356,9 +354,9 @@ namespace memcheck {
     assert(status.stopped());
     assert(status.stopsig() == SIGCHLD);
 
-    const auto res2 = syscaller().syscall<pid_t>(tracee(), dbi::Syscall::WAIT4, pid2, nullptr, 0, nullptr);
+    const auto res2 = syscaller().syscall<pid_t>(tracee(), dbi::Syscall::WAIT4,
+						 pid2, nullptr, 0, nullptr);
     assert(res2 == pid2); (void) res2;
-#endif
   }
   
   void Memcheck::start_round() {

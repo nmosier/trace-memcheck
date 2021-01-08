@@ -23,9 +23,6 @@ namespace memcheck {
     bool pre();
     void post();
   
-    template <typename... Args>
-    bool operator()(Args&&... args) { return run(args...); }
-  
   private:
     dbi::Tracee& tracee;
     PageSet& page_set;

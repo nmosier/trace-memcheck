@@ -9,6 +9,7 @@ extern "C" {
 #include "flags.hh"
 #include "config.hh"
 #include "log.hh"
+#include "syscall-check2.hh"
 
 namespace memcheck {
 
@@ -276,7 +277,13 @@ namespace memcheck {
       g_conf.log() << loc.first << " " << loc.second << "\n";
       g_conf.abort(tracee);
     }
-    
+
+    SyscallChecker2 syscall_checker2(memcheck.tracee(), memcheck.tracee2(), page_set,
+				     memcheck.stack_begin(), syscall_args, memcheck);
+    if (!syscall_checker2.pre()) {
+      g_conf.log() << "syscall_checker2: bad syscall\n";
+      std::abort();
+    }
   }
 
   bool SyscallTracker_::is_seq_pt(dbi::Syscall no) {

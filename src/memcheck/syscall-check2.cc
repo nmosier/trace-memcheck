@@ -1,4 +1,5 @@
-#include <unordered_map>
+#include <algorithm>
+#include <cassert>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/vfs.h>
@@ -12,29 +13,82 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 
-#include "syscall-check.hh"
+#include "syscall-check2.hh"
 #include "log.hh"
 
 namespace memcheck {
 
-  bool SyscallChecker::check_read(const void *begin, const void *end) const {
-    if (!taint_state.is_zero(begin, end)) {
-      error() << to_string(args.no()) << ": read from tainted memory\n";
-      return false;
+  void IOTransaction::add_buf(void *to, const void *from, size_t size, const char *desc) {
+    this->from.push_back(iovec{const_cast<void *>(from), size});
+    info.emplace_back(to, size, desc);
+    bytes += size;
+  }
+
+  void IOTransaction::add_string(const char *from, const char *desc) {
+    const auto size = tracee1.strlen(from) + 1;
+    add_buf(from, size, desc);
+  }
+  
+  template <typename Func>
+  bool IOTransaction::transfer(Func error) {
+    if (empty()) { return true; }
+    
+    /* get iovecs */
+    IOVec iovec1(size());
+    IOVec iovec2(size());
+    for (size_t i = 0; i < size(); ++i) {
+      iovec1[i] = iovec{static_cast<void *>(info[i].buf1.data()), info[i].buf1.size()};
+      iovec2[i] = iovec{static_cast<void *>(info[i].buf2.data()), info[i].buf2.size()};
     }
+
+    /* read data */
+    tracee1.readv(iovec1.data(), iovec1.size(), from.data(), from.size(), bytes);
+    tracee2.readv(iovec2.data(), iovec2.size(), from.data(), from.size(), bytes);
+
+    /* process data */
+    for (Entry& entry : info) {
+      if (!entry.transfer(error)) {
+	return false;
+      }
+    }
+
     return true;
   }
 
-  bool SyscallChecker::check_read(const char *s) {
-    return check_read(s, tracee.strlen(s) + 1);
+  template <typename Func>
+  bool IOTransaction::Entry::transfer(Func error) {
+    /* get taint */
+    Buf taintbuf(size());
+    std::transform(buf1.begin(), buf1.end(), buf2.begin(), taintbuf.begin(), std::bit_xor<char>());
+
+    const bool taint_is_zero =
+      std::all_of(taintbuf.begin(), taintbuf.end(), [] (char byte) { return byte == 0; });
+    if (!taint_is_zero) {
+      error(desc);
+      return false;
+    }
+    
+    /* copy to destination */
+    if (to != nullptr) {
+      std::copy(buf1.begin(), buf1.end(), static_cast<Buf::value_type *>(to));
+    }
+
+    return true;
+  }
+  
+  bool SyscallChecker2::check_read(IOTransaction& transaction) {
+    return transaction.transfer([&] (const char *desc) {
+      error() << this->args.no() << ": tainted syscall parameter: " << desc << "\n";
+    });
   }
 
-  bool SyscallChecker::check_write(void *begin, void *end) const {
+  bool SyscallChecker2::check_write(void *begin, void *end) const {
     /* unlock buffer */
     dbi::for_each_page(dbi::pagealign(begin), dbi::pagealign_up(end), [this] (const auto pageaddr) {
       const auto page_it = page_set.find(pageaddr);
       if (page_it != page_set.end() && page_set.tier(*page_it) == PageInfo::Tier::RDWR_LOCKED) {
-	page_set.unlock(*page_it, tracee);
+	page_set.unlock(*page_it, tracee1);
+	page_set.unlock(*page_it, tracee2);
       }
     });
   
@@ -47,41 +101,77 @@ namespace memcheck {
     return true;
   }
 
-  bool SyscallChecker::check_write(void *begin, size_t size) const {
+  bool SyscallChecker2::check_write(void *begin, size_t size) const {
     return check_write(begin, static_cast<char *>(begin) + size);
   }
 
-  bool SyscallChecker::pre() {
+
+  bool SyscallChecker2::pre() {
+    const dbi::GPRegisters gpregs1(tracee1.get_gpregs());
+    const dbi::GPRegisters gpregs2(tracee2.get_gpregs());
+    const dbi::GPRegisters taint_gpregs = gpregs1 ^ gpregs2;
+
     /* make sure syscall number not tainted */
-    if (static_cast<int>(taint_state.gpregs().rax())) {
+    if (static_cast<int>(taint_gpregs.rax()) != 0) {
       error() << "tainted system call number\n";
       return false;
     }
+    
+    taint_args.add_call(taint_gpregs);
 
 #define PRE_TAB(name, ...) case dbi::Syscall::name: return pre_##name();
     switch (args.no()) {
       SYSCALLS(PRE_TAB);
-    default: abort();
+    default: std::abort();
     }
 #undef PRE_TAB
   }
 
-#define PRE_DEF_LINE(i, t, n)			\
-  t n = args.arg<i, t>(); (void) n;					
+  void IOTransfer::add_buf(void *remote, size_t size, void *local) {
+    this->remote.emplace_back(iovec{remote, size});
+    if (local == nullptr) {
+      bufs.emplace_back(size);
+      local = bufs.back().data();
+    }
+    this->local.emplace_back(iovec{local, size});
+    bytes += size;
+  }
+
+  void IOTransfer::add_str(char *s) {
+    const auto len = tracee1.strlen(s) + 1;
+    add_buf(s, len);
+  }
+  
+  void IOTransfer::transfer() const {
+    tracee1.readv(local.data(), local.size(), remote.data(), remote.size(), bytes);
+    tracee2.writev(remote.data(), remote.size(), local.data(), local.size(), bytes);
+  }
+
+  void SyscallChecker2::post() {
+#define POST_TAB(name, ...) case dbi::Syscall::name: post_##name(); break;
+    switch (args.no()) {
+      SYSCALLS(POST_TAB);
+    default: std::abort();
+    }
+#undef POST_TAB
+  }
+
+  /*** PRE CHECKS ***/
+  
+#define PRE_DEF_LINE(i, t, n) t n = args.arg<i, t>(); (void) n;					
 #define PRE_DEF2(name, val, rv, argc, t0, n0, t1, n1, t2, n2, t3, n3, t4, n4, t5, n5, ...) \
   PRE_DEF_LINE(0, t0, n0)						\
   PRE_DEF_LINE(1, t1, n1)						\
   PRE_DEF_LINE(2, t2, n2)						\
   PRE_DEF_LINE(3, t3, n3)						\
   PRE_DEF_LINE(4, t4, n4)						\
-  PRE_DEF_LINE(5, t5, n5)
+  PRE_DEF_LINE(5, t5, n5)						
 
   // check arguments
 #define PRE_CHK_LINE(name, argc, i, t, n)				\
   if (i < argc) {							\
     if ((uint64_t) (taint_args.arg<i, t>()) != 0) {			\
       error() << "tainted syscall parameter '"#n"'\n";			\
-      print_regs<i, t>();						\
       return false;							\
     }									\
   }
@@ -95,165 +185,134 @@ namespace memcheck {
 #define PRE_CHK(sys) SYSCALL(PRE_CHK2, SYS_##sys)
 
 
-#define PRE_DEF(sys) SYSCALL(PRE_DEF2, SYS_##sys)
+#define PRE_DEF_BASE(sys) SYSCALL(PRE_DEF2, SYS_##sys)
+#define PRE_DEF(sys) PRE_DEF_BASE(sys); IOTransaction tx = new_transaction(); (void) tx;
 #define PRE_DEF_CHK(sys)			\
   PRE_DEF(sys);					\
   PRE_CHK(sys)
+  
 #define PRE_TRUE(sys)				\
-  bool SyscallChecker::pre_##sys() {		\
+  bool SyscallChecker2::pre_##sys() {		\
     PRE_DEF(sys);				\
     PRE_CHK(sys);				\
     return true;				\
   }
-#define PRE_ABORT(sys) bool SyscallChecker::pre_##sys() { abort(); }
+#define PRE_ABORT(sys) bool SyscallChecker2::pre_##sys() { std::abort(); }
 #define PRE_STUB(sys)							\
-  bool SyscallChecker::pre_##sys() {					\
+  bool SyscallChecker2::pre_##sys() {					\
     PRE_DEF(sys);							\
     PRE_CHK(sys);							\
     log_stub() << args.no() << "\n";					\
     return true;							\
   }
 
-#define PRE_READ_STRING(str)						\
-  do {									\
-    if (!check_read(str)) {						\
-    error() << args.no() << ": string at " << (void *) str		\
-	    << " contains uninitialized characters\n";			\
-    for (const auto& pair : memcheck.thd_map) {				\
-      const State& state = pair.second.state;				\
-	*dbi::g_conf.log << "'" << state.string(str) << "' ";		\
-      }									\
-      *dbi::g_conf.log << "\nstr @ " << (void *) str << ", sp @ "	\
-		       << (void *) tracee.get_sp() << "\n";		\
-      return false;							\
-    }									\
-  } while (0)
-#define PRE_READ_TYPE(name) do { if (!check_read(name, sizeof(*name))) { return false; } } while (0)
-#define PRE_READ_BUF(buf, len) do { if (!check_read(buf, len)) { return false; } } while (0)
-
 #define PRE_WRITE_TYPE(name) do { if (!check_write(name, sizeof(*name))) { return false; } } while (0)
 #define PRE_WRITE_BUF(buf, len) do { if (!check_write(buf, len)) { return false; } } while (0)
 
-  bool SyscallChecker::pre_READ() {
+#define PRE_READ_TYPE(name) do { tx.add_type(name, #name); } while (0)
+#define PRE_READ_TYPE_TO(name, result) do { tx.add_type(result, name, #name); } while (0)
+#define PRE_READ_BUF(buf, len) do { tx.add_buf(buf, len, #buf); } while (0)
+#define PRE_READ_BUF_TO(buf, len, result) do { tx.add_buf(result, buf, len, #buf); } while (0)
+#define PRE_READ_BUF_TO_CONT(buf, cont) do { tx.add_buf(cont, buf, #buf); } while (0)
+#define PRE_READ_STR(name) do { tx.add_string(name, #name); } while (0)
+#define PRE_FLUSH() do { if (!check_read(tx)) { return false; } tx.clear(); } while (0)
+#define PRE_FIN() do { PRE_FLUSH(); return true; } while (0)
+#define PRE_DECL(sys) bool SyscallChecker2::pre_##sys() 
+  
+  /*** PRE SYSCALL DEFS ***/
+
+  PRE_DECL(READ) {
     PRE_DEF_CHK(READ);
     PRE_WRITE_BUF(buf, count);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_WRITE() {
+  PRE_DECL(WRITE) {
     PRE_DEF_CHK(WRITE);
     PRE_READ_BUF(buf, count);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_ACCESS() {
+  PRE_DECL(ACCESS) {
     PRE_DEF_CHK(ACCESS);
-    PRE_READ_STRING(pathname);
-    return true;
+    PRE_READ_STR(pathname);
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_OPEN() {
+  PRE_DECL(OPEN) {
     PRE_DEF_CHK(OPEN);
-    PRE_READ_STRING(filename);
-    return true;
+    PRE_READ_STR(filename);
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_FSTAT() {
+  PRE_DECL(FSTAT) {
     PRE_DEF_CHK(FSTAT);
     PRE_WRITE_TYPE(buf);
-    *dbi::g_conf.log << "FSTAT(" << (void *) buf << ")\n";
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_RT_SIGACTION() {
-    PRE_DEF_CHK(RT_SIGACTION);
-
-    if (act != nullptr) {
-      PRE_READ_TYPE(&act->sa_mask);
-      PRE_READ_TYPE(&act->sa_flags);
-
-      int flags;
-      read_struct(&act->sa_flags, flags);
-      
-      if ((flags & SA_SIGINFO)) {
-	PRE_READ_TYPE(&act->sa_sigaction);
-      } else {
-	PRE_READ_TYPE(&act->sa_handler);
-      }
-    }
-
-    if (oldact != nullptr) {
-      PRE_WRITE_TYPE(oldact);
-    }
-  
-    return true;
-  }
-
-  bool SyscallChecker::pre_CLOCK_GETTIME() {
+  PRE_DECL(CLOCK_GETTIME) {
     PRE_DEF_CHK(CLOCK_GETTIME);
     PRE_WRITE_TYPE(tp);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_STAT() {
+  PRE_DECL(STAT) {
     PRE_DEF_CHK(STAT);
-    PRE_READ_STRING(pathname);
+    PRE_READ_STR(pathname);
     PRE_WRITE_TYPE(buf);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_LSTAT() {
+  PRE_DECL(LSTAT) {
     PRE_DEF_CHK(LSTAT);
-    PRE_READ_STRING(pathname);
+    PRE_READ_STR(pathname);
     PRE_WRITE_TYPE(buf);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_FACCESSAT() {
+  PRE_DECL(FACCESSAT) {
     PRE_DEF_CHK(FACCESSAT);
-    PRE_READ_STRING(pathname);
-    return true;
+    PRE_READ_STR(pathname);
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_GETDENTS() {
+  PRE_DECL(GETDENTS) {
     PRE_DEF_CHK(GETDENTS);
     PRE_WRITE_BUF(dirp, count);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_LGETXATTR() {
+  PRE_DECL(LGETXATTR) {
     PRE_DEF_CHK(LGETXATTR);
-    PRE_READ_STRING(pathname);
-    PRE_READ_STRING(name);
+    PRE_READ_STR(pathname);
+    PRE_READ_STR(name);
     PRE_WRITE_BUF(value, size);
-    return true;
+    PRE_FIN();
   }
 
-  // TODO: have better way of handling families of these
-  bool SyscallChecker::pre_GETXATTR() {
+  PRE_DECL(GETXATTR) {
     PRE_DEF_CHK(GETXATTR);
-    PRE_READ_STRING(pathname);
-    PRE_READ_STRING(name);
+    PRE_READ_STR(pathname);
+    PRE_READ_STR(name);
     PRE_WRITE_BUF(value, size);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_CONNECT() {
+  PRE_DECL(CONNECT) {
     PRE_DEF_CHK(CONNECT);
-    PRE_READ_TYPE(&addr->sa_family);
-  
-  
-    // TODO OPTIM: Faster to just get SA_FAMILY field
+
     sa_family_t sa_family;
-    read_struct(&addr->sa_family, sa_family);
+    PRE_READ_TYPE_TO(&addr->sa_family, sa_family);
+    PRE_FLUSH();
+
     switch (sa_family) {
     case AF_LOCAL:
-      // case AF_UNIX:
       {
 	// TODO: Correctness -- clamp to size
 	const auto sun = reinterpret_cast<const struct sockaddr_un *>(addr);
 	const auto sun_path = reinterpret_cast<const char *>(&sun->sun_path);
-	PRE_READ_STRING(sun_path);
+	PRE_READ_STR(sun_path);
       }
       break;
 
@@ -265,130 +324,114 @@ namespace memcheck {
       break;
     
     default:
-      std::cerr << "SyscallChecker::pre_CONNECT: unkown sa_family " << sa_family << "\n";
-      abort();
+      std::abort();
     }
 
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_SENDTO() {
+  PRE_DECL(SENDTO) {
     PRE_DEF_CHK(SENDTO);
     PRE_READ_BUF(buf, len);
     PRE_READ_BUF(dest_addr, addrlen);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_POLL() {
+  PRE_DECL(POLL) {
     PRE_DEF_CHK(POLL);
-    /* read only some fields in the array */
     for (nfds_t i = 0; i < nfds; ++i) {
       PRE_READ_TYPE(&fds[i].fd);
       PRE_READ_TYPE(&fds[i].events);
       PRE_WRITE_TYPE(&fds[i].revents);
     }
-
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_RECVMSG() {
+  PRE_DECL(RECVMSG) {
     PRE_DEF_CHK(RECVMSG);
-    PRE_READ_TYPE(msg);
     struct msghdr msg_;
-    read_struct(msg, msg_);
-
+    PRE_READ_TYPE_TO(msg, msg_);
+    PRE_FLUSH();
     if (msg_.msg_name != nullptr) {
       PRE_WRITE_BUF(msg_.msg_name, msg_.msg_namelen);
     }
+    
+    std::vector<struct iovec> iov(msg_.msg_iovlen);
+    PRE_READ_BUF_TO_CONT(&msg_.msg_iov[0], iov);
+    PRE_FLUSH();
 
-    for (size_t i = 0; i < msg_.msg_iovlen; ++i) {
-      const auto iov_ptr = &msg_.msg_iov[i];
-      PRE_READ_TYPE(iov_ptr);
-      struct iovec iov;
-      read_struct(iov_ptr, iov);
-      PRE_WRITE_BUF(iov.iov_base, iov.iov_len);
+    for (const struct iovec& entry : iov) {
+      PRE_WRITE_BUF(entry.iov_base, entry.iov_len);
     }
-  
-    PRE_WRITE_BUF(msg_.msg_control, msg_.msg_controllen);
-
-    return true;
+    
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_GETRUSAGE() {
+  PRE_DECL(GETRUSAGE) {
     PRE_DEF_CHK(GETRUSAGE);
     PRE_WRITE_TYPE(usage);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_UNAME() {
+  PRE_DECL(UNAME) {
     PRE_DEF_CHK(UNAME);
     PRE_WRITE_TYPE(buf);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_SETSOCKOPT() {
+  PRE_DECL(SETSOCKOPT) {
     PRE_DEF_CHK(SETSOCKOPT);
     PRE_READ_BUF(optval, optlen);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_GETPEERNAME() {
+  PRE_DECL(GETPEERNAME) {
     PRE_DEF_CHK(GETPEERNAME);
-    PRE_READ_TYPE(addrlen);
+    socklen_t addrlen_;
+    PRE_READ_TYPE_TO(addrlen, addrlen_);
+    PRE_FLUSH();
     PRE_WRITE_TYPE(addrlen);
-    int addrlen_;
-    read_struct(addrlen, addrlen_);
     PRE_WRITE_BUF(addr, addrlen_);
-    return true;
+    PRE_FIN();
   }
 
-  // TODO: Merge with above
-  bool SyscallChecker::pre_GETSOCKNAME() {
+  PRE_DECL(GETSOCKNAME) {
     PRE_DEF_CHK(GETSOCKNAME);
-    PRE_READ_TYPE(addrlen);
+    socklen_t addrlen_;
+    PRE_READ_TYPE_TO(addrlen, addrlen_);
+    PRE_FLUSH();
     PRE_WRITE_TYPE(addrlen);
-    int addrlen_;
-    read_struct(addrlen, addrlen_);
     PRE_WRITE_BUF(addr, addrlen_);
-    return true;
+    PRE_FIN();
   }
-
-  bool SyscallChecker::pre_RT_SIGPROCMASK() {
-    PRE_DEF_CHK(RT_SIGPROCMASK);
-    PRE_READ_TYPE(set);
-    if (oldset != nullptr) {
-      PRE_WRITE_TYPE(oldset);
-    }
-    return true;
-  }
-
-  bool SyscallChecker::pre_GETRLIMIT() {
+  
+  PRE_DECL(GETRLIMIT) {
     PRE_DEF_CHK(GETRLIMIT);
     PRE_WRITE_TYPE(rlim);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_STATFS() {
+  PRE_DECL(STATFS) {
     PRE_DEF_CHK(STATFS);
-    PRE_READ_STRING(path);
+    PRE_READ_STR(path);
     PRE_WRITE_TYPE(buf);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_SETRLIMIT() {
+  PRE_DECL(SETRLIMIT) {
     PRE_DEF_CHK(SETRLIMIT);
     PRE_READ_TYPE(rlim);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_READLINK() {
+  PRE_DECL(READLINK) {
     PRE_DEF_CHK(READLINK);
-    PRE_READ_STRING(pathname);
+    PRE_READ_STR(pathname);
     PRE_WRITE_BUF(buf, bufsiz);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_IOCTL() {
+  PRE_DECL(IOCTL) {
     PRE_DEF_CHK(IOCTL);
     switch (request) {
     case TCGETS:
@@ -413,67 +456,93 @@ namespace memcheck {
       break;
       
     default:
-      abort();
+      std::abort();
     }
 
-    return true;
+    PRE_FIN();
   }
-
-  bool SyscallChecker::pre_FUTEX() {
+  
+  PRE_DECL(FUTEX) {
     PRE_DEF_CHK(FUTEX);
     constexpr int ignoremask = FUTEX_PRIVATE_FLAG; // TODO: unite w/ other def
     switch (futex_op & ~ignoremask) {
     case FUTEX_WAKE:
       break;
     default:
-      abort();
+      std::abort();
     }
-    return true;
+    PRE_FIN();
   }
-  
-  bool SyscallChecker::pre_PIPE() {
+
+  PRE_DECL(PIPE) {
     PRE_DEF_CHK(PIPE);
     PRE_WRITE_BUF(pipefd, sizeof(*pipefd) * 2);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_SET_TID_ADDRESS() {
+  PRE_DECL(SET_TID_ADDRESS) {
     PRE_DEF_CHK(SET_TID_ADDRESS);
     PRE_WRITE_TYPE(tidptr);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_SET_ROBUST_LIST() {
+  PRE_DECL(SET_ROBUST_LIST) {
     PRE_DEF_CHK(SET_ROBUST_LIST);
     PRE_WRITE_TYPE(head);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_GETTIMEOFDAY() {
+  PRE_DECL(GETTIMEOFDAY) {
     PRE_DEF_CHK(GETTIMEOFDAY);
     PRE_WRITE_TYPE(tv);
     PRE_WRITE_TYPE(tz);
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_TIME() {
+  PRE_DECL(TIME) {
     PRE_DEF_CHK(TIME);
     if (tloc != nullptr) {
       PRE_WRITE_TYPE(tloc);
     }
-    return true;
+    PRE_FIN();
   }
 
-  bool SyscallChecker::pre_WRITEV() {
+  PRE_DECL(WRITEV) {
     PRE_DEF_CHK(WRITEV);
-    for (auto i = 0UL; i < iovcnt; ++i) {
-      PRE_READ_TYPE(&iov[i]);
-      struct iovec cur_iov;
-      read_struct(&iov[i], cur_iov);
-      PRE_READ_BUF(cur_iov.iov_base, cur_iov.iov_len);
+
+    std::vector<struct iovec> iovec(iovcnt);
+    PRE_READ_BUF_TO_CONT(iov, iovec);
+    PRE_FLUSH();
+
+    for (const struct iovec& entry : iovec) {
+      PRE_READ_BUF(entry.iov_base, entry.iov_len);
     }
-    return true;
+    PRE_FIN();
   }
+
+  PRE_DECL(RT_SIGACTION) {
+    PRE_DEF_CHK(RT_SIGACTION);
+
+    if (act != nullptr) {
+      PRE_READ_TYPE(&act->sa_mask);
+      int flags;
+      PRE_READ_TYPE_TO(&act->sa_flags, flags);
+      PRE_FLUSH();
+      
+      if ((flags & SA_SIGINFO)) {
+	PRE_READ_TYPE(&act->sa_sigaction);
+      } else {
+	PRE_READ_TYPE(&act->sa_handler);
+      }
+    }
+
+    if (oldact != nullptr) {
+      PRE_WRITE_TYPE(oldact);
+    }
+
+    PRE_FIN();
+  }
+  
 
   PRE_TRUE(MMAP)
   PRE_TRUE(CLOSE)
@@ -499,132 +568,123 @@ namespace memcheck {
   PRE_ABORT(MREMAP)
   PRE_ABORT(FORK)
   PRE_ABORT(WAIT4)
+  PRE_ABORT(RT_SIGPROCMASK)
 
-  void SyscallChecker::do_write(void *begin, void *end) {
-    taint_state.fill(begin, end, 0);
-  }
 
-  void SyscallChecker::do_write(void *begin, size_t size) {
-    taint_state.fill(begin, static_cast<char *>(begin) + size, 0);
-  }
-
-  void SyscallChecker::do_write(char *str) {
-    const auto len = tracee.strlen(str);
-    do_write(str, len + 1);
-  }
-
-  void SyscallChecker::post() {
-#define POST_TAB(name, ...) case dbi::Syscall::name: post_##name(); break;
-    switch (args.no()) {
-      SYSCALLS(POST_TAB);
-    }
-#undef POST_TAB
-
-    /* mark RAX as untainted */
-    taint_state.gpregs().rax() = 0;
-  }
-
+  /*** POST SYSCALLS ***/
 #define POST_DEF2(name, val, rv_t, ...)		\
   rv_t rv = args.rv<rv_t>();			\
   (void) rv;
-#define POST_DEF(sys) PRE_DEF(sys); SYSCALL(POST_DEF2, SYS_##sys);
-
-#define POST_ABORT(sys) void SyscallChecker::post_##sys() { abort(); }
-#define POST_STUB(sys)					\
-  void SyscallChecker::post_##sys() {			\
-    log_stub() << #sys << "\n";				\
-  }
-#define POST_TRUE(sys) void SyscallChecker::post_##sys() {}
-#define POST_WRITE_TYPE(name) do_write(name, sizeof(*name))
-#define POST_WRITE_BUF(buf, len) do_write(buf, len)
-#define POST_WRITE_STRING(str) do_write(str)
+#define POST_DEF(sys)							\
+  PRE_DEF_BASE(sys);							\
+  SYSCALL(POST_DEF2, SYS_##sys);					\
+  auto tx = new_write_group(); 
+#define POST_DECL(sys) void SyscallChecker2::post_##sys()
+#define POST_ABORT(sys) POST_DECL(sys) { std::abort(); }
+#define POST_STUB(sys)	POST_DECL(sys) { log_stub() << #sys << "\n"; }
+#define POST_TRUE(sys) POST_DECL(sys) {}
+#define POST_WRITE_TYPE(name) tx.add_type(name)
+#define POST_WRITE_TYPE_TO(name, result) tx.add_type(name, result)
+#define POST_WRITE_BUF(buf, len) tx.add_buf(buf, len)
+#define POST_WRITE_BUF_TO(buf, len, result) tx.add_buf(buf, len, result)
+#define POST_WRITE_BUF_TO_CONT(buf, cont) tx.add_buf(buf, cont)
+#define POST_WRITE_STR(name) 
+#define POST_FLUSH()				\
+  do {						\
+    tx.transfer();				\
+    tx.clear();					\
+  } while (0)
+#define POST_FIN() POST_FLUSH()
 
 #define POST_STAT(sys)				\
-  void SyscallChecker::post_##sys() {		\
+  POST_DECL(sys) {				\
     POST_DEF(sys);				\
     if (rv >= 0) {				\
       POST_WRITE_TYPE(buf);			\
     }						\
+    POST_FIN();					\
   }
 
 #define POST_GETXATTR(sys)			\
-  void SyscallChecker::post_##sys() {		\
+  POST_DECL(sys) {				\
     POST_DEF(sys);				\
     if (rv >= 0) {				\
       assert(static_cast<size_t>(rv) <= size);	\
       POST_WRITE_BUF(value, rv);		\
     }						\
+    POST_FIN();					\
   }
 
   // for getpeername, getsockname
 #define POST_GETNAME(sys)			\
-  void SyscallChecker::post_##sys() {		\
+  POST_DECL(sys) {				\
     POST_DEF(sys);				\
     if (rv >= 0) {				\
-      POST_WRITE_TYPE(addrlen);			\
       socklen_t addrlen_val;			\
-      read_struct(addrlen, addrlen_val);	\
+      POST_WRITE_TYPE_TO(addrlen, addrlen_val);	\
+      POST_FLUSH();				\
       POST_WRITE_BUF(addr, addrlen_val);	\
     }						\
+    POST_FIN();					\
   }
 
-  void SyscallChecker::post_GETDENTS() {
+  POST_DECL(GETDENTS) {
     POST_DEF(GETDENTS);
     if (rv > 0) {
       assert(static_cast<unsigned>(rv) <= count);
       POST_WRITE_BUF(dirp, rv);
     }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_READ() {
+  POST_DECL(READ) {
     POST_DEF(READ);
     if (rv >= 0) { POST_WRITE_BUF(buf, rv); }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_POLL() {
+  POST_DECL(POLL) {
     POST_DEF(POLL);
     if (rv > 0) {
       for (nfds_t i = 0; i < nfds; ++i) {
 	POST_WRITE_TYPE(&fds[i].revents);
       }
     }
+    POST_FIN();
   }
-
-  void SyscallChecker::post_GETRUSAGE() {
+  
+  POST_DECL(GETRUSAGE) {
     POST_DEF(GETRUSAGE);
     if (rv >= 0) { POST_WRITE_TYPE(usage); }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_RT_SIGACTION() {
-    POST_DEF(RT_SIGACTION);
-    if (rv >= 0) {
-      if (oldact != nullptr) { POST_WRITE_TYPE(oldact); }
-    }
-  }
-
-  void SyscallChecker::post_UNAME() {
+  POST_DECL(UNAME) {
     POST_DEF(UNAME);
     if (rv >= 0) {
-      POST_WRITE_STRING(buf->sysname);
-      POST_WRITE_STRING(buf->nodename);
-      POST_WRITE_STRING(buf->release);
-      POST_WRITE_STRING(buf->version);
-      POST_WRITE_STRING(buf->machine);
-      POST_WRITE_STRING(buf->domainname);
+      POST_WRITE_STR(buf->sysname);
+      POST_WRITE_STR(buf->nodename);
+      POST_WRITE_STR(buf->release);
+      POST_WRITE_STR(buf->version);
+      POST_WRITE_STR(buf->machine);
+      POST_WRITE_STR(buf->domainname);
     }
+    POST_FIN();
   }
-
-  void SyscallChecker::post_GETRLIMIT() {
+  
+  POST_DECL(GETRLIMIT) {
     POST_DEF(GETRLIMIT);
     if (rv >= 0) { POST_WRITE_TYPE(rlim); }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_READLINK() {
+  POST_DECL(READLINK) {
     POST_DEF(READLINK);
     if (rv >= 0) { POST_WRITE_BUF(buf, rv); }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_IOCTL() {
+  POST_DECL(IOCTL) {
     POST_DEF(IOCTL);
     if (rv >= 0) {
       switch (request) {
@@ -647,12 +707,13 @@ namespace memcheck {
 	}
 	break;
       default:
-	abort();
+	std::abort();
       }
     }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_FUTEX() {
+  POST_DECL(FUTEX) {
     POST_DEF(FUTEX);
     if (rv >= 0) {
       constexpr uint32_t ignoremask = FUTEX_PRIVATE_FLAG;
@@ -660,83 +721,108 @@ namespace memcheck {
       case FUTEX_WAKE:
 	break;
       default:
-	abort();
+	std::abort();
       }
     }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_PIPE() {
+  POST_DECL(PIPE) {
     POST_DEF(PIPE);
     if (rv >= 0) {
       POST_WRITE_BUF(pipefd, sizeof(*pipefd) * 2);
     }
+    POST_FIN();
   }
-
-  void SyscallChecker::post_CLOCK_GETTIME() {
+  
+  POST_DECL(CLOCK_GETTIME) {
     POST_DEF(CLOCK_GETTIME);
     if (rv >= 0) {
       POST_WRITE_TYPE(tp);
     }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_SET_TID_ADDRESS() {
+  POST_DECL(SET_TID_ADDRESS) {
     POST_DEF(SET_TID_ADDRESS);
     POST_WRITE_TYPE(tidptr);
+    POST_FIN();
   }
 
-  void SyscallChecker::post_SET_ROBUST_LIST() {
+  POST_DECL(SET_ROBUST_LIST) {
     POST_DEF(SET_ROBUST_LIST);
     if (rv == 0) {
       POST_WRITE_TYPE(head);
     }
+    POST_FIN();
   }
-
-  void SyscallChecker::post_RT_SIGPROCMASK() {
+  
+  POST_DECL(RT_SIGPROCMASK) {
     POST_DEF(RT_SIGPROCMASK);
     if (rv >= 0) {
       POST_WRITE_TYPE(oldset);
     }
+    POST_FIN();
   }
-
-  void SyscallChecker::post_GETTIMEOFDAY() {
+  
+  POST_DECL(GETTIMEOFDAY) {
     POST_DEF(GETTIMEOFDAY);
     if (rv >= 0) {
       POST_WRITE_TYPE(tv);
       POST_WRITE_TYPE(tz);
     }
+    POST_FIN();
   }
 
-  void SyscallChecker::post_TIME() {
+  POST_DECL(TIME) {
     POST_DEF(TIME);
     if (rv >= 0) {
       if (tloc != nullptr) {
 	POST_WRITE_TYPE(tloc);
       }
     }
+    POST_FIN();
   }
-
-  void SyscallChecker::post_RECVMSG() {
+  
+  POST_DECL(RECVMSG) {
     POST_DEF(RECVMSG);
     if (rv >= 0) {
+      /* TODO: msghdr isn't actually written, so this is a minsomer -- fix? */
       struct msghdr msg_;
-      read_struct(msg, msg_);
-
+      POST_WRITE_TYPE_TO(msg, msg_);
+      POST_FLUSH();
       if (msg_.msg_name != nullptr) {
 	POST_WRITE_BUF(msg_.msg_name, msg_.msg_namelen);
       }
 
+      const auto iovlen = msg_.msg_iovlen;
+      std::vector<struct iovec> iovs(iovlen);
       for (size_t i = 0; i < msg_.msg_iovlen; ++i) {
+	// TODO: iovec isn't actually written. FIX
 	const auto iov_ptr = &msg_.msg_iov[i];
-	struct iovec iov;
-	read_struct(iov_ptr, iov);
+	POST_WRITE_TYPE_TO(iov_ptr, iovs[i]);
+      }
+      POST_FLUSH();
+
+      for (const struct iovec& iov : iovs) {
 	POST_WRITE_BUF(iov.iov_base, iov.iov_len);
       }
 
       POST_WRITE_BUF(msg_.msg_control, msg_.msg_controllen);
     }
-  
+    POST_FIN();
   }
 
+  POST_DECL(RT_SIGACTION) {
+    POST_DEF(RT_SIGACTION);
+    if (rv >= 0) {
+      if (oldact != nullptr) {
+	POST_WRITE_TYPE(oldact);
+      }
+    }
+  }
+  
+  
   POST_TRUE(OPEN)
   POST_TRUE(CLOSE)
   POST_TRUE(MMAP)
@@ -781,5 +867,5 @@ namespace memcheck {
   POST_ABORT(TGKILL)
   POST_ABORT(FORK)
   POST_ABORT(WAIT4)
-
+  
 }

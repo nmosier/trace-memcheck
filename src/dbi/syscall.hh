@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sys/time.h>
+#include <sys/socket.h>
 
 namespace dbi {
 
@@ -56,8 +57,8 @@ namespace dbi {
 #define SYS_GETRUSAGE GETRUSAGE, 98, int, 2, int, who, struct rusage *, usage,
 #define SYS_UNAME UNAME, 63, int, 1, struct utsname *, buf,
 #define SYS_SETSOCKOPT SETSOCKOPT, 54, int, 5, int, sockfd, int, level, int, optname, char *, optval, int, optlen,
-#define SYS_GETPEERNAME GETPEERNAME, 52, int, 3, int, sockfd, struct sockaddr *, addr, int *, addrlen,
-#define SYS_GETSOCKNAME GETSOCKNAME, 51, int, 3, int, sockfd, struct sockaddr *, addr, int *, addrlen,
+#define SYS_GETPEERNAME GETPEERNAME, 52, int, 3, int, sockfd, struct sockaddr *, addr, socklen_t *, addrlen,
+#define SYS_GETSOCKNAME GETSOCKNAME, 51, int, 3, int, sockfd, struct sockaddr *, addr, socklen_t *, addrlen,
 #define SYS_GETTID GETTID, 186, pid_t, 0,
 #define SYS_TGKILL TGKILL, 234, int, 3, pid_t, tgid, pid_t, pid, int, sig,
 #define SYS_FADVISE64 FADVISE64, 221, int, 4, int, fd, off_t, offset, size_t, len, int, advice,
@@ -174,7 +175,15 @@ namespace std {
   };
 }
 
-namespace dbi {
+  struct linux_dirent {
+    long           d_ino;
+    off_t          d_off;
+    unsigned short d_reclen;
+    char          *d_name;
+  };
+
+
+namespace dbi {  
 
   // test
 #if 1

@@ -9,6 +9,7 @@ add_executable(memcheck
   snapshot.cc
   state.cc
   syscall-check.cc
+  syscall-check2.cc
   tracker.cc
   vars.cc
   $<TARGET_OBJECTS:dbi>

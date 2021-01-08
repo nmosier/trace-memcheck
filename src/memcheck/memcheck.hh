@@ -125,6 +125,7 @@ namespace memcheck {
     }
     
     friend class SyscallChecker; // TEMPORARY
+    friend class SyscallTracker_;
     friend class SharedMemSeqPt; // TEMPORARY
   };
 
