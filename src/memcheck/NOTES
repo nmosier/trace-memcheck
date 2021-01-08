@@ -88,3 +88,8 @@ Problem: need to have other tracee wait for exited process. This will likely res
 
 ----
 
+System Call Sequence Point Modes
+
+DUP -- no checker post() required.
+SIM -- checker post() simulates system call given results of canonical system call
+SEQ -- no post() called

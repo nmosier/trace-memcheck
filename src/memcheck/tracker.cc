@@ -267,22 +267,12 @@ namespace memcheck {
   }
 
   void SyscallTracker_::check(dbi::Tracee& tracee) {
-    /* make sure args to syscall aren't tainted */
-    SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
-				   syscall_args, memcheck);
-    
-    if (!syscall_checker.pre()) {
-      /* DEBUG: Translate */
-      const auto loc = memcheck.orig_loc(tracee.get_pc());
-      g_conf.log() << loc.first << " " << loc.second << "\n";
-      g_conf.abort(tracee);
-    }
-
     SyscallChecker2 syscall_checker2(memcheck.tracee(), memcheck.tracee2(), page_set,
 				     memcheck.stack_begin(), syscall_args, memcheck);
     if (!syscall_checker2.pre()) {
-      g_conf.log() << "syscall_checker2: bad syscall\n";
-      std::abort();
+      const auto loc = memcheck.orig_loc(tracee.get_pc());
+      g_conf.log() << loc.first << " " << loc.second << "\n";
+      g_conf.abort(tracee);
     }
   }
 

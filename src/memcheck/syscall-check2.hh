@@ -167,7 +167,14 @@ namespace memcheck {
 #define SYSCALLS_CHECK_POST_DECL(name, ...) void post_##name();
     SYSCALLS(SYSCALLS_CHECK_POST_DECL)
 #undef SYSCALLS_CHECK_POST_DECL
-    
+
+    enum class Mode {
+      DUP, // this system call can be duplicated across threads
+      SIM, // this system call can be simuated using writes (i.e. effects only in memory)
+      SEQ, // this system call cannot be duplicated or simulated, so treat it as full seq. pt.
+    };
+    static Mode mode(dbi::Syscall sys);
+    Mode mode() const { return mode(args.no()); }
   };
 
 
