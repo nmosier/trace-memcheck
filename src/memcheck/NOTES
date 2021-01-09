@@ -93,3 +93,22 @@ System Call Sequence Point Modes
 DUP -- no checker post() required.
 SIM -- checker post() simulates system call given results of canonical system call
 SEQ -- no post() called
+
+----
+
+Rather than having two breakpoints (pre and post), just use one before system call and then
+single-step.
+
+So sequence points would look like the following:
+(1) Memcheck::stop_round()
+(2) Memcheck::check_round() -> seq_pt::check()
+(3)
+
+---
+
+Memcheck Sequence Point API:
+- check() -- check for taint, etc.
+- step() -- step through sequence point, i.e. 'syscall' or 'lock ...'.
+
+Also need to return whether to respawn thread or not. This could be the return value of step() -- bool of whether shadow thread is dirty.
+

@@ -160,6 +160,10 @@ namespace memcheck {
     bool check_write(void *begin, void *end) const;
     bool check_write(void *begin, size_t size) const;
 
+    void post_DUP();
+    void post_SIM();
+    void post_SEQ();
+
 #define SYSCALLS_CHECK_PRE_DECL(name, ...) bool pre_##name();
     SYSCALLS(SYSCALLS_CHECK_PRE_DECL)
 #undef SYSCALLS_CHECK_PRE_DECL

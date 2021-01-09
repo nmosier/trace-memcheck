@@ -61,6 +61,7 @@ namespace dbi {
 	return nullptr; // rv shouldn't matter
       }
 
+#if 0
       const bool is_syscall = (inst->xed_iclass() == XED_ICLASS_SYSCALL);
     
       /* if is syscall, add breakpoint for checking maps */
@@ -69,6 +70,8 @@ namespace dbi {
 	append(syscall_pre_bkpt);
 	rb(syscall_pre_bkpt.pc(), syscall_pre);
       }
+#endif
+      
 
       /* relocate */
       if (inst->pc() != newit) {
@@ -83,11 +86,13 @@ namespace dbi {
       /* write instruction */
       append(*inst);
 
+#if 0
       if (is_syscall) {
 	auto syscall_post_bkpt = Instruction::int3(newit);
 	append(syscall_post_bkpt);
 	rb(syscall_post_bkpt.pc(), syscall_post);
       }
+#endif
     
       return newit;
     };

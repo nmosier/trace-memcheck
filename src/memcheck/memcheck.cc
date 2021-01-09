@@ -477,8 +477,15 @@ namespace memcheck {
     stop_round();
     
     check_round(seq_pt);
+
+    // TODO: Check sequence point on whether to kill thread
     kill(); // kill 2nd thread
     patcher.unsuspend(this->tracee());
+
+    seq_pt.step(this->tracee());
+    seq_pt.post(this->tracee());
+
+    start_round();
 
     return true;
   }

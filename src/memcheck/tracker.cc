@@ -275,8 +275,25 @@ namespace memcheck {
       g_conf.abort(tracee);
     }
   }
+  
+  void SequencePoint_Defaults::step(dbi::Tracee& tracee) {
+    tracee.singlestep();
+    const auto status = tracee.wait();
+    assert(status.stopped_trap()); (void) status;
+  }
+
+  void SyscallTracker_::step(dbi::Tracee& tracee) {
+    switch (syscall_args.no()) {
+    case dbi::Syscall::EXIT_GROUP:
+      break;
+    default:
+      SequencePoint_Defaults::step(tracee);
+      break;
+    }
+  }
 
   bool SyscallTracker_::is_seq_pt(dbi::Syscall no) {
+#if 0
     switch (no) {
     case dbi::Syscall::FSTAT:
     case dbi::Syscall::POLL:
@@ -284,9 +301,12 @@ namespace memcheck {
     default:
       return true;
     }
+#else
+    return true;
+#endif
   }
 
-  bool SyscallTracker_::handler_post(dbi::Tracee& tracee, uint8_t *addr) {
+  bool SyscallTracker_::post(dbi::Tracee& tracee) {
     if (!is_seq_pt(syscall_args.no())) {
       return false;
     }
@@ -438,11 +458,7 @@ namespace memcheck {
     }
   }
 
-  void SharedMemSeqPt::check(dbi::Tracee& tracee) {
-    const auto inst = dbi::Instruction(tracee.get_pc(), tracee);
-    const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
-    const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
-
+  void SharedMemSeqPt::step(dbi::Tracee& tracee) {
     const auto aligned_fault = dbi::pagealign(tracee.get_siginfo().si_addr);
     g_conf.log() << "aligned_fault = " << aligned_fault << "\n";
     if (sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_READ)
@@ -450,17 +466,23 @@ namespace memcheck {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
     }
-
+    
     tracee.singlestep();
     dbi::Status status;
     tracee.wait(status);
-
+    
     tracee.assert_stopsig(status, SIGTRAP); (void) status;
   
     const auto res =
       sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
-  
+  }
+
+  void SharedMemSeqPt::check(dbi::Tracee& tracee) {
+    const auto inst = dbi::Instruction(tracee.get_pc(), tracee);
+    const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
+    const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
+
     (void) mem_written;
     (void) mem_read;
 
@@ -558,10 +580,10 @@ namespace memcheck {
     
     default:
       std::cerr << inst.xed_iform_str() << "\n";
-      abort();    
+      std::abort();    
     }
 
-    // memcheck.start_round();
+    step(tracee);
   }
 
 }

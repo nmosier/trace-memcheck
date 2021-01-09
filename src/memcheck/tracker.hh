@@ -271,33 +271,6 @@ namespace memcheck {
     ThreadMap& thd_map;
   };
 
-  class SequencePoint {
-  public:
-    SequencePoint(State& taint_state, const BkptCallback& pre_callback,
-		  const BkptCallback& post_callback):
-      taint_state(taint_state), pre_callback(pre_callback), post_callback(post_callback) {}
-    
-  protected:
-    State& taint_state;
-    BkptCallback pre_callback;
-    BkptCallback post_callback;
-
-    template <typename Func>
-    void add_pre(uint8_t *addr, const TransformerInfo& info, Func func) {
-      info.rb(addr, [this, func] (auto&&... args) {
-	func(args...);
-	pre_callback(args...);
-      });
-    }
-
-    template <typename Func>
-    void add_post(uint8_t *addr, const TransformerInfo& info, Func func) {
-      info.rb(addr, [this, func] (auto&&... args) {
-	func(args...);
-	post_callback(args...);
-      });
-    }
-  };
 
   /* Required interface of Base:
    *  bool match();
@@ -329,7 +302,8 @@ namespace memcheck {
 	});
       
 	addr = info.writer(inst);
-      
+
+#if 0
 	auto post_bkpt = dbi::Instruction::int3(addr);
 	addr = info.writer(post_bkpt);
 	info.rb(post_bkpt.pc(), [this] (auto&&... args) {
@@ -337,7 +311,7 @@ namespace memcheck {
 	    post_callback(args...);
 	  }
 	});
-
+#endif
 	
       }
       
@@ -350,9 +324,18 @@ namespace memcheck {
   };
 
   class SequencePoint_Defaults {
+  public:
+    /** @return Whether secondary tracee should be killed & reforked */
+    bool kill() { return true; }
+
+    /** Single-step through sequence point instruction (kill() called before this) */
+    void step(dbi::Tracee& tracee);
+
+    /** After single step and regeneration */
+    void post(dbi::Tracee& tracee) {}
+    
   protected:
     bool handler_pre(dbi::Tracee& tracee, uint8_t *addr) { return true; }
-    bool handler_post(dbi::Tracee& tracee, uint8_t *addr) { return true; }
   };
 
   class StackTracker_Pre_Incore_Base: public TrackerHalfIncore_Base {
@@ -498,7 +481,7 @@ namespace memcheck {
 
   using StackTracker = Tracker_<IncoreTracker_<AddBkpt_<StackTracker_>>>;
 
-  class SyscallTracker_ {
+  class SyscallTracker_: public SequencePoint_Defaults {
   public:
     SyscallTracker_(State& taint_state, PageSet& page_set, dbi::SyscallArgs& syscall_args,
 		    Memcheck& memcheck):
@@ -509,7 +492,6 @@ namespace memcheck {
     {}
 
     void init(const Syscaller& sys) { this->sys = sys; }
-
     void check(dbi::Tracee& tracee);
 
     std::string desc() const {
@@ -519,12 +501,15 @@ namespace memcheck {
       return ss.str();
     }
 
+    void step(dbi::Tracee& tracee);
+    
+    bool post(dbi::Tracee& tracee);
+
   protected:
     static bool match(const dbi::Instruction& inst) {
       return inst.xed_iclass() == XED_ICLASS_SYSCALL;
     }
     bool handler_pre(dbi::Tracee& tracee, uint8_t *addr);
-    bool handler_post(dbi::Tracee& tracee, uint8_t *addr);
     
   private:
     State& taint_state;
@@ -643,7 +628,7 @@ namespace memcheck {
   };
   using LockTracker = SequencePoint_<LockTracker_>;
 
-  class RTMTracker_ {
+  class RTMTracker_: public SequencePoint_Defaults {
   public:
     void check(dbi::Tracee& tracee) {}
     static const char *desc() { return "rtm"; }
@@ -670,13 +655,14 @@ namespace memcheck {
 
   using RDTSCTracker = SequencePoint_<RDTSCTracker_>;
 
-  class SharedMemSeqPt {
+  class SharedMemSeqPt: public SequencePoint_Defaults {
   public:
     SharedMemSeqPt(Memcheck& memcheck, State& taint_state, const Syscaller& sys):
       memcheck(memcheck), taint_state(taint_state), sys(sys) {}
 
     void check(dbi::Tracee& tracee);
     static const char *desc() { return "shared_mem"; }
+    void step(dbi::Tracee& tracee);
     
   private:
     Memcheck& memcheck;

@@ -146,9 +146,13 @@ namespace memcheck {
     tracee1.readv(local.data(), local.size(), remote.data(), remote.size(), bytes);
     tracee2.writev(remote.data(), remote.size(), local.data(), local.size(), bytes);
   }
-
+  
   void SyscallChecker2::post() {
     assert(mode() == Mode::SIM);
+
+    auto gpregs = tracee2.get_gpregs();
+    gpregs.rax = tracee1.get_gpregs().rax;
+    tracee2.set_gpregs(gpregs);
     
 #define POST_TAB(name, ...) case dbi::Syscall::name: post_##name(); break;
     switch (args.no()) {
@@ -157,7 +161,7 @@ namespace memcheck {
     }
 #undef POST_TAB
   }
-
+  
   /*** PRE CHECKS ***/
   
 #define PRE_DEF_LINE(i, t, n) t n = args.arg<i, t>(); (void) n;					
@@ -580,7 +584,8 @@ namespace memcheck {
 #define POST_DEF(sys)							\
   PRE_DEF_BASE(sys);							\
   SYSCALL(POST_DEF2, SYS_##sys);					\
-  auto tx = new_write_group(); 
+  auto tx = new_write_group();
+  
 #define POST_DECL(sys) void SyscallChecker2::post_##sys()
 #define POST_ABORT(sys) POST_DECL(sys) { std::abort(); }
 #define POST_STUB(sys)	POST_DECL(sys) { log_stub() << #sys << "\n"; }
