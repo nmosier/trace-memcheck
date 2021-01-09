@@ -482,7 +482,7 @@ namespace memcheck {
     {}
 
     void init(const Syscaller& sys) { this->sys = sys; }
-    CheckResult check(dbi::Tracee& tracee);
+    CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
 
     std::string desc() const {
       std::stringstream ss;
@@ -616,7 +616,7 @@ namespace memcheck {
 
   class LockTracker_: public SequencePoint_Defaults {
   public:
-    CheckResult check(dbi::Tracee& tracee);
+    CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
     static const char *desc() { return "lock"; }
 
   protected:
@@ -629,7 +629,7 @@ namespace memcheck {
 
   class RTMTracker_: public SequencePoint_Defaults {
   public:
-    CheckResult check(dbi::Tracee& tracee) { return CheckResult::KILL; }
+    CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { return CheckResult::KILL; }
     static const char *desc() { return "rtm"; }
 
   protected:
@@ -641,7 +641,7 @@ namespace memcheck {
   public:
     RDTSCTracker_(): Tracker() {}
 
-    CheckResult check(dbi::Tracee& tracee) { return CheckResult::KILL; }
+    CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { return CheckResult::KILL; }
     static const char *desc() { return "rdtsc"; }
   
   protected:
@@ -659,7 +659,7 @@ namespace memcheck {
     SharedMemSeqPt(Memcheck& memcheck, State& taint_state, const Syscaller& sys):
       memcheck(memcheck), taint_state(taint_state), sys(sys) {}
 
-    CheckResult check(dbi::Tracee& tracee);
+    CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
     static const char *desc() { return "shared_mem"; }
     void step(dbi::Tracee& tracee);
     void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }

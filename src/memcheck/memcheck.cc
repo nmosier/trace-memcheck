@@ -279,7 +279,7 @@ namespace memcheck {
 	}
     }
 
-    return seq_pt.check(tracee());
+    return seq_pt.check(tracee(), tracee2());
   }
 
   template <typename InputIt>

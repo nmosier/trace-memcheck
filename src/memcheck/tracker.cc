@@ -266,13 +266,13 @@ namespace memcheck {
     return is_seq_pt(syscall_args.no());
   }
 
-  SyscallTracker_::CheckResult SyscallTracker_::check(dbi::Tracee& tracee) {
-    SyscallChecker2 syscall_checker2(memcheck.tracee(), memcheck.tracee2(), page_set,
-				     memcheck.stack_begin(), syscall_args, memcheck);
+  SyscallTracker_::CheckResult SyscallTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    SyscallChecker2 syscall_checker2(tracee1, tracee2, page_set, memcheck.stack_begin(),
+				     syscall_args, memcheck);
     if (!syscall_checker2.pre()) {
-      const auto loc = memcheck.orig_loc(tracee.get_pc());
+      const auto loc = memcheck.orig_loc(tracee1.get_pc());
       g_conf.log() << loc.first << " " << loc.second << "\n";
-      g_conf.abort(tracee);
+      g_conf.abort(tracee1);
       return CheckResult::FAIL;
     }
     return CheckResult::KILL;
@@ -391,9 +391,9 @@ namespace memcheck {
     return true;
   }
 
-  LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee) {
-    const auto addr = tracee.get_pc();
-    g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee) << "\n";
+  LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    const auto addr = tracee1.get_pc();
+    g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee1) << "\n";
     return CheckResult::KILL; // TODO: Should actually keep.
   }
 
@@ -480,10 +480,10 @@ namespace memcheck {
     assert(res == 0); (void) res;
   }
 
-  SharedMemSeqPt::CheckResult SharedMemSeqPt::check(dbi::Tracee& tracee) {
-    fault_addr = dbi::pagealign(tracee.get_siginfo().si_addr);
+  SharedMemSeqPt::CheckResult SharedMemSeqPt::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    fault_addr = dbi::pagealign(tracee1.get_siginfo().si_addr);
     
-    const auto inst = dbi::Instruction(tracee.get_pc(), tracee);
+    const auto inst = dbi::Instruction(tracee1.get_pc(), tracee1);
     const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
     const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
 
@@ -498,13 +498,13 @@ namespace memcheck {
       if (base_reg != XED_REG_INVALID) {
 	if (taint_state.gpregs().reg(base_reg) != 0) {
 	  error(Error::TAINTED_BASE_REG);
-	  g_conf.abort(tracee);
+	  g_conf.abort(tracee1);
 	}
       }
       if (index_reg != XED_REG_INVALID) {
 	if (taint_state.gpregs().reg(index_reg) != 0) {
 	  error(Error::TAINTED_INDEX_REG);
-	  g_conf.abort(tracee);
+	  g_conf.abort(tracee1);
 	}
       }
     } else {
@@ -515,7 +515,7 @@ namespace memcheck {
 	if (base_reg != XED_REG_INVALID) {
 	  if (taint_state.gpregs().reg(base_reg) != 0) {
 	    error(Error::TAINTED_BASE_REG);
-	    g_conf.abort(tracee);
+	    g_conf.abort(tracee1);
 	  }
 	}
       }

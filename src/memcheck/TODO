@@ -1,0 +1,2 @@
+[ ] LockTracker needs to check lock destinations.
+[ ] SharedMemSeqPt needs to transfer writes to other thread.
