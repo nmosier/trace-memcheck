@@ -87,8 +87,7 @@ namespace memcheck {
     /** Returns whether all threads have reached the sequence point and checking occurred 
      */
     template <typename SequencePoint>
-    bool sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt); 
-    void sequence_point_handler_post();
+    bool sequence_point_handler(dbi::Tracee& tracee, SequencePoint& seq_pt); 
 
     /* State Functions */
     void save_state(dbi::Tracee& tracee, State& state);

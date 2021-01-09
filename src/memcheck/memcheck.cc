@@ -23,9 +23,8 @@ namespace memcheck {
     vars(),
     stack_tracker(thd_map, vars),
     syscall_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(tracee, syscall_tracker);
+      this->sequence_point_handler(tracee, syscall_tracker);
     },
-      [this] (auto& tracee, auto addr) { this->start_round(); },
       taint_state,
       tracked_pages,
       syscall_args,
@@ -35,20 +34,14 @@ namespace memcheck {
     ret_tracker(thd_map, vars),
     jcc_tracker(thd_map, vars),
     lock_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(tracee, lock_tracker);
-    },
-      [this] (auto& tracee, auto addr) { this->start_round(); }
-      ),
+      this->sequence_point_handler(tracee, lock_tracker);
+    }),
     rtm_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(tracee, rtm_tracker);
-    },
-      [this] (auto& tracee, auto addr) { this->start_round(); }
-      ),
+      this->sequence_point_handler(tracee, rtm_tracker);
+    }),
     rdtsc_tracker([this] (auto& tracee, auto addr) {
-      this->sequence_point_handler_pre(tracee, rdtsc_tracker);
-    },
-      [this] (auto& tracee, auto addr) { this->start_round(); }
-      )
+      this->sequence_point_handler(tracee, rdtsc_tracker);
+    })
   {}
 
   bool Memcheck::open(const char *file, char * const argv[]) {
@@ -450,7 +443,7 @@ namespace memcheck {
   }
 
   template <typename SequencePoint>
-  bool Memcheck::sequence_point_handler_pre(dbi::Tracee& tracee, SequencePoint& seq_pt) {
+  bool Memcheck::sequence_point_handler(dbi::Tracee& tracee, SequencePoint& seq_pt) {
     g_conf.log() << "seq_pt " << seq_pt.desc() << "\n";
     
     save_state(tracee, thd_map.at(tracee.pid()).state);
@@ -495,19 +488,11 @@ namespace memcheck {
       assert(false);
       break;
     }
-
     patcher.unsuspend(this->tracee());
-    
     start_round();
-
     return true;
   }
   
-  void Memcheck::sequence_point_handler_post() {
-    start_round();
-  }
-
-
   void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
     /* taint memory below stack */
 #if 0
@@ -580,7 +565,7 @@ namespace memcheck {
 #endif
 	// TODO: properly specify permissions
 	SharedMemSeqPt seq_pt(*this, taint_state, syscaller());
-	sequence_point_handler_pre(tracee, seq_pt);
+	sequence_point_handler(tracee, seq_pt);
       }
       break;
 

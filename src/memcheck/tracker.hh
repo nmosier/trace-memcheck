@@ -281,11 +281,9 @@ namespace memcheck {
   class SequencePoint_: public Base {
   public:
     template <typename... BaseArgs>
-    SequencePoint_(const BkptCallback& pre_callback,
-		   const BkptCallback& post_callback, BaseArgs&&... base_args):
+    SequencePoint_(const BkptCallback& pre_callback, BaseArgs&&... base_args):
       Base(std::forward<BaseArgs>(base_args)...),
-      pre_callback(pre_callback),
-      post_callback(post_callback)
+      pre_callback(pre_callback)
     {}
 
     uint8_t *add(uint8_t *addr, dbi::Instruction& inst, const TransformerInfo& info, bool& match_)
@@ -308,14 +306,10 @@ namespace memcheck {
     
   private:
     BkptCallback pre_callback;
-    BkptCallback post_callback;
   };
 
   class SequencePoint_Defaults {
   public:
-    /** @return Whether secondary tracee should be killed & reforked */
-    bool kill() { return true; }
-
     /** Single-step through sequence point instruction (kill() called before this) */
     void step(dbi::Tracee& tracee);
     void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
