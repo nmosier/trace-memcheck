@@ -266,14 +266,16 @@ namespace memcheck {
     return is_seq_pt(syscall_args.no());
   }
 
-  void SyscallTracker_::check(dbi::Tracee& tracee) {
+  SyscallTracker_::CheckResult SyscallTracker_::check(dbi::Tracee& tracee) {
     SyscallChecker2 syscall_checker2(memcheck.tracee(), memcheck.tracee2(), page_set,
 				     memcheck.stack_begin(), syscall_args, memcheck);
     if (!syscall_checker2.pre()) {
       const auto loc = memcheck.orig_loc(tracee.get_pc());
       g_conf.log() << loc.first << " " << loc.second << "\n";
       g_conf.abort(tracee);
+      return CheckResult::FAIL;
     }
+    return CheckResult::KILL;
   }
   
   void SequencePoint_Defaults::step(dbi::Tracee& tracee) {
@@ -389,9 +391,10 @@ namespace memcheck {
     return true;
   }
 
-  void LockTracker_::check(dbi::Tracee& tracee) {
+  LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee) {
     const auto addr = tracee.get_pc();
     g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee) << "\n";
+    return CheckResult::KILL; // TODO: Should actually keep.
   }
 
   bool RTMTracker_::match(const dbi::Instruction& inst) const {
@@ -477,7 +480,7 @@ namespace memcheck {
     assert(res == 0); (void) res;
   }
 
-  void SharedMemSeqPt::check(dbi::Tracee& tracee) {
+  SharedMemSeqPt::CheckResult SharedMemSeqPt::check(dbi::Tracee& tracee) {
     fault_addr = dbi::pagealign(tracee.get_siginfo().si_addr);
     
     const auto inst = dbi::Instruction(tracee.get_pc(), tracee);
@@ -584,6 +587,72 @@ namespace memcheck {
       std::abort();    
     }
 
+    return CheckResult::KILL; // TODO: should be 'KEEP'.
   }
 
+  SyscallTracker_::Mode SyscallTracker_::mode(dbi::Syscall sys) {
+#define E(sys, val) case dbi::Syscall::sys: return Mode::val
+    switch (sys) {
+      E(READ,            SIM);
+      E(WRITE,           SIM);
+      E(OPEN,            SEQ);
+      E(CLOSE,           SEQ);
+      E(STAT,            DUP); // NOTE: this could cause consistency issues
+      E(FSTAT,           DUP);
+      E(LSTAT,           DUP); // NOTE: this could cause consistency issues
+      E(POLL,            SEQ); // NOTE: this might be overly conservative
+      E(LSEEK,           SIM);
+      E(MMAP,            SEQ); // NOTE: this might be overly conservative
+      E(MPROTECT,        DUP);
+      E(MUNMAP,          DUP);
+      E(BRK,             DUP);
+      E(ACCESS,          DUP); // NOTE: this could cause consistency issues
+      E(ARCH_PRCTL,      DUP);
+      E(FUTEX,           DUP); // NOTE: this could cause consistency issues
+      E(EXIT_GROUP,      DUP);
+      E(GETDENTS,        SIM);
+      E(GETEUID,         DUP);
+      E(MREMAP,          SEQ); // NOTE: this might be overly conservative
+      E(SOCKET,          SEQ);
+      E(CONNECT,         SIM);
+      E(SENDTO,          SIM);
+      E(SET_TID_ADDRESS, DUP);
+      E(SET_ROBUST_LIST, DUP);
+      E(RT_SIGACTION,    DUP);
+      E(RT_SIGPROCMASK,  DUP);
+      E(GETRLIMIT,       DUP);
+      E(STATFS,          SEQ); // NOTE: this might be overly conservative
+      E(GETUID,          DUP);
+      E(GETGID,          DUP);
+      E(GETPID,          SIM);
+      E(GETPPID,         SIM);
+      E(FCNTL,           SEQ); // NOTE: this might be overly conservative
+      E(GETEGID,         DUP);
+      E(FACCESSAT,       DUP);
+      E(IOCTL,           SEQ); // NOTE: this might be overly conservative
+      E(LGETXATTR,       SEQ); // NOTE: this might be overly conservative
+      E(GETXATTR,        SEQ); // NOTE: this might be overly conservative
+      E(RECVMSG,         SIM);
+      E(GETRUSAGE,       DUP);
+      E(UNAME,           DUP);
+      E(SETSOCKOPT,      SEQ); // NOTE: this might be overly conservative
+      E(GETPEERNAME,     SIM); // NOTE: this might be overly conservative
+      E(GETSOCKNAME,     SIM); // NOTE: this might be overly conservative
+      E(GETTID,          SIM);
+      E(TGKILL,          SIM);
+      E(FADVISE64,       DUP);
+      E(SETRLIMIT,       DUP);
+      E(READLINK,        DUP); // NOTE: this could cause consistency issues
+      E(PIPE,            SEQ); // NOTE: this might be overly conservative
+      E(CLOCK_GETTIME,   SIM);
+      E(GETTIMEOFDAY,    SIM);
+      E(TIME,            SIM);
+      E(FORK,            SEQ);
+      E(WRITEV,          SIM);
+      E(WAIT4,           SEQ);
+#undef E
+    default: std::abort();
+    }
+  }
+  
 }

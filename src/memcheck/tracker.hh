@@ -300,24 +300,12 @@ namespace memcheck {
 	    pre_callback(args...);
 	  }
 	});
-      
 	addr = info.writer(inst);
-
-#if 0
-	auto post_bkpt = dbi::Instruction::int3(addr);
-	addr = info.writer(post_bkpt);
-	info.rb(post_bkpt.pc(), [this] (auto&&... args) {
-	  if (this->handler_post(args...)) {
-	    post_callback(args...);
-	  }
-	});
-#endif
-	
       }
       
       return addr;
     }
-  
+    
   private:
     BkptCallback pre_callback;
     BkptCallback post_callback;
@@ -330,10 +318,18 @@ namespace memcheck {
 
     /** Single-step through sequence point instruction (kill() called before this) */
     void step(dbi::Tracee& tracee);
+    void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
 
     /** After single step and regeneration */
     void post(dbi::Tracee& tracee) {}
+    void post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {}
     
+    enum class CheckResult {
+      FAIL, /*!< error: taint found */
+      KILL, /*!< success: kill shadow thread */
+      KEEP, /*!< success: keep shadow thread */
+    };
+
   protected:
     bool handler_pre(dbi::Tracee& tracee, uint8_t *addr) { return true; }
   };
@@ -492,7 +488,7 @@ namespace memcheck {
     {}
 
     void init(const Syscaller& sys) { this->sys = sys; }
-    void check(dbi::Tracee& tracee);
+    CheckResult check(dbi::Tracee& tracee);
 
     std::string desc() const {
       std::stringstream ss;
@@ -502,8 +498,10 @@ namespace memcheck {
     }
 
     void step(dbi::Tracee& tracee);
+    void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
     
     bool post(dbi::Tracee& tracee);
+    bool post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
 
   protected:
     static bool match(const dbi::Instruction& inst) {
@@ -520,6 +518,13 @@ namespace memcheck {
     Syscaller sys;
 
     static bool is_seq_pt(dbi::Syscall no);
+    enum class Mode {
+      DUP, // this system call can be duplicated across threads
+      SIM, // this system call can be simuated using writes (i.e. effects only in memory)
+      SEQ, // this system call cannot be duplicated or simulated, so treat it as full seq. pt.
+    };
+    static Mode mode(dbi::Syscall sys);
+    Mode mode() const { return mode(syscall_args.no()); }
   };
   using SyscallTracker = SequencePoint_<SyscallTracker_>;
   
@@ -617,7 +622,7 @@ namespace memcheck {
 
   class LockTracker_: public SequencePoint_Defaults {
   public:
-    void check(dbi::Tracee& tracee);
+    CheckResult check(dbi::Tracee& tracee);
     static const char *desc() { return "lock"; }
 
   protected:
@@ -630,7 +635,7 @@ namespace memcheck {
 
   class RTMTracker_: public SequencePoint_Defaults {
   public:
-    void check(dbi::Tracee& tracee) {}
+    CheckResult check(dbi::Tracee& tracee) { return CheckResult::KILL; }
     static const char *desc() { return "rtm"; }
 
   protected:
@@ -642,7 +647,7 @@ namespace memcheck {
   public:
     RDTSCTracker_(): Tracker() {}
 
-    void check(dbi::Tracee& tracee) {}
+    CheckResult check(dbi::Tracee& tracee) { return CheckResult::KILL; }
     static const char *desc() { return "rdtsc"; }
   
   protected:
@@ -660,9 +665,10 @@ namespace memcheck {
     SharedMemSeqPt(Memcheck& memcheck, State& taint_state, const Syscaller& sys):
       memcheck(memcheck), taint_state(taint_state), sys(sys) {}
 
-    void check(dbi::Tracee& tracee);
+    CheckResult check(dbi::Tracee& tracee);
     static const char *desc() { return "shared_mem"; }
     void step(dbi::Tracee& tracee);
+    void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
     
   private:
     Memcheck& memcheck;

@@ -217,7 +217,7 @@ namespace memcheck {
   }
 
   template <class SequencePoint>
-  void Memcheck::check_round(SequencePoint& seq_pt) {
+  SequencePoint_Defaults::CheckResult Memcheck::check_round(SequencePoint& seq_pt) {
     // TODO: should return bool.
 
     /* get taint mask */
@@ -286,7 +286,7 @@ namespace memcheck {
 	}
     }
 
-    seq_pt.check(tracee());
+    return seq_pt.check(tracee());
   }
 
   template <typename InputIt>
@@ -476,14 +476,27 @@ namespace memcheck {
 
     stop_round();
     
-    check_round(seq_pt);
+    const auto check_res = check_round(seq_pt);
+    using CR = SequencePoint_Defaults::CheckResult;
+    switch (check_res) {
+    case CR::KILL:
+      kill();
+      seq_pt.step(this->tracee());
+      seq_pt.post(this->tracee());
+      break;
+    case CR::KEEP:
+      seq_pt.step(this->tracee(), this->tracee2());
+      seq_pt.post(this->tracee(), this->tracee2());
+      break;
+    case CR::FAIL:
+      g_conf.abort(this->tracee());
+      break;
+    default:
+      assert(false);
+      break;
+    }
 
-    // TODO: Check sequence point on whether to kill thread
-    kill(); // kill 2nd thread
     patcher.unsuspend(this->tracee());
-
-    seq_pt.step(this->tracee());
-    seq_pt.post(this->tracee());
     
     start_round();
 

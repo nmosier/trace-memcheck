@@ -74,7 +74,8 @@ namespace memcheck {
     /* Round API */
     void start_round();
     void stop_round();
-    template <typename SequencePoint> void check_round(SequencePoint& seq_pt);
+    template <typename SequencePoint>
+    SequencePoint_Defaults::CheckResult check_round(SequencePoint& seq_pt);
     template <typename InputIt>
     void check_checksums(InputIt begin, InputIt end, const char *desc = nullptr);
     template <typename Container>
