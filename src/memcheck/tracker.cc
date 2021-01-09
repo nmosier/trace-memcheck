@@ -459,9 +459,8 @@ namespace memcheck {
   }
 
   void SharedMemSeqPt::step(dbi::Tracee& tracee) {
-    const auto aligned_fault = dbi::pagealign(tracee.get_siginfo().si_addr);
-    g_conf.log() << "aligned_fault = " << aligned_fault << "\n";
-    if (sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_READ)
+    g_conf.log() << "aligned_fault = " << fault_addr << "\n";
+    if (sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ)
 	< 0) {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
@@ -474,11 +473,13 @@ namespace memcheck {
     tracee.assert_stopsig(status, SIGTRAP); (void) status;
   
     const auto res =
-      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, aligned_fault, dbi::PAGESIZE, PROT_NONE);
+      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
   }
 
   void SharedMemSeqPt::check(dbi::Tracee& tracee) {
+    fault_addr = dbi::pagealign(tracee.get_siginfo().si_addr);
+    
     const auto inst = dbi::Instruction(tracee.get_pc(), tracee);
     const bool mem_written = xed_decoded_inst_mem_written(&inst.xedd(), 0);
     const bool mem_read = xed_decoded_inst_mem_read(&inst.xedd(), 0);
@@ -583,7 +584,6 @@ namespace memcheck {
       std::abort();    
     }
 
-    step(tracee);
   }
 
 }

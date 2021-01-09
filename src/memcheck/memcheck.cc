@@ -484,12 +484,12 @@ namespace memcheck {
 
     seq_pt.step(this->tracee());
     seq_pt.post(this->tracee());
-
+    
     start_round();
 
     return true;
   }
-
+  
   void Memcheck::sequence_point_handler_post() {
     start_round();
   }
@@ -561,17 +561,13 @@ namespace memcheck {
 #ifndef NDEBUG
 	const auto loc = orig_loc(tracee.get_pc());
 	*dbi::g_conf.log << loc.first << " " << loc.second << "\n";
-	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee)
-			 << "\n";
+	*dbi::g_conf.log << "orig inst: " << dbi::Instruction((uint8_t *) loc.first, tracee) << "\n";
 	*dbi::g_conf.log << "pool inst: " << dbi::Instruction(tracee.get_pc(), tracee) << "\n";
 	*dbi::g_conf.log << "fault addr: " << faultaddr << "\n";
 #endif
-	
 	// TODO: properly specify permissions
 	SharedMemSeqPt seq_pt(*this, taint_state, syscaller());
-	if (sequence_point_handler_pre(tracee, seq_pt)) {
-	  start_round();
-	}
+	sequence_point_handler_pre(tracee, seq_pt);
       }
       break;
 

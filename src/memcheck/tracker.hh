@@ -668,7 +668,8 @@ namespace memcheck {
     Memcheck& memcheck;
     State& taint_state;
     Syscaller sys;
-
+    void *fault_addr;
+    
     void read(xed_reg_enum_t reg) const;
     void write(xed_reg_enum_t reg);
     void read_write(xed_reg_enum_t reg) { read(reg); write(reg); }
