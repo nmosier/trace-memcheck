@@ -20,6 +20,8 @@ namespace dbi {
     Registers(const regs_struct& regs): regs_(regs) {}
     Registers(Tracee& tracee) { save(tracee); }
 
+    const regs_struct& regs() const { return regs_; }
+    
     void save(Tracee& tracee) { tracee.get_regs(regs_); }
     void restore(Tracee& tracee) const { tracee.set_regs(regs_); }
 
@@ -112,15 +114,29 @@ namespace dbi {
     friend std::ostream& operator<<(std::ostream& os, const GPRegisters& gpregs);
   };
 
-  template <typename value_type>
-  class XMMRegister {
+  class XMMRegister_Base {
   public:
-    void zero() { std::fill(begin(), end(), 0); }
-    bool is_zero() const {
-      return std::all_of(begin(), end(), [] (auto val) { return val == 0; });
+    enum class Width {FULL, HIGH, LOW};    
+  };
+
+  template <typename ValueType>
+  class XMMRegister: public XMMRegister_Base {
+  public:
+    using value_type = ValueType;
+
+    void zero(Width width = Width::FULL) { std::fill(begin(width), end(width), 0); }
+
+    bool is_zero(Width width = Width::FULL) const {
+      return std::all_of(begin(width), end(width), [] (auto val) { return val == 0; });
     }
-    void zero_lower() { std::fill(begin(), begin() + size() / 2, 0); }
-    void zero_upper() { std::fill(begin() + size() / 2, end(), 0); }
+
+    template <typename Other>
+    void copy(const Other& other, Width width = Width::FULL) {
+      static_assert(std::is_same<value_type,
+		    typename std::remove_cv<typename Other::value_type>::type>(),
+		    "");
+      std::copy(other.begin(width), other.end(width), begin(width));
+    }
 
   private:
     using pointer = value_type *;
@@ -129,6 +145,7 @@ namespace dbi {
     using const_reference = const value_type&;
     using iterator = pointer;
     using const_iterator = const_pointer;
+    using size_type = std::size_t;
 
     static constexpr auto bytes = 16; // 16 bytes in XMM
     static_assert(bytes % sizeof(value_type) == 0, "sizeof(value_type) doesn't divide sizeof(XMM)");
@@ -137,16 +154,37 @@ namespace dbi {
     constexpr XMMRegister(pointer buf): buf_(buf) {}
 
     static constexpr auto size() { return bytes / sizeof(value_type); }
-    constexpr iterator begin() { return buf_; }
-    constexpr iterator end() { return buf_ + size(); }
-    constexpr const_iterator begin() const { return buf_; }
-    constexpr const_iterator end() const { return buf_ + size(); }
-    constexpr auto rbegin() { return std::make_reverse_iterator(begin()); }
-    constexpr auto rend() { return std::make_reverse_iterator(end()); }
-    constexpr auto rbegin() const { return std::make_reverse_iterator(begin()); }
-    constexpr auto rend() const { return std::make_reverse_iterator(end()); }
-  
+    
+    static constexpr size_type begin_offset(Width width) {
+      switch (width) {
+      case Width::FULL: return 0;
+      case Width::LOW:  return 0;
+      case Width::HIGH: return size() / 2;
+      default:          return 0;
+      }
+    }
+    
+    static constexpr size_type end_offset(Width width) {
+      switch (width) {
+      case Width::FULL: return size();
+      case Width::LOW:  return size() / 2;
+      case Width::HIGH: return size();
+      default:          return size();
+      }
+    }
+    
+    constexpr iterator begin(Width width) { return buf_ + begin_offset(width); }
+    constexpr iterator end(Width width) { return buf_ + end_offset(width); }
+    constexpr const_iterator begin(Width width) const { return buf_ + begin_offset(width); }
+    constexpr const_iterator end(Width width) const { return buf_ + end_offset(width); }
+    constexpr auto rbegin(Width width) { return std::make_reverse_iterator(begin(width)); }
+    constexpr auto rend(Width width) { return std::make_reverse_iterator(end(width)); }
+    constexpr auto rbegin(Width width) const { return std::make_reverse_iterator(begin(width)); }
+    constexpr auto rend(Width width) const { return std::make_reverse_iterator(end(width)); }
+    
     friend class FPRegisters;
+    template <typename T>
+    friend class XMMRegister;
     template <typename vt>
     friend std::ostream& operator<<(std::ostream& os, const XMMRegister<vt>& xmm);
   };

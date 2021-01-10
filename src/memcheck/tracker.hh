@@ -663,24 +663,43 @@ namespace memcheck {
     static const char *desc() { return "shared_mem"; }
     void step(dbi::Tracee& tracee);
     void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
+    void post(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
+    void post(dbi::Tracee& tracee) { SequencePoint_Defaults::post(tracee); }
     
   private:
     Memcheck& memcheck;
     State& taint_state;
     Syscaller sys;
     void *fault_addr;
+    dbi::Instruction inst;
     
-    void read(xed_reg_enum_t reg) const;
-    void write(xed_reg_enum_t reg);
-    void read_write(xed_reg_enum_t reg) { read(reg); write(reg); }
+    void read(xed_reg_enum_t reg, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
+    void write(xed_reg_enum_t reg); // TODO: remove (old)
+    void write(xed_reg_enum_t reg, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
+
+    using XMMWidth = dbi::FPRegisters::XMM::Width;
+    void write_xmm(xed_reg_enum_t reg, XMMWidth xmm_width);
+    void write_xmm(xed_reg_enum_t reg, XMMWidth xmm_width,
+		   dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
+    
+    void read_write(xed_reg_enum_t reg, dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+      read(reg, tracee1, tracee2);
+      write(reg);
+    }
 
     void read_flags(uint32_t mask) const;
+    void read_flags(uint32_t mask, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
     void read_flags(Flag f) const { read_flags(static_cast<uint32_t>(f)); }
     void write_flags(uint32_t mask);
-    void write_flags(Flag f) { write_flags(static_cast<uint32_t>(f)); }
+    void write_flags(uint32_t mask, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
+    template <typename... Args>
+    void write_flags(Flag f, Args&&... args) {
+      write_flags(static_cast<uint32_t>(f), std::forward<Args>(args)...);
+    }
     void taint_flags(uint32_t mask);
+    void taint_flags(uint32_t mask, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
     void taint_flags(Flag f) { taint_flags(static_cast<uint32_t>(f)); }
-
+    
     static uint64_t mask(xed_reg_enum_t reg, bool read);
     static uint64_t mask_read(xed_reg_enum_t reg) { return mask(reg, true); }
     static uint64_t mask_write(xed_reg_enum_t reg) { return mask(reg, false); }
