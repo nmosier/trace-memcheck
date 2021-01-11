@@ -311,8 +311,8 @@ namespace memcheck {
   class SequencePoint_Defaults {
   public:
     /** Single-step through sequence point instruction (kill() called before this) */
-    void step(dbi::Tracee& tracee);
-    void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
+    bool step(dbi::Tracee& tracee);
+    bool step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
 
     /** After single step and regeneration */
     void post(dbi::Tracee& tracee) {}
@@ -491,9 +491,6 @@ namespace memcheck {
       return ss.str();
     }
 
-    void step(dbi::Tracee& tracee);
-    void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
-    
     bool post(dbi::Tracee& tracee);
     bool post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
 
@@ -661,8 +658,8 @@ namespace memcheck {
 
     CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
     static const char *desc() { return "shared_mem"; }
-    void step(dbi::Tracee& tracee);
-    void step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
+    bool step(dbi::Tracee& tracee);
+    bool step(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
     void post(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
     void post(dbi::Tracee& tracee) { SequencePoint_Defaults::post(tracee); }
     
@@ -686,7 +683,7 @@ namespace memcheck {
       read(reg, tracee1, tracee2);
       write(reg);
     }
-
+    
     void read_flags(uint32_t mask) const;
     void read_flags(uint32_t mask, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
     void read_flags(Flag f) const { read_flags(static_cast<uint32_t>(f)); }

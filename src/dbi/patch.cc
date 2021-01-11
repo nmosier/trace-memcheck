@@ -125,7 +125,8 @@ namespace dbi {
       tracee().write(&bkpt, 1, entry_addr);
 
       tracee().cont();
-      const Status status = tracee().wait();
+      tracee().wait();
+      const Status status = tracee().status();
       assert(status.stopped_trap()); (void) status;
       assert(tracee().get_pc() == entry_addr + 1);
       tracee().write(&old_entry_byte, 1, entry_addr);
@@ -166,8 +167,6 @@ namespace dbi {
   }
 
   void Patcher::run(void) {
-    Status status;
-
     // assert(tracees.size() == 1);
     
     while (tracees.size() > 0) {
@@ -192,14 +191,11 @@ namespace dbi {
       }
 
       /* Wait on all tracees */
-      const auto ntracees = tracees.size();
-      std::vector<Status> statuses(ntracees);
       {
-	auto status_it = statuses.begin();
 	auto tracee_it = tracees.begin();
-	for (; tracee_it != tracees.end(); ++tracee_it, ++status_it) {
+	for (; tracee_it != tracees.end(); ++tracee_it) {
 	  if (!tracee_it->info.suspended()) {
-	    tracee_it->tracee.wait(*status_it);
+	    tracee_it->tracee.wait();
 	  }
 	}
       }
@@ -210,7 +206,6 @@ namespace dbi {
        */
       auto todo = tracees.size();
       auto tracee_it = tracees.begin();
-      auto status_it = statuses.begin();
       while (todo > 0) {
 	enum class State {NONE, SUSPENDED, KILLED, EXITED} state;
 	if (!tracee_it->tracee.good()) {
@@ -218,7 +213,7 @@ namespace dbi {
 	} else if (tracee_it->info.suspended()) {
 	  state = State::SUSPENDED;
 	} else {
-	  const bool exited = handle_stop(*tracee_it, *status_it);
+	  const bool exited = handle_stop(*tracee_it);
 	  if (tracee_it->tracee.good()) {
 	    if (exited) {
 	      state = State::EXITED;
@@ -234,29 +229,31 @@ namespace dbi {
 	  const auto pid = tracee_it->tracee.pid();
 	  if (state == State::EXITED) {
 	    *g_conf.log << "[" << pid << "] exit status: "
-			<< status_it->exitstatus() << "\n";
+			<< tracee_it->tracee.status().exitstatus() << "\n";
 	  } else {
 #if 0
 	    *g_conf.log << "[" << pid << "] killed\n";
 #endif
 	  }
 	  tracee_it = tracees.erase(tracee_it);
-	  status_it = statuses.erase(status_it); 
 	} else {
 	  ++tracee_it;
-	  ++status_it;
 	}
 
 	--todo;
       }
 
-      /* remove killed processes */
+      /* remove exited & killed processes */
       for (auto it = tracees.begin(); it != tracees.end(); ) {
 	if (!it->tracee.good()) {
 	  it = tracees.erase(it);
 #if 0
 	  *g_conf.log << "[" << it->tracee.pid() << "] killed\n";
 #endif
+	} else if (!it->info.suspended() && it->tracee.status().exited()) {
+	  *g_conf.log << "[ " << it->tracee.pid() << "] exit status: "
+		      << it->tracee.status().exitstatus() << "\n";
+	  it = tracees.erase(it);
 	} else {
 	  ++it;
 	}
@@ -266,8 +263,9 @@ namespace dbi {
 
   }
 
-  bool Patcher::handle_stop(TraceePair& tracee_pair, Status status) {
+  bool Patcher::handle_stop(TraceePair& tracee_pair) {
     Tracee& tracee = tracee_pair.tracee;
+    const auto status = tracee.status();
     if (g_conf.execution_trace && !g_conf.singlestep) {
       if (status.stopped()) {
 	print_ss(tracee);
@@ -293,10 +291,10 @@ namespace dbi {
 	g_conf.abort(tracee);
       }
       assert(status.exited());
-      return true;
+      // return true;
     }
 
-    return false;
+    return status.exited();
   }
   
   void Patcher::handle_ptrace_event(TraceePair& tracee_pair, enum __ptrace_eventcodes event) {
@@ -413,8 +411,9 @@ namespace dbi {
     *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
 		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
 		<< Instruction(tracee.get_pc(), tracee)
-#if 0
-		<< " | " << GPRegisters(tracee)
+#if 1
+		<< " | " << "xmm1=" << FPRegisters(tracee).xmm(1)
+		<< " rdx=" << GPRegisters(tracee).rdx()
 		<< std::dec
 #endif
 		<< "\n";

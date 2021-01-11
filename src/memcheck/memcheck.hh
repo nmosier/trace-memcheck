@@ -72,7 +72,7 @@ namespace memcheck {
     void segfault_handler(dbi::Tracee& tracee, int signal, const siginfo_t& siginfo);
   
     /* Round API */
-    void start_round();
+    void start_round(bool should_fork);
     void stop_round();
     template <typename SequencePoint>
     SequencePoint_Defaults::CheckResult check_round(SequencePoint& seq_pt);

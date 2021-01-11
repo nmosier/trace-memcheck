@@ -138,6 +138,11 @@ namespace dbi {
       std::copy(other.begin(width), other.end(width), begin(width));
     }
 
+    template <typename OtherValueType>
+    bool operator==(const XMMRegister<OtherValueType>& other) const {
+      return std::equal(begin(Width::FULL), end(Width::FULL), other.begin(Width::FULL));
+    }
+
   private:
     using pointer = value_type *;
     using const_pointer = const value_type *;
@@ -191,7 +196,8 @@ namespace dbi {
 
   template <typename value_type>
   std::ostream& operator<<(std::ostream& os, const XMMRegister<value_type>& xmm) {
-    for (auto rit = xmm.rbegin(); rit != xmm.rend(); ++rit) {
+    using Width = typename XMMRegister<value_type>::Width;
+    for (auto rit = xmm.begin(Width::FULL); rit != xmm.end(Width::FULL); ++rit) {
       os << std::hex << std::setfill('0') << std::setw(sizeof(value_type) * 2) << *rit;
     }
     return os;

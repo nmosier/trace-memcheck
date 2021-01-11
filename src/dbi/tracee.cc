@@ -23,6 +23,7 @@
 namespace dbi {
   
   void Tracee::attach(pid_t pid, const char *command, bool stopped) {
+    assert(!stopped);
     pid_ = pid;
     this->command = command;
     regs_good_ = false;
@@ -31,11 +32,10 @@ namespace dbi {
     memcache_.clear();
 
     /* stop if necessary */
-    if (!stopped_) {
-      Status status;
-      wait(status);
-      assert(status.stopped()); (void) status; // stopped status can be SIGSTOP or SIGTRAP
-      assert(stopped_);
+    if (!this->stopped()) {
+      wait();
+      assert(status().stopped()); // stopped status can be SIGSTOP or SIGTRAP
+      assert(this->stopped());
     }
 
     std::stringstream path;
@@ -70,6 +70,7 @@ namespace dbi {
       fpregs_good_ = other.fpregs_good_;
       fpregs_ = other.fpregs_;
       memcache_ = other.memcache_;
+      status_ = other.status_;
 
       /* Mark other as closed */
       other.set_bad();
@@ -100,6 +101,7 @@ namespace dbi {
       fpregs_good_ = other.fpregs_good_;
       fpregs_ = other.fpregs_;
       memcache_ = other.memcache_;
+      status_ = other.status_;
       
       /* Duplicate file descriptor */
       if ((fd_ = ::dup(other.fd_)) < 0) {
@@ -326,8 +328,8 @@ namespace dbi {
     set_regs(regs);
     
     singlestep();
-    const auto status = wait();
-    assert(status.stopped_trap()); (void) status;
+    wait();
+    assert(status().stopped_trap());
 
     get_regs(regs);
     set_regs(saved_regs);
@@ -353,7 +355,7 @@ namespace dbi {
     return regs.rax;
   }
 
-  pid_t Tracee::fork(Status& status, Tracee& forked_tracee, void *syscall_ptr) {
+  pid_t Tracee::fork(Tracee& forked_tracee, void *syscall_ptr) {
     assert(stopped());
     const bool rewrite = syscall_ptr == nullptr;
     const auto saved_regs = get_gpregs();
@@ -373,12 +375,12 @@ namespace dbi {
     }
     
     singlestep();
-    wait(status);
-    assert(status.stopped_trap());
-    assert(status.ptrace_event() == PTRACE_EVENT_FORK);
+    wait();
+    assert(status().stopped_trap());
+    assert(status().ptrace_event() == PTRACE_EVENT_FORK);
     singlestep();
-    wait(status);
-    assert(status.stopped_trap() && status.ptrace_event() == 0);
+    wait();
+    assert(status().stopped_trap() && status().ptrace_event() == 0);
     
 #ifndef NASSERT
     get_gpregs(fork_regs);
@@ -546,21 +548,21 @@ namespace dbi {
     fpregs_good_ = true;
   }
 
-  void Tracee::assert_stopsig(Status status, int expect) {
-    if (status.stopped()) {
-      const auto stopsig = status.stopsig();
+  void Tracee::assert_stopsig(int expect) {
+    if (status().stopped()) {
+      const auto stopsig = status().stopsig();
       if (stopsig != expect) {
 	*g_conf.log << "Tracee::assert_stopsig: unexpected stop signal '"
 		    << ::strsignal(stopsig) << "'\n";
 	g_conf.abort(*this);
       }
     } else {
-      if (status.signaled()) {
+      if (status().signaled()) {
 	*g_conf.log << "Tracee::assert_stopsig: unexpected signal '"
-		    << ::strsignal(status.termsig()) << "\n";
+		    << ::strsignal(status().termsig()) << "\n";
 	g_conf.abort(*this);
       } else {
-	*g_conf.log << "Tracee::assert_stopsig: unknown status " << status.status() << "\n";
+	*g_conf.log << "Tracee::assert_stopsig: unknown status " << status().status() << "\n";
 	g_conf.abort(*this);
       }
     }

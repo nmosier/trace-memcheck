@@ -278,20 +278,12 @@ namespace memcheck {
     return CheckResult::KILL;
   }
   
-  void SequencePoint_Defaults::step(dbi::Tracee& tracee) {
+  bool SequencePoint_Defaults::step(dbi::Tracee& tracee) {
     tracee.singlestep();
-    const auto status = tracee.wait();
-    assert(status.stopped_trap()); (void) status;
-  }
-
-  void SyscallTracker_::step(dbi::Tracee& tracee) {
-    switch (syscall_args.no()) {
-    case dbi::Syscall::EXIT_GROUP:
-      break;
-    default:
-      SequencePoint_Defaults::step(tracee);
-      break;
-    }
+    tracee.wait();
+    const auto status = tracee.status();
+    assert(status.stopped_trap() || status.exited()); (void) status;
+    return status.exited();
   }
 
   bool SyscallTracker_::is_seq_pt(dbi::Syscall no) {
@@ -459,7 +451,7 @@ namespace memcheck {
     dbi::GPRegisters dstregs(tracee2.get_gpregs());
     auto& dstreg = dstregs.reg(encreg);
     dstreg = (dstreg & ~mask) | newval;
-    tracee2.set_gpregs(dstregs.regs());
+    tracee2.set_regs(dstregs);
   }
 
   void SharedMemSeqPt::write_xmm(xed_reg_enum_t reg, XMMWidth xmm_width) {
@@ -473,6 +465,10 @@ namespace memcheck {
     const dbi::FPRegisters fp1(tracee1.get_fpregs());
     dbi::FPRegisters fp2(tracee2.get_fpregs());
     fp2.xmm(reg).copy(fp1.xmm(reg));
+    tracee2.set_regs(fp2);
+    assert(fp1.xmm(reg) == fp2.xmm(reg));
+    g_conf.log() << "xmm1=" << fp1.xmm(reg) << "\n";
+    g_conf.log() << "xmm2=" << fp2.xmm(reg) << "\n";
   }
 
   void SharedMemSeqPt::read_flags(uint32_t mask) const {
@@ -523,7 +519,7 @@ namespace memcheck {
     }
   }
   
-  void SharedMemSeqPt::step(dbi::Tracee& tracee) {
+  bool SharedMemSeqPt::step(dbi::Tracee& tracee) {
     g_conf.log() << "aligned_fault = " << fault_addr << "\n";
     if (sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ)
 	< 0) {
@@ -532,14 +528,36 @@ namespace memcheck {
     }
     
     tracee.singlestep();
-    dbi::Status status;
-    tracee.wait(status);
-    
-    tracee.assert_stopsig(status, SIGTRAP); (void) status;
+    tracee.wait();
+    tracee.assert_stopsig(SIGTRAP);
   
     const auto res =
       sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
+
+    return false;
+  }
+
+  bool SharedMemSeqPt::step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    g_conf.log() << "aligned_fault = " << fault_addr << "\n";
+    if (sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ)
+	< 0) {
+      g_conf.log() << "MPROTECT: failed\n";
+      dbi::g_conf.abort(tracee1);
+    }
+    
+    tracee1.singlestep();
+    tracee1.wait();
+    tracee1.assert_stopsig(SIGTRAP);
+  
+    const auto res =
+      sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
+    assert(res == 0); (void) res;
+
+    /* set PC of tracee2 */
+    tracee2.set_pc(tracee1.get_pc());
+
+    return false;
   }
 
   SharedMemSeqPt::CheckResult SharedMemSeqPt::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
@@ -553,18 +571,19 @@ namespace memcheck {
     (void) mem_read;
     
     /* check mem address for taint */
+    const auto taint_regs = dbi::GPRegisters(tracee1) ^ dbi::GPRegisters(tracee2);
     const auto nmemops = inst.xed_nmemops();
     if (nmemops == 1) {
       const auto base_reg = inst.xed_base_reg();
       const auto index_reg = inst.xed_index_reg();
       if (base_reg != XED_REG_INVALID) {
-	if (taint_state.gpregs().reg(base_reg) != 0) {
+	if (taint_regs.reg(base_reg) != 0) {
 	  error(Error::TAINTED_BASE_REG);
 	  g_conf.abort(tracee1);
 	}
       }
       if (index_reg != XED_REG_INVALID) {
-	if (taint_state.gpregs().reg(index_reg) != 0) {
+	if (taint_regs.reg(index_reg) != 0) {
 	  error(Error::TAINTED_INDEX_REG);
 	  g_conf.abort(tracee1);
 	}
@@ -575,7 +594,7 @@ namespace memcheck {
       for (const auto op : ops) {
 	const auto base_reg = inst.xed_reg(op);
 	if (base_reg != XED_REG_INVALID) {
-	  if (taint_state.gpregs().reg(base_reg) != 0) {
+	  if (taint_regs.reg(base_reg) != 0) {
 	    error(Error::TAINTED_BASE_REG);
 	    g_conf.abort(tracee1);
 	  }
@@ -584,51 +603,29 @@ namespace memcheck {
     }
   
     switch (inst.xed_iform()) {
-      /* 0 REGS, FLAGS WRITTEN */
     case XED_IFORM_CMP_MEMv_IMMb:
     case XED_IFORM_CMP_MEMv_IMMz:
     case XED_IFORM_CMP_MEMb_IMMb_80r7:
     case XED_IFORM_REPE_CMPSB:
-      write_flags(status_flags);
-      break;
-
-      /* 1 REG WRITTEN, FLAGS IGNORED */
+    case XED_IFORM_MOVDQU_XMMdq_MEMdq:
+    case XED_IFORM_MOVDQA_XMMdq_MEMdq:
+    case XED_IFORM_MOVLPD_XMMsd_MEMq:
+    case XED_IFORM_MOVHPD_XMMsd_MEMq:
     case XED_IFORM_MOVZX_GPRv_MEMw:
     case XED_IFORM_MOVZX_GPRv_MEMb:
     case XED_IFORM_MOVSXD_GPRv_MEMz:
     case XED_IFORM_MOV_GPRv_MEMv:
-      write(inst.xed_reg());
-      break;
-
-    case XED_IFORM_MOVDQU_XMMdq_MEMdq:
-    case XED_IFORM_MOVDQA_XMMdq_MEMdq:
-      write_xmm(inst.xed_reg(), XMMWidth::FULL);
-      break;
-
-    case XED_IFORM_MOVLPD_XMMsd_MEMq:
-      write_xmm(inst.xed_reg(), XMMWidth::LOW);
-      break;
-
-    case XED_IFORM_MOVHPD_XMMsd_MEMq:
-      write_xmm(inst.xed_reg(), XMMWidth::HIGH);
       break;
 
     case XED_IFORM_DIV_MEMv:
-      read_write(XED_REG_RAX, tracee1, tracee2);
-      read_write(XED_REG_RDX, tracee1, tracee2);
-      taint_flags(status_flags);
+      read(XED_REG_RAX, tracee1, tracee2);
+      read(XED_REG_RDX, tracee1, tracee2);
       break;
 
     case XED_IFORM_ADD_GPRv_MEMv:
     case XED_IFORM_SUB_GPRv_MEMv:
-      read_write(inst.xed_reg0(), tracee1, tracee2);
-      write_flags(status_flags);
-      break;
-
     case XED_IFORM_AND_GPRv_MEMv:
-      read_write(inst.xed_reg0(), tracee1, tracee2);
-      write_flags(Flag::OF | Flag::CF | Flag::SF | Flag::ZF | Flag::PF);
-      taint_flags(Flag::AF);
+      read(inst.xed_reg0(), tracee1, tracee2);
       break;
     
     default:
@@ -636,16 +633,23 @@ namespace memcheck {
       std::abort();    
     }
 
-    return CheckResult::KILL; // TODO: should be 'KEEP'.
+    return CheckResult::KEEP;
   }
 
   void SharedMemSeqPt::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    std::clog << "here\n";
+    
     switch (inst.xed_iform()) {
       /* 0 REGS, FLAGS WRITTEN */
     case XED_IFORM_CMP_MEMv_IMMb:
     case XED_IFORM_CMP_MEMv_IMMz:
     case XED_IFORM_CMP_MEMb_IMMb_80r7:
+      write_flags(status_flags, tracee1, tracee2);
+      break;
+
     case XED_IFORM_REPE_CMPSB:
+      write(XED_REG_RDI, tracee1, tracee2);
+      write(XED_REG_RSI, tracee1, tracee2);
       write_flags(status_flags, tracee1, tracee2);
       break;
 
@@ -671,19 +675,19 @@ namespace memcheck {
       break;
 
     case XED_IFORM_DIV_MEMv:
-      read_write(XED_REG_RAX, tracee1, tracee2);
-      read_write(XED_REG_RDX, tracee1, tracee2);
+      write(XED_REG_RAX, tracee1, tracee2);
+      write(XED_REG_RDX, tracee1, tracee2);
       taint_flags(status_flags);
       break;
 
     case XED_IFORM_ADD_GPRv_MEMv:
     case XED_IFORM_SUB_GPRv_MEMv:
-      read_write(inst.xed_reg0(), tracee1, tracee2);
+      write(inst.xed_reg0(), tracee1, tracee2);
       write_flags(status_flags);
       break;
 
     case XED_IFORM_AND_GPRv_MEMv:
-      read_write(inst.xed_reg0(), tracee1, tracee2);
+      write(inst.xed_reg0(), tracee1, tracee2);
       write_flags(Flag::OF | Flag::CF | Flag::SF | Flag::ZF | Flag::PF);
       taint_flags(Flag::AF);
       break;

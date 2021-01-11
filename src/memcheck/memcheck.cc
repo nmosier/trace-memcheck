@@ -150,7 +150,7 @@ namespace memcheck {
   }
 
   void Memcheck::run() {
-    start_round();
+    start_round(true);
     patcher.run();
   }
 
@@ -214,6 +214,7 @@ namespace memcheck {
     // TODO: should return bool.
 
     /* get taint mask */
+    // TODO: should only do this conditionally
     update_taint_state(thd_map.begin(), thd_map.end(), taint_state);
 
     const auto bkpt_cksums =
@@ -343,7 +344,8 @@ namespace memcheck {
     assert(status.signaled() && status.termsig() == SIGKILL);
 
     tracee().cont();
-    tracee().wait(status);
+    tracee().wait();
+    status = tracee().status();
     assert(status.stopped());
     assert(status.stopsig() == SIGCHLD);
 
@@ -352,13 +354,20 @@ namespace memcheck {
     assert(res2 == pid2); (void) res2;
   }
   
-  void Memcheck::start_round() {
+  void Memcheck::start_round(bool should_fork) {
     /* assertions */
-    assert(patcher.ntracees_good() == 1);
-    assert(thd_map.size() == 1);
-
+    const unsigned expect_thds = should_fork ? 1 : 2; (void) expect_thds;
+    assert(patcher.ntracees_good() == expect_thds);
+    assert(thd_map.size() == expect_thds);
+    
     // 0: Unsuspend
-    patcher.get_tracees().front().info.suspended(false);
+    assert(tracee().good());
+    patcher.for_each_tracee_pair_good([] (auto& tracee_pair) {
+      std::clog << "unsuspending " << tracee_pair.tracee.pid() << "\n";
+      if (tracee_pair.tracee.good()) {
+	tracee_pair.info.suspended(false);
+      }
+    });
     
     suspended_count = 0;
     
@@ -391,15 +400,18 @@ namespace memcheck {
     taint_state.snapshot().update(orig_writable_pages, 0);
   
     // 5: Fork.
-    fork();
+    if (should_fork) {
+      fork();
 
-    assert(taint_state.gpregs().rip() == 0);
+      assert(taint_state.gpregs().rip() == 0);
+    
+      // 6: Change the dulpicate thread.
+      if (CHANGE_PRE_STATE) {
+	assert(patcher.ntracees_good() == 2);
+	set_state_with_taint(tracee2(), pre_state, taint_state);
+      }
 
-    // 6: Change the duplicate thread.
-    if (CHANGE_PRE_STATE) {
-      assert(patcher.ntracees_good() == 2);
-      set_state_with_taint(tracee2(), pre_state, taint_state);
-    }    
+    }
 
 #ifndef NDEBUG
     {
@@ -459,12 +471,15 @@ namespace memcheck {
     }
 
 #ifndef NDEBUG
-    util::for_each_pair(patcher.tracees_begin(), patcher.tracees_end(), [&] (auto& l, auto& r) {
-      if (l.tracee && r.tracee) {
-	std::clog << (void *) l.tracee.get_pc() << " " << (void *) r.tracee.get_pc() << "\n";
-	g_conf.assert_(l.tracee.get_pc() == r.tracee.get_pc(), tracee);
-      }
-    });
+    const auto pc1 = this->tracee().get_pc();
+    const auto pc2 = this->tracee2().get_pc();
+    std::clog << "pc1=" << (void *) pc1 << " pc2=" << (void *) pc2 << "\n";
+    assert(pc1 == pc2);
+
+    if ((void *) pc1 == (void *) 0x7ffff7f1f469) {
+      g_conf.dbi.singlestep = true;
+      g_conf.dbi.execution_trace = true;
+    }
 #endif
 
     stop_round();
@@ -474,12 +489,18 @@ namespace memcheck {
     switch (check_res) {
     case CR::KILL:
       kill();
-      seq_pt.step(this->tracee());
-      seq_pt.post(this->tracee());
+      if (!seq_pt.step(this->tracee())) { 
+	seq_pt.post(this->tracee());
+	start_round(true);
+      } else {
+	patcher.unsuspend(this->tracee());
+      }
       break;
     case CR::KEEP:
-      seq_pt.step(this->tracee(), this->tracee2());
-      seq_pt.post(this->tracee(), this->tracee2());
+      if (!seq_pt.step(this->tracee(), this->tracee2())) {
+	seq_pt.post(this->tracee(), this->tracee2());
+	start_round(false);
+      }
       break;
     case CR::FAIL:
       g_conf.abort(this->tracee());
@@ -488,8 +509,7 @@ namespace memcheck {
       assert(false);
       break;
     }
-    patcher.unsuspend(this->tracee());
-    start_round();
+    
     return true;
   }
   

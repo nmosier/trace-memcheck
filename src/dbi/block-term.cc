@@ -290,7 +290,8 @@ namespace dbi {
 
     /* 2 */
     tracee.singlestep();
-    const Status status = tracee.wait();
+    tracee.wait();
+    const Status status = tracee.status();
     assert(status.stopped_trap()); (void) status;
 
     orig_pc = tracee.get_pc();

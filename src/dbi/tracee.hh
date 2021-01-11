@@ -42,6 +42,16 @@ namespace dbi {
 
     bool stopped() const { return stopped_; }
 
+    const Status& status() const {
+      assert(stopped());
+      return status_;
+    }
+
+    Status& status() {
+      assert(stopped());
+      return status_;
+    }
+
     template <typename Func>
     void open(const char *file, char * const argv[], Func func) {
       const auto child = ::fork();
@@ -128,6 +138,9 @@ namespace dbi {
     void get_regs(user_fpregs_struct& fpregs) { get_fpregs(fpregs); }
     void set_regs(const user_regs_struct& gpregs) { set_gpregs(gpregs); }
     void set_regs(const user_fpregs_struct& fpregs) { set_fpregs(fpregs); }
+
+    template <typename Wrapper>
+    void set_regs(const Wrapper& wrapper) { set_regs(wrapper.regs()); }
   
     uint8_t *get_pc(void);
     void set_pc(void *pc);
@@ -154,7 +167,7 @@ namespace dbi {
       return (Ret) syscall_bare(syscall_ptr, no, ((uintptr_t) args)...);
     }
 
-    pid_t fork(Status& status, Tracee& forked_tracee, void *syscall_ptr = nullptr);
+    pid_t fork(Tracee& forked_tracee, void *syscall_ptr = nullptr);
     
     void kill();
 
@@ -168,7 +181,7 @@ namespace dbi {
 
     const char *filename() const { return command; }
 
-    void assert_stopsig(Status status, int expect);
+    void assert_stopsig(int expect);
 
     std::ostream& xmm_print(std::ostream& os, unsigned idx);
 
@@ -179,19 +192,13 @@ namespace dbi {
       return eventmsg;
     }
 
-    void wait(Status& status) {
+    void wait() {
       assert(!stopped());
-      if (::waitpid(pid(), &status.status(), 0) < 0) {
+      if (::waitpid(pid(), &status_.status(), 0) < 0) {
 	std::perror("waitpid");
 	std::abort();
       }
       stopped_ = true;
-    }
-
-    Status wait() {
-      Status status;
-      wait(status);
-      return status;
     }
 
     void setoptions(int options) {
@@ -211,6 +218,7 @@ namespace dbi {
     user_regs_struct regs_;
     bool fpregs_good_ = false;
     user_fpregs_struct fpregs_;
+    Status status_;
 
     void cache_regs();
     void cache_fpregs();

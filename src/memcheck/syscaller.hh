@@ -22,7 +22,9 @@ namespace memcheck {
     }
 
     pid_t fork(dbi::Tracee& tracee, dbi::Status& status, dbi::Tracee& forked_tracee) const {
-      return tracee.fork(status, forked_tracee, syscall_ptr);
+      const auto res = tracee.fork(forked_tracee, syscall_ptr);
+      status = tracee.status();
+      return res;
     }
     
   private:

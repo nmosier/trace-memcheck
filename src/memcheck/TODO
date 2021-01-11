@@ -1,2 +1,3 @@
 [ ] LockTracker needs to check lock destinations.
 [ ] SharedMemSeqPt needs to transfer writes to other thread.
+[ ] include STATUS in TRACEE -- this way patcher can know about status changes.

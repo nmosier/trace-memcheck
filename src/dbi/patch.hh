@@ -123,6 +123,24 @@ namespace dbi {
 	}
       }
     }
+
+    template <typename F>
+    void for_each_tracee_pair_good(F f) {
+      for (auto& pair : tracees) {
+	if (pair.tracee.good()) {
+	  f(pair);
+	}
+      }
+    }
+
+    template <typename F>
+    void for_each_tracee_pair_good(F f) const {
+      for (const auto& pair : tracees) {
+	if (pair.tracee.good()) {
+	  f(pair);
+	}
+      }
+    }
     
     template <typename Idx>
     const Tracee& tracee_good(Idx idx) const {
@@ -219,7 +237,7 @@ namespace dbi {
     void pre_syscall_handler();
     void post_syscall_handler();
 
-    bool handle_stop(TraceePair& tracee_pair, Status status); // returns whether exited
+    bool handle_stop(TraceePair& tracee_pair); // returns whether exited
     void handle_ptrace_event(TraceePair& tracee_pair, enum __ptrace_eventcodes event);    
     
     void print_ss(Tracee& tracee) const;
