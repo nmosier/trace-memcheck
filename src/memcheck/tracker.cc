@@ -653,10 +653,11 @@ namespace memcheck {
     
 #endif
 
+#if 0
+  
   void SharedMemSeqPt::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     auto& inst = instcheck.inst;
     switch (inst.xed_iform()) {
-      /* 0 REGS, FLAGS WRITTEN */
     case XED_IFORM_CMP_MEMv_IMMb:
     case XED_IFORM_CMP_MEMv_IMMz:
     case XED_IFORM_CMP_MEMb_IMMb_80r7:
@@ -669,7 +670,6 @@ namespace memcheck {
       write_flags(status_flags, tracee1, tracee2);
       break;
 
-      /* 1 REG WRITTEN, FLAGS IGNORED */
     case XED_IFORM_MOVZX_GPRv_MEMw:
     case XED_IFORM_MOVZX_GPRv_MEMb:
     case XED_IFORM_MOVSXD_GPRv_MEMz:
@@ -713,6 +713,14 @@ namespace memcheck {
       std::abort();    
     }    
   }
+
+#else
+
+  void SharedMemSeqPt::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    instcheck.post();
+  }
+  
+#endif
 
   SyscallTracker_::Mode SyscallTracker_::mode(dbi::Syscall sys) {
 #define E(sys, val) case dbi::Syscall::sys: return Mode::val
