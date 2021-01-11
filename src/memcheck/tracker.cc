@@ -560,6 +560,8 @@ namespace memcheck {
     return false;
   }
 
+#if 0
+  
   SharedMemSeqPt::CheckResult SharedMemSeqPt::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     fault_addr = dbi::pagealign(tracee1.get_siginfo().si_addr);
     
@@ -636,9 +638,23 @@ namespace memcheck {
     return CheckResult::KEEP;
   }
 
-  void SharedMemSeqPt::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
-    std::clog << "here\n";
+#else
+  
+  SharedMemSeqPt::CheckResult SharedMemSeqPt::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    fault_addr = dbi::pagealign(tracee1.get_siginfo().si_addr);
+    instcheck = InstructionChecker(tracee1, tracee2);
+
+    if (!instcheck.check()) {
+      return CheckResult::FAIL;
+    }
+
+    return CheckResult::KEEP;
+  }
     
+#endif
+
+  void SharedMemSeqPt::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    auto& inst = instcheck.inst;
     switch (inst.xed_iform()) {
       /* 0 REGS, FLAGS WRITTEN */
     case XED_IFORM_CMP_MEMv_IMMb:

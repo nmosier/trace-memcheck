@@ -11,6 +11,7 @@ namespace memcheck {
     case Error::JCC_CKSUMS_DIFFER: return "conditional checksums differ";
     case Error::TAINTED_REG:       return "read from uninitialized register";
     case Error::TAINTED_FLAGS:     return "instruction uses tainted flags";
+    case Error::TAINTED_MEM:       return "read from tainted memory";
     default:
       std::abort();
     }

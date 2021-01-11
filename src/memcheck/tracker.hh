@@ -12,6 +12,7 @@
 #include "flags.hh"
 #include "vars.hh"
 #include "types.hh"
+#include "inst-check.hh"
 
 namespace memcheck {
   class Memcheck;
@@ -668,7 +669,7 @@ namespace memcheck {
     State& taint_state;
     Syscaller sys;
     void *fault_addr;
-    dbi::Instruction inst;
+    InstructionChecker instcheck;
     
     void read(xed_reg_enum_t reg, dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
     void write(xed_reg_enum_t reg); // TODO: remove (old)

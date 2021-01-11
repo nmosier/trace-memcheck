@@ -470,18 +470,10 @@ namespace memcheck {
       return false;
     }
 
-#ifndef NDEBUG
     const auto pc1 = this->tracee().get_pc();
     const auto pc2 = this->tracee2().get_pc();
-    std::clog << "pc1=" << (void *) pc1 << " pc2=" << (void *) pc2 << "\n";
-    assert(pc1 == pc2);
-
-    if ((void *) pc1 == (void *) 0x7ffff7f1f469) {
-      g_conf.dbi.singlestep = true;
-      g_conf.dbi.execution_trace = true;
-    }
-#endif
-
+    assert(pc1 == pc2); (void) pc1; (void) pc2;
+    
     stop_round();
     
     const auto check_res = check_round(seq_pt);

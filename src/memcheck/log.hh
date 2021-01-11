@@ -12,6 +12,7 @@ namespace memcheck {
     JCC_CKSUMS_DIFFER,
     TAINTED_REG,
     TAINTED_FLAGS,
+    TAINTED_MEM,
   };
 
   const char *to_string(Error error);

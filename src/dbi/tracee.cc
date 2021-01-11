@@ -132,15 +132,13 @@ namespace dbi {
     assert(good());
     assert(stopped());
     
-    const struct iovec local_iov {to_, count};
-    const struct iovec remote_iov {const_cast<void *>(from_), count};
-    const auto bytes_read = ::process_vm_readv(pid(), &local_iov, 1, &remote_iov, 1, 0);
+    const auto bytes_read = ::pread(fd(), to_, count, reinterpret_cast<off_t>(from_));
     if (bytes_read < 0) {
-      std::perror("process_vm_readv");
+      std::perror("pread");
       std::fprintf(stderr, "pc = %p\n", (void *) get_pc());
       g_conf.abort(*this);
     } else if (bytes_read == 0) {
-      std::cerr << "process_vm_readv: partial read occurred\n";
+      std::cerr << "pread: partial read occurred\n";
       std::abort();
     }
     assert(static_cast<size_t>(bytes_read) == count);
