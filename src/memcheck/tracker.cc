@@ -286,6 +286,20 @@ namespace memcheck {
     return status.exited();
   }
 
+  bool SequencePoint_Defaults::step_one(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    const auto exited = step(tracee1);
+    assert(!exited); (void) exited;
+    tracee2.set_pc(tracee1.get_pc());
+    return false;
+  }
+
+  bool SequencePoint_Defaults::step_both(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    const auto exited1 = step(tracee1);
+    const auto exited2 = step(tracee2);
+    assert(exited1 == exited2); (void) exited2;
+    return exited1;
+  }
+
   bool SyscallTracker_::is_seq_pt(dbi::Syscall no) {
 #if 0
     switch (no) {
@@ -376,18 +390,38 @@ namespace memcheck {
       break;
     }
 
-    SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
-				   syscall_args, memcheck);
+    SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(), syscall_args, memcheck);
     syscall_checker.post();
 
     return true;
   }
 
+#if 0
+  
   LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     const auto addr = tracee1.get_pc();
     g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee1) << "\n";
     return CheckResult::KILL; // TODO: Should actually keep.
   }
+
+#else
+
+  LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    instcheck.init(tracee1, tracee2);
+    std::clog << instcheck.inst << "\n";
+    if (!instcheck.check()) {
+      return CheckResult::FAIL;
+    }
+    return CheckResult::KEEP;
+  }
+
+#endif
+
+  void LockTracker_::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    instcheck.post();
+  }
+  
+  
 
   bool RTMTracker_::match(const dbi::Instruction& inst) const {
     switch (inst.xed_iclass()) {
@@ -407,11 +441,10 @@ namespace memcheck {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
     }
-    
-    tracee.singlestep();
-    tracee.wait();
-    tracee.assert_stopsig(SIGTRAP);
-  
+
+    const auto exited = step(tracee);
+    assert(exited == false); (void) exited;
+
     const auto res =
       sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
@@ -426,17 +459,13 @@ namespace memcheck {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee1);
     }
-    
-    tracee1.singlestep();
-    tracee1.wait();
-    tracee1.assert_stopsig(SIGTRAP);
+
+    const auto exited = step_one(tracee1, tracee2);
+    assert(!exited); (void) exited;
   
     const auto res =
       sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
-
-    /* set PC of tracee2 */
-    tracee2.set_pc(tracee1.get_pc());
 
     return false;
   }

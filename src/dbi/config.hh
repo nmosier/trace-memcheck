@@ -23,7 +23,7 @@ namespace dbi {
 
     bool set_prediction_mode(const char *s);
 
-    void abort(Tracee& tracee);
+    [[noreturn]] void abort(Tracee& tracee);
 #ifndef NASSERT
     void assert_(bool pred, Tracee& tracee) { if (!pred) { abort(tracee); } }
 #else

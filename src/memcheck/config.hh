@@ -15,7 +15,7 @@ namespace memcheck {
 
     Config(dbi::Config& dbi = dbi::g_conf): dbi(dbi) {}
     
-    void abort(dbi::Tracee& tracee) {
+    [[noreturn]] void abort(dbi::Tracee& tracee) {
       tracee.cat_maps(map_file);
       map_file.flush();
       dbi.abort(tracee);

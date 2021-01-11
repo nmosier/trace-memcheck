@@ -62,6 +62,7 @@ namespace memcheck {
     static unsigned width(xed_reg_enum_t reg) { return xed_get_register_width_bits(reg) / 8; }
 
     friend class SharedMemSeqPt; // TODO: remove
+    friend class LockTracker_;
   };
   
 }

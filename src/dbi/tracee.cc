@@ -426,7 +426,9 @@ namespace dbi {
   
     char pid_str[16];
     sprintf(pid_str, "%d", pid());
-    execlp("gdb", "gdb", command, pid_str, nullptr);  
+    ::execlp("gdb", "gdb", command, pid_str, nullptr);
+    std::perror("execlp");
+    std::abort();
   }
 
   std::pair<uintptr_t, std::string> Tracee::addr_loc(void *addr_) const {

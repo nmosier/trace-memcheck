@@ -312,8 +312,10 @@ namespace memcheck {
   class SequencePoint_Defaults {
   public:
     /** Single-step through sequence point instruction (kill() called before this) */
-    bool step(dbi::Tracee& tracee);
-    bool step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
+    static bool step(dbi::Tracee& tracee);
+    static bool step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
+    static bool step_one(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
+    static bool step_both(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
 
     /** After single step and regeneration */
     void post(dbi::Tracee& tracee) {}
@@ -615,6 +617,13 @@ namespace memcheck {
   class LockTracker_: public SequencePoint_Defaults {
   public:
     CheckResult check(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
+    bool step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) const {
+      return step_one(tracee1, tracee2);
+    }
+    bool step(dbi::Tracee& tracee) const { return SequencePoint_Defaults::step(tracee); }
+    void post(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
+    void post(dbi::Tracee& tracee) {}
+    
     static const char *desc() { return "lock"; }
 
   protected:
@@ -622,6 +631,7 @@ namespace memcheck {
     
   private:
     static constexpr uint8_t LOCK_PREFIX = 0xf0;
+    InstructionChecker instcheck;
   };
   using LockTracker = SequencePoint_<LockTracker_>;
 

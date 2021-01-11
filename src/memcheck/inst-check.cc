@@ -2,6 +2,7 @@
 #include "log.hh"
 #include "settings.hh"
 #include "util.hh"
+#include "config.hh"
 
 namespace memcheck {
 
@@ -56,7 +57,9 @@ namespace memcheck {
     const bool taint_is_zero =
       std::all_of(bufs[0].begin(), bufs[0].end(), [] (auto x) { return x == 0; });
     if (!taint_is_zero) {
-      error() << Error::TAINTED_MEM << " " << ptr << "(" << size << "bytes)\n";
+      error() << Error::TAINTED_MEM << " " << ptr << "(" << size << " bytes)\n";
+      std::clog << std::hex << tracee1->read_type<int>((const int *) ptr) << "\n" << std::dec;
+      std::clog << std::hex << tracee2->read_type<int>((const int *) ptr) << "\n" << std::dec;
       return false;
     }
     return true;
@@ -112,8 +115,10 @@ namespace memcheck {
     const dbi::GPRegisters gpregs1(*tracee1);
     dbi::GPRegisters gpregs2(*tracee2);
     assert(gpregs1.reg(base) == gpregs2.reg(base));
-    assert(util::implies(index != XED_REG_INVALID, gpregs1.reg(index) == gpregs2.reg(index)));
-
+    if (index != XED_REG_INVALID) {
+      assert(gpregs1.reg(index) == gpregs2.reg(index));
+    }
+    
     const auto base_ptr = reinterpret_cast<char *>(gpregs1.reg(base));
     std::ptrdiff_t index_off = 0;
     if (index != XED_REG_INVALID) {
@@ -188,6 +193,9 @@ namespace memcheck {
     case XED_IFORM_MOVZX_GPRv_MEMb:
     case XED_IFORM_MOVSXD_GPRv_MEMz:
     case XED_IFORM_MOV_GPRv_MEMv:
+    case XED_IFORM_DEC_LOCK_MEMv:
+    case XED_IFORM_INC_LOCK_MEMv:
+    case XED_IFORM_SUB_LOCK_MEMv_IMMb:
       assert(nmemops == 1);
       return true;
 
@@ -201,11 +209,15 @@ namespace memcheck {
     case XED_IFORM_ADD_GPRv_MEMv:
     case XED_IFORM_SUB_GPRv_MEMv:
     case XED_IFORM_AND_GPRv_MEMv:
+    case XED_IFORM_CMPXCHG_LOCK_MEMv_GPRv:
+      assert(nmemops == 1);
       return read(inst.xed_reg0());
+
     
     default:
       std::cerr << inst.xed_iform_str() << "\n";
-      std::abort();    
+      std::cerr << inst << "\n";
+      g_conf.abort(*tracee1);
     }
   }
 
@@ -226,6 +238,9 @@ namespace memcheck {
     case XED_IFORM_CMP_MEMv_IMMb:
     case XED_IFORM_CMP_MEMv_IMMz:
     case XED_IFORM_CMP_MEMb_IMMb_80r7:
+    case XED_IFORM_DEC_LOCK_MEMv:
+    case XED_IFORM_INC_LOCK_MEMv:
+    case XED_IFORM_SUB_LOCK_MEMv_IMMb:
       write_flags(status_flags);
       break;
 
@@ -273,8 +288,13 @@ namespace memcheck {
       taint_flags(Flag::AF);
       break;
     
+    case XED_IFORM_CMPXCHG_LOCK_MEMv_GPRv:
+      write_flags(Flag::ZF);
+      break;
+      
     default:
       std::cerr << inst.xed_iform_str() << "\n";
+      std::cerr << inst << "\n";
       std::abort();    
     }
   }

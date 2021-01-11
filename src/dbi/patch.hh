@@ -223,7 +223,11 @@ namespace dbi {
     uint8_t old_entry_byte;
 
     Block *lookup_block_patch(uint8_t *addr, bool can_fail);
+#if 0
     const BkptCallback& lookup_bkpt(uint8_t *addr) const;
+#else
+    const BkptCallback *lookup_bkpt(uint8_t *addr) const;
+#endif
     bool is_pool_addr(uint8_t *addr) const;
 
     void start_block(uint8_t *root);

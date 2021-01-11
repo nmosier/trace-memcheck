@@ -363,6 +363,7 @@ namespace memcheck {
     // 0: Unsuspend
     assert(tracee().good());
     patcher.for_each_tracee_pair_good([] (auto& tracee_pair) {
+      std::clog << "unsuspending " << tracee_pair.tracee.pid() << "\n";
       tracee_pair.info.suspended(false);
     });
     

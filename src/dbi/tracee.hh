@@ -171,7 +171,7 @@ namespace dbi {
     
     void kill();
 
-    void gdb();
+    [[noreturn]] void gdb();
 
     std::pair<uintptr_t, std::string> addr_loc(void *addr) const;
 

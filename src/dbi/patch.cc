@@ -59,12 +59,21 @@ namespace dbi {
   }
 
   void Patcher::handle_bkpt(Tracee& tracee, uint8_t *bkpt_addr) {
-    const BkptCallback& callback = lookup_bkpt(bkpt_addr);
-    callback(tracee, bkpt_addr);
+    const BkptCallback *callback = lookup_bkpt(bkpt_addr);
+    if (callback == nullptr) {
+      *g_conf.log << "patcher: warning: spurious wakeup\n";
+    } else {
+      (*callback)(tracee, bkpt_addr);
+    }
   }
 
-  const BkptCallback& Patcher::lookup_bkpt(uint8_t *addr) const {
-    return bkpt_map.at(addr);
+  const BkptCallback *Patcher::lookup_bkpt(uint8_t *addr) const {
+    const auto it = bkpt_map.find(addr);
+    if (it == bkpt_map.end()) {
+      return nullptr;
+    } else {
+      return &it->second;
+    }
   }
 
   Block *Patcher::lookup_block_patch(uint8_t *addr, bool can_fail) {
@@ -329,10 +338,12 @@ namespace dbi {
 	  }
 	} else {
 	  bkpt_pc = tracee.get_pc() - 1;
-#ifndef NASSERT
+#if 0
 	  uint8_t pc_byte;
 	  tracee.read(&pc_byte, 1, bkpt_pc);
-	  assert(pc_byte == 0xcc);
+	  if (pc_byte != 0xcc, tracee) {
+	  }
+	  g_conf.assert_(pc_byte == 0xcc, tracee);
 #endif
 	  handle_bkpt(tracee, bkpt_pc);
 	}
@@ -411,7 +422,7 @@ namespace dbi {
     *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
 		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
 		<< Instruction(tracee.get_pc(), tracee)
-#if 1
+#if 0
 		<< " | " << "xmm1=" << FPRegisters(tracee).xmm(1)
 		<< " rdx=" << GPRegisters(tracee).rdx()
 		<< std::dec
