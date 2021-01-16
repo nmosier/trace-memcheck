@@ -291,6 +291,17 @@ namespace memcheck {
       std::abort();
     }
   }
+
+  const char *to_string(SequencePoint_Defaults::CheckResult cr) {
+    using CR = SequencePoint_Defaults::CheckResult;
+    switch (cr) {
+    case CR::FAIL: return "FAIL";
+    case CR::KILL: return "KILL";
+    case CR::KEEP: return "KEEP";
+    default: return nullptr;
+    }
+  }
+  
   
   bool SequencePoint_Defaults::step(dbi::Tracee& tracee) {
     tracee.singlestep();
@@ -329,7 +340,12 @@ namespace memcheck {
 
     switch (mode()) {
     case Mode::DUP:
+      /* check return values */
+      if (tracee1.get_gpregs().rax != tracee2.get_gpregs().rax) {
+	std::abort(); 
+      }
       return true;
+
     case Mode::SIM:
       {
 	SyscallChecker2 syscall_checker(tracee1, tracee2, page_set, memcheck.stack_begin(),
@@ -476,11 +492,11 @@ namespace memcheck {
 
   bool SharedMemSeqPt::step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     g_conf.log() << "aligned_fault = " << fault_addr << "\n";
-    if (sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ)
-	< 0) {
-      g_conf.log() << "MPROTECT: failed\n";
-      dbi::g_conf.abort(tracee1);
-    }
+    if (sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ) < 0)
+      {
+	g_conf.log() << "MPROTECT: failed\n";
+	dbi::g_conf.abort(tracee1);
+      }
 
     const auto exited = step_one(tracee1, tracee2);
     assert(!exited); (void) exited;
@@ -508,7 +524,17 @@ namespace memcheck {
   }
 
   SyscallTracker_::Mode SyscallTracker_::mode(dbi::Syscall sys) {
-#define E(sys, val) case dbi::Syscall::sys: return Mode::val
+    constexpr Mode SIM = Mode::SIM;
+    constexpr Mode DUP = Mode::DUP;
+    constexpr Mode SEQ = Mode::SEQ;
+#define E(sys, ...)							\
+    case dbi::Syscall::sys:						\
+      {									\
+	Mode modes[] = {__VA_ARGS__};					\
+	const auto idx = std::min<unsigned>(g_conf.syscall_mode_safety_level, arrlen(modes) - 1); \
+	return modes[idx];						\
+      }
+    
     switch (sys) {
       E(READ,            SIM);
       E(WRITE,           SIM);
@@ -519,7 +545,7 @@ namespace memcheck {
       E(LSTAT,           SIM); // NOTE: this can be strengthened
       E(POLL,            SEQ); // NOTE: this might be overly conservative
       E(LSEEK,           SIM);
-      E(MMAP,            SEQ); // NOTE: this might be overly conservative
+      E(MMAP,            SEQ, DUP); // NOTE: this might be overly conservative
       E(MPROTECT,        DUP);
       E(MUNMAP,          DUP);
       E(BRK,             DUP);

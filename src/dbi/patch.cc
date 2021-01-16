@@ -422,9 +422,9 @@ namespace dbi {
     *g_conf.log << "[" << tracee.pid() << "] ss pc = " << static_cast<void *>(tracee.get_pc())
 		<< " " << static_cast<void *>(orig_block_addr(tracee.get_pc())) << ": "
 		<< Instruction(tracee.get_pc(), tracee)
-#if 0
-		<< " | " << "xmm1=" << FPRegisters(tracee).xmm(1)
-		<< " rdx=" << GPRegisters(tracee).rdx()
+#if 1
+		<< " | "
+		<< " rdi=" << GPRegisters(tracee).rdi()
 		<< std::dec
 #endif
 		<< "\n";

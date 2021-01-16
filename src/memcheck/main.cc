@@ -40,6 +40,8 @@ int main(int argc, char *argv[]) {
       "           single-step after <count> invokations of syscall\n"	\
       " --no-preload\n"							\
       "           disable setting of LD_PRELOAD to custom libc\n"	\
+      " --syscall-safety=<n>\n"						\
+      "           system call mode safety level (0 is safest)\n"	\
       ""
       ;
     fprintf(f, usage, argv[0]);
@@ -53,11 +55,13 @@ int main(int argc, char *argv[]) {
     PREDICTION_MODE = 256,
     SS_SYSCALL,
     NO_PRELOAD,
+    SYSCALL_SAFETY,
   };
   const struct option longopts[] =
     {{"prediction-mode", 1, nullptr, PREDICTION_MODE},
      {"ss-syscall", true, nullptr, SS_SYSCALL},
      {"no-preload", true, nullptr, NO_PRELOAD},
+     {"syscall-safety", true, nullptr, SYSCALL_SAFETY},
      {nullptr, 0, nullptr, 0},
     };
   int optchar;
@@ -133,6 +137,10 @@ int main(int argc, char *argv[]) {
 	}
 	memcheck::g_conf.ss_syscall(syscall, std::stoul(count));
       }
+      break;
+
+    case SYSCALL_SAFETY:
+      memcheck::g_conf.syscall_mode_safety_level = std::stoul(optarg);
       break;
 
     case NO_PRELOAD:

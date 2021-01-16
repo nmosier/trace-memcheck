@@ -331,6 +331,12 @@ namespace memcheck {
     bool handler_pre(dbi::Tracee& tracee, uint8_t *addr) { return true; }
   };
 
+  const char *to_string(SequencePoint_Defaults::CheckResult cr);  
+  inline std::ostream& operator<<(std::ostream& os, SequencePoint_Defaults::CheckResult cr) {
+    return os << to_string(cr);
+  }
+  
+
   class StackTracker_Pre_Incore_Base: public TrackerHalfIncore_Base {
   public:
     StackTracker_Pre_Incore_Base(MemcheckVariables& vars):
@@ -343,6 +349,8 @@ namespace memcheck {
     MC mc;
   };
   using StackTracker_Pre_Incore = TrackerHalfIncore_Derived<StackTracker_Pre_Incore_Base>;
+
+  
 
   class StackTracker_Post_Incore_Base: public TrackerHalfIncore_Base {
   public:

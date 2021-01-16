@@ -12,10 +12,12 @@ namespace memcheck {
     dbi::Config& dbi;
     std::ofstream map_file;
     bool preload = true;
+    unsigned syscall_mode_safety_level = 0; // 0 is highest
 
     Config(dbi::Config& dbi = dbi::g_conf): dbi(dbi) {}
     
     [[noreturn]] void abort(dbi::Tracee& tracee) {
+      map_file << "[" << tracee.pid() << "]\n";
       tracee.cat_maps(map_file);
       map_file.flush();
       dbi.abort(tracee);

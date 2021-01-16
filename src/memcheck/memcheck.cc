@@ -447,7 +447,6 @@ namespace memcheck {
       patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
 	save_state(tracee, thd_map.at(tracee.pid()).state);
       });
-      
       update_taint_state(thd_map.begin(), thd_map.end(), taint_state);      
     }
   }
@@ -468,8 +467,8 @@ namespace memcheck {
 
     const auto pc1 = this->tracee().get_pc();
     const auto pc2 = this->tracee2().get_pc();
-    assert(pc1 == pc2); (void) pc1; (void) pc2;
-
+    g_conf.assert_(pc1 == pc2, this->tracee()); (void) pc1; (void) pc2;
+    
     const auto handler = [&seq_pt, this] (auto&... tracees) {
       if (!seq_pt.step(tracees...)) {
 	seq_pt.post(tracees...);
@@ -492,12 +491,14 @@ namespace memcheck {
       }
     };
 
-    
     using CR = SequencePoint_Defaults::CheckResult;
     const CR check_res = check_round(seq_pt);
 
     const bool save_states = (check_res == CR::KILL);
     this->stop_round(save_states);
+    
+    // DEBUG
+    log() << "seq_pt " << seq_pt.desc() << " " << check_res << "\n";
         
     switch (check_res) {
     case CR::KILL:
@@ -520,22 +521,7 @@ namespace memcheck {
   
   void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
     /* taint memory below stack */
-#if 0
-    const auto npages = tracked_pages.size();
-    std::vector<void *> orig_writable_pages;
-    orig_writable_pages.reserve(npages);
-    for (auto& page : tracked_pages) {
-      switch (tracked_pages.tier(page)) {
-      case PageInfo::Tier::RDWR_LOCKED:
-      case PageInfo::Tier::RDWR_UNLOCKED:
-	orig_writable_pages.push_back(page.first);
-	break;
-      }
-    }
-    taint_state.save(orig_writable_pages.begin(), orig_writable_pages.end(), 0);
-#else
     taint_state.save(tmp_writable_pages.begin(), tmp_writable_pages.end(), 0);
-#endif
 
     if (TAINT_STACK) {
       const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
