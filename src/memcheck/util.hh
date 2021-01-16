@@ -112,5 +112,14 @@ namespace util {
     return all_equal(begin, end, [] (const auto& lhs, const auto& rhs) { return lhs == rhs; });
   }
 
+  template <typename Func>
+  void for_each_arg(Func func) {}
+  
+  template <typename Func, typename HeadArg, typename... TailArgs>
+  void for_each_arg(Func func, HeadArg&& head_arg, TailArgs&&... tail_args) {
+    func(head_arg);
+    for_each_arg(func, std::forward<TailArgs>(tail_args)...);
+  }
+  
 }
 

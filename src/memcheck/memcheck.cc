@@ -213,9 +213,10 @@ namespace memcheck {
   SequencePoint_Defaults::CheckResult Memcheck::check_round(SequencePoint& seq_pt) {
     // TODO: should return bool.
 
-    /* get taint mask */
-    // TODO: should only do this conditionally
-    update_taint_state(thd_map.begin(), thd_map.end(), taint_state);
+    /* save incore jcc checksums */
+    patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
+      thd_map.at(tracee.pid()).incore_cksum = vars.jcc_cksum_val(tracee);
+    });
 
     const auto bkpt_cksums =
       util::make_transform_container<const FlagChecksum &>
@@ -440,24 +441,21 @@ namespace memcheck {
 #endif
   }
 
-  void Memcheck::stop_round() {
+  void Memcheck::stop_round(bool save_states) {
     /* save state of each thread */
-    patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
-      save_state(tracee, thd_map.at(tracee.pid()).state);
-    });
-
-    /* save incore breakpoints */
-    patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
-      thd_map.at(tracee.pid()).incore_cksum = vars.jcc_cksum_val(tracee);
-    });
+    if (save_states) {
+      patcher.for_each_tracee_good([&] (dbi::Tracee& tracee) {
+	save_state(tracee, thd_map.at(tracee.pid()).state);
+      });
+      
+      update_taint_state(thd_map.begin(), thd_map.end(), taint_state);      
+    }
   }
 
   template <typename SequencePoint>
   bool Memcheck::sequence_point_handler(dbi::Tracee& tracee, SequencePoint& seq_pt) {
     g_conf.log() << "seq_pt " << seq_pt.desc() << "\n";
     
-    save_state(tracee, thd_map.at(tracee.pid()).state);
-
     if (suspended_count < THREADS - 1) {
       /* suspend thread */
       patcher.suspend(tracee);
@@ -471,29 +469,43 @@ namespace memcheck {
     const auto pc1 = this->tracee().get_pc();
     const auto pc2 = this->tracee2().get_pc();
     assert(pc1 == pc2); (void) pc1; (void) pc2;
+
+    const auto handler = [&seq_pt, this] (auto&... tracees) {
+      if (!seq_pt.step(tracees...)) {
+	seq_pt.post(tracees...);
+
+	bool should_fork;
+	switch (sizeof...(tracees)) {
+	case 1:
+	  should_fork = true;
+	  break;
+	case 2:
+	  should_fork = false;
+	  break;
+	default: std::abort();
+	}
+	start_round(should_fork);
+      } else {
+	util::for_each_arg([this] (dbi::Tracee& tracee) {
+	  this->patcher.unsuspend(tracee);
+	}, tracees...);
+      }
+    };
+
     
-    stop_round();
-    
-    const auto check_res = check_round(seq_pt);
     using CR = SequencePoint_Defaults::CheckResult;
+    const CR check_res = check_round(seq_pt);
+
+    const bool save_states = (check_res == CR::KILL);
+    this->stop_round(save_states);
+        
     switch (check_res) {
     case CR::KILL:
       kill();
-      if (!seq_pt.step(this->tracee())) { 
-	seq_pt.post(this->tracee());
-	start_round(true);
-      } else {
-	patcher.unsuspend(this->tracee());
-      }
+      handler(this->tracee());
       break;
     case CR::KEEP:
-      if (!seq_pt.step(this->tracee(), this->tracee2())) {
-	seq_pt.post(this->tracee(), this->tracee2());
-	start_round(false);
-      } else {
-	patcher.unsuspend(this->tracee());
-	patcher.unsuspend(this->tracee2());
-      }
+      handler(this->tracee(), this->tracee2());
       break;
     case CR::FAIL:
       g_conf.abort(this->tracee());
@@ -502,7 +514,7 @@ namespace memcheck {
       assert(false);
       break;
     }
-    
+        
     return true;
   }
   

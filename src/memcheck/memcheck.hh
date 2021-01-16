@@ -73,7 +73,7 @@ namespace memcheck {
   
     /* Round API */
     void start_round(bool should_fork);
-    void stop_round();
+    void stop_round(bool save_states);
     template <typename SequencePoint>
     SequencePoint_Defaults::CheckResult check_round(SequencePoint& seq_pt);
     template <typename InputIt>
