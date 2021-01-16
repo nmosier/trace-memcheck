@@ -263,7 +263,7 @@ namespace memcheck {
       }
     }
 
-    return is_seq_pt(syscall_args.no());
+    return true;
   }
 
   SyscallTracker_::CheckResult SyscallTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
@@ -275,7 +275,21 @@ namespace memcheck {
       g_conf.abort(tracee1);
       return CheckResult::FAIL;
     }
+#if 1
+    return checkres();
+#else
     return CheckResult::KILL;
+#endif
+  }
+
+  bool SyscallTracker_::step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    switch (mode()) {
+    case Mode::DUP: return step_both(tracee1, tracee2);
+    case Mode::SIM: return step_one(tracee1, tracee2);
+    case Mode::SEQ:
+    default:
+      std::abort();
+    }
   }
   
   bool SequencePoint_Defaults::step(dbi::Tracee& tracee) {
@@ -300,25 +314,37 @@ namespace memcheck {
     return exited1;
   }
 
-  bool SyscallTracker_::is_seq_pt(dbi::Syscall no) {
-#if 0
-    switch (no) {
-    case dbi::Syscall::FSTAT:
-    case dbi::Syscall::POLL:
-      return false;
-    default:
-      return true;
-    }
-#else
+  bool SyscallTracker_::post(dbi::Tracee& tracee) {
+    post_update_maps(tracee);
+
+    SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
+				   syscall_args, memcheck);
+    syscall_checker.post();
+
     return true;
-#endif
+  }
+  
+  bool SyscallTracker_::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    post_update_maps(tracee1);
+
+    switch (mode()) {
+    case Mode::DUP:
+      return true;
+    case Mode::SIM:
+      {
+	SyscallChecker2 syscall_checker(tracee1, tracee2, page_set, memcheck.stack_begin(),
+					syscall_args, memcheck);
+	syscall_checker.post();
+      }
+      return true;
+
+    case Mode::SEQ:
+    default:
+      std::abort();
+    }
   }
 
-  bool SyscallTracker_::post(dbi::Tracee& tracee) {
-    if (!is_seq_pt(syscall_args.no())) {
-      return false;
-    }
-
+  void SyscallTracker_::post_update_maps(dbi::Tracee& tracee) {
     syscall_args.add_ret(tracee);
 
     switch (syscall_args.no()) {
@@ -388,23 +414,21 @@ namespace memcheck {
 	}
       }
       break;
+    }    
+  }
+
+  SyscallTracker_::CheckResult SyscallTracker_::checkres(Mode mode) {
+    switch (mode) {
+    case Mode::DUP:
+    case Mode::SIM:
+      return CheckResult::KEEP;
+    case Mode::SEQ:
+      return CheckResult::KILL;
+    default:
+      std::abort();
     }
-
-    SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(), syscall_args, memcheck);
-    syscall_checker.post();
-
-    return true;
   }
-
-#if 0
   
-  LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
-    const auto addr = tracee1.get_pc();
-    g_conf.log() << "LOCK: " << dbi::Instruction(addr, tracee1) << "\n";
-    return CheckResult::KILL; // TODO: Should actually keep.
-  }
-
-#else
 
   LockTracker_::CheckResult LockTracker_::check(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     instcheck.init(tracee1, tracee2);
@@ -414,8 +438,6 @@ namespace memcheck {
     }
     return CheckResult::KEEP;
   }
-
-#endif
 
   void LockTracker_::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     instcheck.post();
@@ -491,53 +513,53 @@ namespace memcheck {
       E(READ,            SIM);
       E(WRITE,           SIM);
       E(OPEN,            SEQ);
-      E(CLOSE,           SEQ);
-      E(STAT,            DUP); // NOTE: this could cause consistency issues
+      E(CLOSE,           DUP); // NOTE: this might need to be weakened
+      E(STAT,            SIM); // NOTE: this can be strengthened
       E(FSTAT,           DUP);
-      E(LSTAT,           DUP); // NOTE: this could cause consistency issues
+      E(LSTAT,           SIM); // NOTE: this can be strengthened
       E(POLL,            SEQ); // NOTE: this might be overly conservative
       E(LSEEK,           SIM);
       E(MMAP,            SEQ); // NOTE: this might be overly conservative
       E(MPROTECT,        DUP);
       E(MUNMAP,          DUP);
       E(BRK,             DUP);
-      E(ACCESS,          DUP); // NOTE: this could cause consistency issues
-      E(ARCH_PRCTL,      DUP);
-      E(FUTEX,           DUP); // NOTE: this could cause consistency issues
+      E(ACCESS,          SIM); // NOTE: this could cause consistency issues
+      E(ARCH_PRCTL,      SEQ); // NOTE: this might be overly conservative
+      E(FUTEX,           SEQ); // NOTE: this might be overly conservative
       E(EXIT_GROUP,      DUP);
       E(GETDENTS,        SIM);
-      E(GETEUID,         DUP);
       E(MREMAP,          SEQ); // NOTE: this might be overly conservative
       E(SOCKET,          SEQ);
-      E(CONNECT,         SIM);
+      E(CONNECT,         SEQ); // NOTE: this might be overly conservative
       E(SENDTO,          SIM);
-      E(SET_TID_ADDRESS, DUP);
-      E(SET_ROBUST_LIST, DUP);
-      E(RT_SIGACTION,    DUP);
-      E(RT_SIGPROCMASK,  DUP);
+      E(SET_TID_ADDRESS, SEQ); // NOTE: this might be overly conservative
+      E(SET_ROBUST_LIST, SEQ); // NOTE: this might be overly conservative
+      E(RT_SIGACTION,    SEQ); // NOTE: this might be overly conservative
+      E(RT_SIGPROCMASK,  SEQ); // NOTE: this might be overly conservative
       E(GETRLIMIT,       DUP);
-      E(STATFS,          SEQ); // NOTE: this might be overly conservative
+      E(GETRUSAGE,       DUP);
+      E(STATFS,          SIM);
       E(GETUID,          DUP);
+      E(GETEUID,         DUP);
       E(GETGID,          DUP);
+      E(GETEGID,         DUP);
       E(GETPID,          SIM);
       E(GETPPID,         SIM);
       E(FCNTL,           SEQ); // NOTE: this might be overly conservative
-      E(GETEGID,         DUP);
-      E(FACCESSAT,       DUP);
+      E(FACCESSAT,       SIM);
       E(IOCTL,           SEQ); // NOTE: this might be overly conservative
       E(LGETXATTR,       SEQ); // NOTE: this might be overly conservative
       E(GETXATTR,        SEQ); // NOTE: this might be overly conservative
       E(RECVMSG,         SIM);
-      E(GETRUSAGE,       DUP);
       E(UNAME,           DUP);
       E(SETSOCKOPT,      SEQ); // NOTE: this might be overly conservative
       E(GETPEERNAME,     SIM); // NOTE: this might be overly conservative
       E(GETSOCKNAME,     SIM); // NOTE: this might be overly conservative
       E(GETTID,          SIM);
-      E(TGKILL,          SIM);
-      E(FADVISE64,       DUP);
-      E(SETRLIMIT,       DUP);
-      E(READLINK,        DUP); // NOTE: this could cause consistency issues
+      E(TGKILL,          SEQ); // NOTE: this might need behind-the-scenes logic
+      E(FADVISE64,       SIM); // NOTE: this might be overly conservative
+      E(SETRLIMIT,       SEQ); // NOTE: this might be overly conservative
+      E(READLINK,        SIM);
       E(PIPE,            SEQ); // NOTE: this might be overly conservative
       E(CLOCK_GETTIME,   SIM);
       E(GETTIMEOFDAY,    SIM);

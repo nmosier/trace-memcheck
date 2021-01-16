@@ -212,7 +212,6 @@ namespace memcheck {
     case XED_IFORM_CMPXCHG_LOCK_MEMv_GPRv:
       assert(nmemops == 1);
       return read(inst.xed_reg0());
-
     
     default:
       std::cerr << inst.xed_iform_str() << "\n";

@@ -498,8 +498,12 @@ namespace memcheck {
 
   PRE_DECL(GETTIMEOFDAY) {
     PRE_DEF_CHK(GETTIMEOFDAY);
-    PRE_WRITE_TYPE(tv);
-    PRE_WRITE_TYPE(tz);
+    if (tv != nullptr) {
+      PRE_WRITE_TYPE(tv);
+    }
+    if (tz != nullptr) {
+      PRE_WRITE_TYPE(tz);
+    }
     PRE_FIN();
   }
 
@@ -773,8 +777,12 @@ namespace memcheck {
   POST_DECL(GETTIMEOFDAY) {
     POST_DEF(GETTIMEOFDAY);
     if (rv >= 0) {
-      POST_WRITE_TYPE(tv);
-      POST_WRITE_TYPE(tz);
+      if (tv != nullptr) {
+	POST_WRITE_TYPE(tv);
+      }
+      if (tz != nullptr) {
+	POST_WRITE_TYPE(tz);
+      }
     }
     POST_FIN();
   }

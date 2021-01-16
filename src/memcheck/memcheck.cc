@@ -342,13 +342,13 @@ namespace memcheck {
     const pid_t res = ::waitpid(pid2, &status.status(), 0);
     assert(res == pid2); (void) res;
     assert(status.signaled() && status.termsig() == SIGKILL);
-
+    
     tracee().cont();
     tracee().wait();
     status = tracee().status();
     assert(status.stopped());
     assert(status.stopsig() == SIGCHLD);
-
+    
     const auto res2 = syscaller().syscall<pid_t>(tracee(), dbi::Syscall::WAIT4,
 						 pid2, nullptr, 0, nullptr);
     assert(res2 == pid2); (void) res2;
@@ -490,6 +490,9 @@ namespace memcheck {
       if (!seq_pt.step(this->tracee(), this->tracee2())) {
 	seq_pt.post(this->tracee(), this->tracee2());
 	start_round(false);
+      } else {
+	patcher.unsuspend(this->tracee());
+	patcher.unsuspend(this->tracee2());
       }
       break;
     case CR::FAIL:

@@ -112,3 +112,8 @@ Memcheck Sequence Point API:
 
 Also need to return whether to respawn thread or not. This could be the return value of step() -- bool of whether shadow thread is dirty.
 
+----
+
+The problem with replacing the SyscallChecker is that if it is ::KILL, then the behavior of the post() seqpt call is different.
+Instead, the post() syscall can be called after the fork(). Then it doesn't even matter!
+So try this?

@@ -122,7 +122,7 @@ namespace memcheck {
     IOVec remote;
     IOVec local;
     std::vector<std::vector<char>> bufs;
-    size_t bytes;
+    size_t bytes = 0;
   };
 
   class SyscallChecker2 {

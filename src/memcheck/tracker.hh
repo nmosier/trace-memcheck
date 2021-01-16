@@ -494,9 +494,12 @@ namespace memcheck {
       return ss.str();
     }
 
-    bool post(dbi::Tracee& tracee);
-    bool post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) { std::abort(); }
+    bool step(dbi::Tracee& tracee) { return SequencePoint_Defaults::step(tracee); }
+    bool step(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
 
+    bool post(dbi::Tracee& tracee);
+    bool post(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
+    
   protected:
     static bool match(const dbi::Instruction& inst) {
       return inst.xed_iclass() == XED_ICLASS_SYSCALL;
@@ -506,12 +509,11 @@ namespace memcheck {
   private:
     State& taint_state;
     PageSet& page_set;
-    dbi::SyscallArgs& syscall_args;
+    dbi::SyscallArgs& syscall_args; // TODO: should use own copy, not reference to memcheck's.
     Memcheck& memcheck;
     void *brk = nullptr;
     Syscaller sys;
 
-    static bool is_seq_pt(dbi::Syscall no);
     enum class Mode {
       DUP, // this system call can be duplicated across threads
       SIM, // this system call can be simuated using writes (i.e. effects only in memory)
@@ -519,6 +521,9 @@ namespace memcheck {
     };
     static Mode mode(dbi::Syscall sys);
     Mode mode() const { return mode(syscall_args.no()); }
+    void post_update_maps(dbi::Tracee& tracee);
+    static CheckResult checkres(Mode mode);
+    CheckResult checkres() const { return checkres(mode()); }
   };
   using SyscallTracker = SequencePoint_<SyscallTracker_>;
   
