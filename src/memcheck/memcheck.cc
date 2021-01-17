@@ -606,9 +606,25 @@ namespace memcheck {
   
   }
 
+  template <class T>
+  bool Memcheck::page_is_writable(const T& tracked_page) {
+      switch (tracked_pages.tier(tracked_page)) {
+      case PageInfo::Tier::RDWR_UNLOCKED:
+      case PageInfo::Tier::RDWR_LOCKED:
+	return true;
+      default:
+	return false;
+      }
+  }
+  
   void Memcheck::get_writable_pages() {
     tmp_writable_pages.clear();
     for (const auto& tracked_page : tracked_pages) {
+      if (page_is_writable(tracked_page)) {
+	tmp_writable_pages.emplace(tracked_page.first);
+      }
+
+	  
       switch (tracked_pages.tier(tracked_page)) {
       case PageInfo::Tier::RDWR_UNLOCKED:
       case PageInfo::Tier::RDWR_LOCKED:

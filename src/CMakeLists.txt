@@ -12,11 +12,13 @@ include_directories(${xed_INCLUDE_DIRS} ${GPERFTOOLS_INCLUDE_DIR} ${CMAKE_CURREN
 add_subdirectory(dbi)
 add_subdirectory(memcheck)
 
-add_executable(ss
-  ss.cc
-  $<TARGET_OBJECTS:dbi>
-  )
-add_dependencies(ss xed)
+if(0)
+  add_executable(ss
+    ss.cc
+    $<TARGET_OBJECTS:dbi>
+    )
+  add_dependencies(ss xed)
+endif(0)
 
 add_executable(jit
   jit-main.cc
@@ -24,9 +26,14 @@ add_executable(jit
   )
 add_dependencies(jit xed)
 
-add_executable(fork
-  fork-main.cc
-  $<TARGET_OBJECTS:dbi>
-  )
-add_dependencies(jit xed)
+if(0)
+  add_executable(fork
+    fork-main.cc
+    $<TARGET_OBJECTS:dbi>
+    )
+  add_dependencies(fork xed)
+endif(0)
 
+add_executable(conditional-iterator
+  conditional-iterator-main.cc
+  )

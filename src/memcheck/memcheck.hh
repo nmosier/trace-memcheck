@@ -105,7 +105,14 @@ namespace memcheck {
     void write_maps() const;
 
     /* Page Functions */
+#if 1
     void get_writable_pages();
+#else
+    auto get_writable_pages()
+#endif
+    
+    template <class T>
+    bool page_is_writable(const T& tracked_page);
     void lock_pages();
     void unlock_pages();
     void protect_map(const std::string& name, int prot);
