@@ -326,25 +326,41 @@ namespace memcheck {
   }
 
   bool SyscallTracker_::post(dbi::Tracee& tracee) {
+    syscall_args.add_ret(tracee);
     post_update_maps(tracee);
 
     SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
 				   syscall_args, memcheck);
     syscall_checker.post();
 
+    // DEBUG
+    using Sys = dbi::Syscall;
+    switch (syscall_args.no()) {
+    case Sys::OPEN:
+      log() << "OPEN -> fd " << syscall_args.rv<int>() << "\n";
+      break;
+
+    case Sys::SOCKET:
+      log() << "SOCKET -> fd " << syscall_args.rv<int>() << "\n";
+      break;
+    }
+    
     return true;
   }
   
   bool SyscallTracker_::post(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
-    post_update_maps(tracee1);
+    bool res;
 
+    syscall_args.add_ret(tracee1);
+    
     switch (mode()) {
     case Mode::DUP:
       /* check return values */
       if (tracee1.get_gpregs().rax != tracee2.get_gpregs().rax) {
-	std::abort(); 
+	g_conf.abort(tracee1);
       }
-      return true;
+      res = true;
+      break;
 
     case Mode::SIM:
       {
@@ -352,22 +368,39 @@ namespace memcheck {
 					syscall_args, memcheck);
 	syscall_checker.post();
       }
-      return true;
+      res = true;
+      break;
 
     case Mode::SEQ:
     default:
       std::abort();
     }
+    
+    post_update_maps(tracee1, tracee2);
+
+    using Sys = dbi::Syscall;
+    switch (syscall_args.no()) {
+    case Sys::CLOSE:
+      log() << "CLOSE(fd=" << syscall_args.arg<0,int>() << ")\n";
+      break;
+
+    case Sys::MMAP:
+      log() << "MMAP(fd=" << syscall_args.arg<0,int>() << ")\n";
+      break;
+    }
+
+    return res;
   }
 
-  void SyscallTracker_::post_update_maps(dbi::Tracee& tracee) {
-    syscall_args.add_ret(tracee);
+  template <typename... Args>
+  void SyscallTracker_::post_update_maps(dbi::Tracee& tracee, Args&&... args) {
+    // syscall_args.add_ret(tracee);
 
     switch (syscall_args.no()) {
     case dbi::Syscall::MMAP:
       {
 	const auto rv = syscall_args.rv<void *>();
-	if (rv != MAP_FAILED) {
+	if (util::syscall_success(rv)) {
 	  const int prot = syscall_args.arg<2, int>();
 	  const int flags = syscall_args.arg<3, int>();
 	  // DEBUG: omit shared pages
@@ -376,9 +409,11 @@ namespace memcheck {
 	  if (util::implies(BLOCK_SHARED_MAPS, !(flags & MAP_SHARED))) {
 	    page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, prot});
 	  } else {
-	    const auto res =
-	      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, rv, length, PROT_NONE);
-	    assert(res == 0); (void) res;
+	    util::for_each_arg([this, rv, length] (dbi::Tracee& tracee) {
+	      const auto res =
+		sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, rv, length, PROT_NONE);
+	      g_conf.assert_(res == 0, tracee);
+	    }, tracee, std::forward<Args>(args)...);
 	    page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, PROT_NONE});
 	  }
 	}
@@ -404,7 +439,7 @@ namespace memcheck {
       break;
     
     case dbi::Syscall::MREMAP:
-      abort();
+      std::abort();
     
     case dbi::Syscall::MUNMAP:
       {
@@ -426,6 +461,14 @@ namespace memcheck {
 	  const size_t len = syscall_args.arg<1, size_t>();
 	  const int prot = syscall_args.arg<2, int>();
 	  void *end = (char *) addr + len;
+
+	  // TODO: make sure that it's not shared
+	  dbi::for_each_page(addr, end, [this] (const auto pageaddr) {
+	    if ((this->page_set.at(pageaddr).flags() & MAP_SHARED)) {
+	      std::abort();
+	    }
+	  });
+
 	  page_set.update_range(addr, end, prot);
 	}
       }
@@ -576,7 +619,7 @@ namespace memcheck {
       E(IOCTL,           SEQ); // NOTE: this might be overly conservative
       E(LGETXATTR,       SEQ); // NOTE: this might be overly conservative
       E(GETXATTR,        SEQ); // NOTE: this might be overly conservative
-      E(RECVMSG,         SIM);
+      E(RECVMSG,         SIM, SEQ);
       E(UNAME,           DUP);
       E(SETSOCKOPT,      SEQ); // NOTE: this might be overly conservative
       E(GETPEERNAME,     SIM); // NOTE: this might be overly conservative

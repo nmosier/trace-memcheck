@@ -834,8 +834,7 @@ namespace memcheck {
       }
     }
   }
-  
-  
+
   POST_TRUE(OPEN)
   POST_TRUE(CLOSE)
   POST_TRUE(MMAP)

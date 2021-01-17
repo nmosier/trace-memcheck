@@ -53,6 +53,24 @@ namespace util {
   transform_container<Ret, Func, Container> make_transform_container(Container& container,
 								     Func func) {
     return transform_container<Ret, Func, Container>(container, func);
-  }  
+  }
 
+  inline bool syscall_error(long rv) {
+    return -4096 < rv && rv < 0;
+  }
+
+  inline bool syscall_error(unsigned long rv) {
+    return syscall_error(static_cast<long>(rv));
+  }
+
+  template <typename T>
+  inline bool syscall_error(T *rv) {
+    return syscall_error(reinterpret_cast<intptr_t>(rv));
+  }
+
+  template <typename T>
+  inline bool syscall_success(T rv) {
+    return !syscall_error(rv);
+  }
+  
 }

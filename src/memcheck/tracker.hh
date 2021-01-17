@@ -529,7 +529,8 @@ namespace memcheck {
     };
     static Mode mode(dbi::Syscall sys);
     Mode mode() const { return mode(syscall_args.no()); }
-    void post_update_maps(dbi::Tracee& tracee);
+    template <typename... Args>
+    void post_update_maps(dbi::Tracee& tracee, Args&&... args);
     static CheckResult checkres(Mode mode);
     CheckResult checkres() const { return checkres(mode()); }
   };

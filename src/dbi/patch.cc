@@ -424,7 +424,7 @@ namespace dbi {
 		<< Instruction(tracee.get_pc(), tracee)
 #if 1
 		<< " | "
-		<< " rdi=" << GPRegisters(tracee).rdi()
+		<< " rax=" << GPRegisters(tracee).rax()
 		<< std::dec
 #endif
 		<< "\n";

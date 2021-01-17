@@ -112,7 +112,7 @@ namespace memcheck {
     
     /* Thread Management Functions */
     void fork();
-    void kill();
+    void kill(dbi::Tracee& killee);
     
     /* Other */
     template <typename Ret, typename... Args>

@@ -162,7 +162,7 @@ namespace memcheck {
     save_state(tracee(), pre_state);
 #if 1
     if (pre_tracee) {
-      pre_tracee.kill();
+      kill(pre_tracee);
     }
     dbi::Status status;
     syscaller().fork(tracee(), status, pre_tracee);
@@ -333,11 +333,10 @@ namespace memcheck {
 #endif
   }
   
-  void Memcheck::kill() {
-    dbi::Tracee& tracee2 = this->tracee2();
-    const auto pid2 = tracee2.pid(); (void) pid2;
-    thd_map.erase(tracee2.pid());
-    tracee2.kill();
+  void Memcheck::kill(dbi::Tracee& killee) {
+    const auto pid2 = killee.pid(); (void) pid2;
+    thd_map.erase(killee.pid());
+    killee.kill();
     
     dbi::Status status;
     const pid_t res = ::waitpid(pid2, &status.status(), 0);
@@ -453,7 +452,7 @@ namespace memcheck {
 
   template <typename SequencePoint>
   bool Memcheck::sequence_point_handler(dbi::Tracee& tracee, SequencePoint& seq_pt) {
-    g_conf.log() << "seq_pt " << seq_pt.desc() << "\n";
+    g_conf.log() << "[" << tracee.pid() << "] seq_pt " << seq_pt.desc() << "\n";
     
     if (suspended_count < THREADS - 1) {
       /* suspend thread */
@@ -502,7 +501,7 @@ namespace memcheck {
         
     switch (check_res) {
     case CR::KILL:
-      kill();
+      kill(this->tracee2());
       handler(this->tracee());
       break;
     case CR::KEEP:

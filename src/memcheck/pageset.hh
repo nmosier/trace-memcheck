@@ -115,7 +115,7 @@ namespace memcheck {
     template <typename... Args>
     bool contains(Args&&... args) const { return find(args...) != end(); }
 
-#if 0
+#if 1
     template <typename... Args>
     const auto& at(Args&&... args) const { return map.at(args...); }
 
