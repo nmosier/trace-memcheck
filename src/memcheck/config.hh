@@ -12,7 +12,7 @@ namespace memcheck {
     dbi::Config& dbi;
     std::ofstream map_file;
     bool preload = true;
-    unsigned syscall_mode_safety_level = 0; // 0 is highest
+    unsigned syscall_mode_safety_level = 1; // 0 is highest
 
     Config(dbi::Config& dbi = dbi::g_conf): dbi(dbi) {}
     

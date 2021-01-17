@@ -581,7 +581,7 @@ namespace memcheck {
     switch (sys) {
       E(READ,            SIM);
       E(WRITE,           SIM);
-      E(OPEN,            SEQ);
+      E(OPEN,            SEQ, DUP);
       E(CLOSE,           DUP); // NOTE: this might need to be weakened
       E(STAT,            SIM); // NOTE: this can be strengthened
       E(FSTAT,           DUP);
@@ -594,7 +594,7 @@ namespace memcheck {
       E(BRK,             DUP);
       E(ACCESS,          SIM); // NOTE: this could cause consistency issues
       E(ARCH_PRCTL,      SEQ); // NOTE: this might be overly conservative
-      E(FUTEX,           SEQ); // NOTE: this might be overly conservative
+      E(FUTEX,           SEQ, SIM); // NOTE: this might be overly conservative
       E(EXIT_GROUP,      DUP);
       E(GETDENTS,        SIM);
       E(MREMAP,          SEQ); // NOTE: this might be overly conservative
