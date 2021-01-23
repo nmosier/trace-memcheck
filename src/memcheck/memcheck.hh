@@ -55,7 +55,6 @@ namespace memcheck {
     State taint_state;
     ThreadMap thd_map; // contains fills, checksums, etc.
     unsigned suspended_count;
-    std::unordered_set<void *> tmp_writable_pages;
     std::unordered_set<void *> shared_pages;
     static Memcheck *cur_memcheck; // used to dump maps on interrupt
     ExecMemory exec_mem;
@@ -99,20 +98,22 @@ namespace memcheck {
 
     /* Debugging Functions */
     void assert_taint_zero() {
+#ifndef NDEBUG
       g_conf.assert_(util::implies(ASSERT_TAINT_ZERO, taint_state.is_zero()), tracee());
+#endif
     }
     static void sigint_handler(int signum);
     void write_maps() const;
 
     /* Page Functions */
+
 #if 1
-    void get_writable_pages();
-#else
-    auto get_writable_pages()
+    const auto& tmp_writable_pages() const { return tracked_pages.save_pages(); }
 #endif
     
     template <class T>
     bool page_is_writable(const T& tracked_page);
+    
     void lock_pages();
     void unlock_pages();
     void protect_map(const std::string& name, int prot);

@@ -31,6 +31,18 @@ int main() {
     std::cout << i << " ";
   }
   std::cout << "\n";
+
+#if 0
+  const auto sq_even_vec =
+    util::make_transform_container<int>(util::make_conditional_container(vec, [] (int x) {
+      return x % 2 == 0;
+    }), [] (int x) { return x * x; });
+  std::cout << "sq even vec: ";
+  for (int i : sq_even_vec) {
+    std::cout << i << " ";
+  }
+  std::cout << "\n";
+#endif
   
   return 0;
 }

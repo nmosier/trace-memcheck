@@ -36,6 +36,7 @@ namespace memcheck {
 
   void PageSet::untrack_page(void *pageaddr) {
     map.erase(pageaddr);
+    save_pages_.erase(pageaddr);
   }
 
   void PageSet::untrack_range(void *begin, void *end) {
@@ -81,10 +82,10 @@ namespace memcheck {
     std::multimap<unsigned, Map::iterator> counts_map;
 
     for (auto it = begin(); it != end(); ++it) {
-      switch (it->second.tier()) {
+      switch (it->second->tier()) {
       case PageInfo::Tier::RDWR_LOCKED:
       case PageInfo::Tier::RDWR_UNLOCKED:
-	counts_map.emplace(it->second.count(), it);
+	counts_map.emplace(it->second->count(), it);
 	break;
       }
     }
@@ -95,14 +96,14 @@ namespace memcheck {
     auto rit = counts_map.rbegin();
     for (unsigned i = 0; i < n && rit != counts_map.rend(); ++i, ++rit) {
       const auto pageaddr = rit->second->first;
-      PageInfo& page_info = rit->second->second;
+      PageInfo& page_info = *rit->second->second;
       if (page_info.tier() == PageInfo::Tier::RDWR_LOCKED) {
 	page_info.unlock(pageaddr, tracee, sys);
       }
     }
     for (; rit != counts_map.rend(); ++rit) {
       const auto pageaddr = rit->second->first;
-      PageInfo& page_info = rit->second->second;
+      PageInfo& page_info = *rit->second->second;
       if (page_info.tier() == PageInfo::Tier::RDWR_UNLOCKED) {
 	page_info.lock(pageaddr, tracee, sys, mask);
       }

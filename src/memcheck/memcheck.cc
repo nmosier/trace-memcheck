@@ -80,8 +80,6 @@ namespace memcheck {
     patcher.signal(SIGCHLD, sigignore);
     patcher.sigaction(SIGSEGV, [this] (auto&&... args) { this->segfault_handler(args...); });
 
-    get_writable_pages();
-
     save_pre_state();
     init_taint(taint_state, true); // also taint shadow stack
 
@@ -155,9 +153,10 @@ namespace memcheck {
   }
 
   void Memcheck::save_state(dbi::Tracee& tracee, State& state) {
-    state.save(tracee, tmp_writable_pages.begin(), tmp_writable_pages.end());
+    const auto pages = tmp_writable_pages();
+    state.save(tracee, pages.begin(), pages.begin());
   }
-
+  
   void Memcheck::save_pre_state() {
     save_state(tracee(), pre_state);
 #if 1
@@ -168,7 +167,7 @@ namespace memcheck {
     syscaller().fork(tracee(), status, pre_tracee);
 #endif
   }
-
+  
   void *Memcheck::stack_begin() {
     const auto stack_end = dbi::pagealign_up(tracee().get_sp());
     auto stack_begin = stack_end;
@@ -176,11 +175,11 @@ namespace memcheck {
     while (true) {
       stack_begin = dbi::pageidx(stack_begin, -1);
       const auto it = tracked_pages.find(stack_begin);
-      if (it == tracked_pages.end() || !(it->second.orig_prot() & PROT_WRITE)) {
+      if (it == tracked_pages.end() || !(it->second->orig_prot() & PROT_WRITE)) {
 	break;
       }
     }
-
+    
     stack_begin = dbi::pageidx(stack_begin, 1);
     return stack_begin;
   }
@@ -378,9 +377,6 @@ namespace memcheck {
 		    }
 		  });
     
-    // 2: Get writable pages.
-    get_writable_pages();
-
     // 3: Save state/tracee.
     save_pre_state();
 
@@ -520,7 +516,8 @@ namespace memcheck {
   
   void Memcheck::init_taint(State& taint_state, bool taint_shadow_stack) {
     /* taint memory below stack */
-    taint_state.save(tmp_writable_pages.begin(), tmp_writable_pages.end(), 0);
+    const auto pages = tmp_writable_pages();
+    taint_state.save(pages.begin(), pages.begin(), 0);
 
     if (TAINT_STACK) {
       const auto padding = taint_shadow_stack ? 0 : SHADOW_STACK_SIZE;
@@ -608,34 +605,15 @@ namespace memcheck {
 
   template <class T>
   bool Memcheck::page_is_writable(const T& tracked_page) {
-      switch (tracked_pages.tier(tracked_page)) {
-      case PageInfo::Tier::RDWR_UNLOCKED:
-      case PageInfo::Tier::RDWR_LOCKED:
-	return true;
-      default:
-	return false;
-      }
+    switch (tracked_pages.tier(tracked_page)) {
+    case PageInfo::Tier::RDWR_UNLOCKED:
+    case PageInfo::Tier::RDWR_LOCKED:
+      return true;
+    default:
+      return false;
+    }
   }
   
-  void Memcheck::get_writable_pages() {
-    tmp_writable_pages.clear();
-    for (const auto& tracked_page : tracked_pages) {
-      if (page_is_writable(tracked_page)) {
-	tmp_writable_pages.emplace(tracked_page.first);
-      }
-
-	  
-      switch (tracked_pages.tier(tracked_page)) {
-      case PageInfo::Tier::RDWR_UNLOCKED:
-      case PageInfo::Tier::RDWR_LOCKED:
-	tmp_writable_pages.emplace(tracked_page.first);
-	break;
-      }
-    }
-
-    tmp_writable_pages.erase(vars.mem.base<void *>());
-  }
-
   void Memcheck::lock_pages() {
     for (auto& page : tracked_pages) {
       if (tracked_pages.tier(page) == PageInfo::Tier::RDWR_UNLOCKED) {
@@ -643,7 +621,7 @@ namespace memcheck {
       }
     }
   }
-
+  
   void Memcheck::unlock_pages() {
     for (auto& page : tracked_pages) {
       if (tracked_pages.tier(page) == PageInfo::Tier::RDWR_LOCKED) {

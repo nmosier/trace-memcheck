@@ -3,6 +3,7 @@
 class PageSet;
 
 #include <unordered_map>
+#include <unordered_set>
 #include <list>
 #include "maps.hh"
 #include "state.hh"
@@ -47,6 +48,16 @@ namespace memcheck {
     void unlock(void *pageaddr, dbi::Tracee& tracee, const Syscaller& sys);
 
     Tier tier() const { return tier_; }
+
+    bool should_save() const {
+      switch (tier()) {
+      case Tier::RDWR_LOCKED:
+      case Tier::RDWR_UNLOCKED:
+	return true;
+      default:
+	return false;
+      }
+    }
     
     friend class PageSet;
   };
@@ -55,7 +66,8 @@ namespace memcheck {
 
   class PageSet {
   public:
-    using Map = std::unordered_map<void *, PageInfo>;
+    using Map = std::unordered_map<void *, std::shared_ptr<PageInfo>>;
+    using Set = std::unordered_set<void *>;
   
     PageSet() {}
 
@@ -72,13 +84,17 @@ namespace memcheck {
       if ((page_info.flags() & MAP_FIXED)) {
 	const auto it = map.find(pageaddr);
 	if (it != map.end()) {
-	  it->second = page_info;
+	  it->second = std::make_unique<PageInfo>(page_info);
 	  return;
 	}
       }
       assert(dbi::is_pageaddr(pageaddr));
-      const auto res = map.emplace(pageaddr, page_info);
+      const auto res = map.emplace(pageaddr, std::make_shared<PageInfo>(page_info));
       assert(res.second); (void) res;
+      if (page_info.should_save()) {
+	const auto res = save_pages_.emplace(pageaddr);
+	assert(res.second); (void) res;
+      }
     }
 
     void track_range(void *begin, void *end, const PageInfo& page_info) {
@@ -91,7 +107,17 @@ namespace memcheck {
     void untrack_range(void *begin, void *end);
 
     void update_page(void *pageaddr, int newprot) {
-      map.at(pageaddr).prot(newprot, newprot);
+      auto& page_info = *map.at(pageaddr);
+      const bool oldsave = page_info.should_save();
+      page_info.prot(newprot, newprot);
+      if (page_info.should_save() != oldsave) {
+	if (oldsave) {
+	  save_pages_.erase(pageaddr);
+	} else {
+	  const auto res = save_pages_.emplace(pageaddr);
+	  assert(res.second); (void) res;
+	}
+      }
     }
   
     void update_range(void *begin, void *end, int newprot) {
@@ -126,19 +152,22 @@ namespace memcheck {
     void lock_top_counts(unsigned n, dbi::Tracee& tracee, int mask);
 
     void lock(Map::value_type& it, dbi::Tracee& tracee, int mask) {
-      it.second.lock(it.first, tracee, sys, mask);
+      it.second->lock(it.first, tracee, sys, mask);
     }
 
     void unlock(Map::value_type& it, dbi::Tracee& tracee) {
-      it.second.unlock(it.first, tracee, sys);
+      it.second->unlock(it.first, tracee, sys);
     }
 
     PageInfo::Tier tier(const Map::value_type& it) const {
-      return it.second.tier();
+      return it.second->tier();
     }
+
+    const Set& save_pages() const { return save_pages_; }
   
   private:
     Map map; // pageaddr -> page info
+    Set save_pages_;
     Syscaller sys;
   };
 

@@ -464,11 +464,11 @@ namespace memcheck {
 
 	  // TODO: make sure that it's not shared
 	  dbi::for_each_page(addr, end, [this] (const auto pageaddr) {
-	    if ((this->page_set.at(pageaddr).flags() & MAP_SHARED)) {
+	    if ((this->page_set.at(pageaddr)->flags() & MAP_SHARED)) {
 	      std::abort();
 	    }
 	  });
-
+	  
 	  page_set.update_range(addr, end, prot);
 	}
       }

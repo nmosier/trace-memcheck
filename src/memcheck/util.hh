@@ -120,6 +120,6 @@ namespace util {
     func(head_arg);
     for_each_arg(func, std::forward<TailArgs>(tail_args)...);
   }
-  
+
 }
 
