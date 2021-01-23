@@ -381,17 +381,7 @@ namespace memcheck {
     save_pre_state();
 
     // 4: Update taint state.
-    // TODO: OPTIM
-    std::unordered_set<void *> orig_writable_pages;
-    for (const auto& pair : tracked_pages) {
-      switch (tracked_pages.tier(pair)) {
-      case PageInfo::Tier::RDWR_LOCKED:
-      case PageInfo::Tier::RDWR_UNLOCKED:
-	orig_writable_pages.insert(pair.first);
-	break;
-      }
-    }
-    taint_state.snapshot().update(orig_writable_pages, 0);
+    taint_state.snapshot().update(tracked_pages.save_pages(), 0);
   
     // 5: Fork.
     if (should_fork) {
