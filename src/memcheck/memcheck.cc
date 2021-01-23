@@ -416,8 +416,6 @@ namespace memcheck {
       vars.init_for_subround(tracee);
     });
     
-    // start_subround();
-    
     assert_taint_zero();
 #ifndef NDEBUG
     patcher.for_each_tracee_good([&] (auto& tracee) {

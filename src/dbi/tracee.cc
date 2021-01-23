@@ -168,20 +168,32 @@ namespace dbi {
 
   void Tracee::readv(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
 		     size_t from_count, size_t total_bytes) {
-    const auto bytes_read = ::process_vm_readv(pid(), to_iov, to_count, from_iov, from_count, 0);
-    if (bytes_read < 0) {
-      std::perror("process_vm_readv");
-      std::abort();
-    } else if (static_cast<size_t>(bytes_read) != total_bytes) {
-      std::cerr << "process_vm_readv: partial read occurred\n";
-      std::abort();
+    if (total_bytes == 0) {
+      return;
     }
+    
+    while (true) {
+      const auto bytes_read = ::process_vm_readv(pid(), to_iov, to_count, from_iov, from_count, 0);
+      if (bytes_read < 0) {
+	std::perror("process_vm_readv");
+	std::abort();
+      } else if (bytes_read == 0) {
+	*g_conf.log << "process_vm_readv: unexpected end-of-file\n";
+	std::abort();
+      } else if (static_cast<size_t>(bytes_read) == total_bytes) { 
+	break;
+      } 
+    } 
 
     iovec_check(to_iov, to_count, from_iov, from_count, total_bytes);
   }
 
   void Tracee::writev(const struct iovec *to_iov, size_t to_count, const struct iovec *from_iov,
 		      size_t from_count, size_t total_bytes) {
+    if (total_bytes == 0) {
+      return;
+    }
+    
     const auto bytes_written = ::process_vm_writev(pid(), from_iov, from_count, to_iov, to_count,
 						   0);
     if (bytes_written < 0) {
