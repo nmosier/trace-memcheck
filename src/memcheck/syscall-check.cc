@@ -58,7 +58,7 @@ namespace memcheck {
       return false;
     }
 
-#define PRE_TAB(name, ...) case dbi::Syscall::name: return pre_##name();
+#define PRE_TAB(name, ...) case Syscall::name: return pre_##name();
     switch (args.no()) {
       SYSCALLS(PRE_TAB);
     default: abort();
@@ -514,7 +514,7 @@ namespace memcheck {
   }
 
   void SyscallChecker::post() {
-#define POST_TAB(name, ...) case dbi::Syscall::name: post_##name(); break;
+#define POST_TAB(name, ...) case Syscall::name: post_##name(); break;
     switch (args.no()) {
       SYSCALLS(POST_TAB);
     }

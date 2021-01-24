@@ -16,9 +16,9 @@ namespace dbi {
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <sys/uio.h>
+#include <sys/syscall.h>
 
 #include "inst.hh"
-#include "syscall.hh"
 #include "util.hh"
 #include "status.hh"
 
@@ -158,12 +158,12 @@ namespace dbi {
     void syscall(void *syscall_ptr, user_regs_struct& regs);
 
     template <typename Ret, typename... Args>
-    Ret syscall(Syscall no, Args&&... args) {
+    Ret syscall(long no, Args&&... args) {
       return (Ret) syscall_bare(nullptr, no, ((uintptr_t) args)...);
     }
 
     template <typename Ret, typename... Args>
-    Ret syscall(void *syscall_ptr, Syscall no, Args&&... args) {
+    Ret syscall(void *syscall_ptr, long no, Args&&... args) {
       return (Ret) syscall_bare(syscall_ptr, no, ((uintptr_t) args)...);
     }
 
@@ -279,7 +279,7 @@ namespace dbi {
 			    const struct iovec *from_iov, size_t from_count, size_t total_bytes);
 
     // TODO: Replace uintptr with decltype of regs.rip, e.g.
-    uintptr_t syscall_bare(void *syscall_ptr, Syscall syscallno,
+    uintptr_t syscall_bare(void *syscall_ptr, long syscallno,
 			   uintptr_t a0 = 0, uintptr_t a1 = 0, uintptr_t a2 = 0,
 			   uintptr_t a3 = 0, uintptr_t a4 = 0, uintptr_t a5 = 0);
   };

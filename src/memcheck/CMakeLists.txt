@@ -13,6 +13,7 @@ add_executable(memcheck
   tracker.cc
   vars.cc
   inst-check.cc
+  syscall.cc
   $<TARGET_OBJECTS:dbi>
   )
 add_dependencies(memcheck xed)

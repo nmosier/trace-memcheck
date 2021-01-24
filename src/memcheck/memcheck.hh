@@ -48,7 +48,7 @@ namespace memcheck {
     RDTSCTracker rdtsc_tracker;
     Maps maps_gen;
     PageSet tracked_pages;
-    dbi::SyscallArgs syscall_args;
+    SyscallArgs syscall_args;
     State pre_state;
     dbi::Tracee pre_tracee;
     static const RoundArray<fill_t> fills;

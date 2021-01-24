@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "dbi/config.hh"
+#include "syscall.hh"
 
 namespace memcheck {
 
@@ -28,12 +29,14 @@ namespace memcheck {
 #endif
     }
 
-    void ss_syscall(dbi::Syscall syscall, unsigned count) { syscall_counts[syscall] = {0, count}; }
+    void ss_syscall(Syscall syscall, unsigned count) {
+      syscall_counts[syscall] = {0, count};
+    }
     void ss_syscall(const char *syscall, unsigned count) {
-      ss_syscall(dbi::to_syscall(syscall), count);
+      ss_syscall(to_syscall(syscall), count);
     }
     
-    void add_syscall(dbi::Syscall syscall) {
+    void add_syscall(Syscall syscall) {
       auto it = syscall_counts.find(syscall);
       if (it == syscall_counts.end()) { return; }
       auto& pair = it->second;
@@ -50,7 +53,7 @@ namespace memcheck {
     }
 
   private:
-    std::unordered_map<dbi::Syscall, std::pair<unsigned, unsigned>> syscall_counts;
+    std::unordered_map<Syscall, std::pair<unsigned, unsigned>> syscall_counts;
   };
 
   extern Config g_conf;

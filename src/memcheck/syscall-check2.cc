@@ -119,7 +119,7 @@ namespace memcheck {
     
     taint_args.add_call(taint_gpregs);
 
-#define PRE_TAB(name, ...) case dbi::Syscall::name: return pre_##name();
+#define PRE_TAB(name, ...) case Syscall::name: return pre_##name();
     switch (args.no()) {
       SYSCALLS(PRE_TAB);
     default: std::abort();
@@ -152,7 +152,7 @@ namespace memcheck {
     gpregs.rax = tracee1.get_gpregs().rax;
     tracee2.set_gpregs(gpregs);
     
-#define POST_TAB(name, ...) case dbi::Syscall::name: post_##name(); break;
+#define POST_TAB(name, ...) case Syscall::name: post_##name(); break;
     switch (args.no()) {
       SYSCALLS(POST_TAB);
     default: std::abort();

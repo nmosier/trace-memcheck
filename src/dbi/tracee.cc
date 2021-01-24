@@ -13,6 +13,7 @@
 #include <cctype>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+
 #include "tracee.hh"
 #include "util.hh"
 #include "decoder.hh"
@@ -327,8 +328,8 @@ namespace dbi {
   }
 
   void Tracee::syscall(void *syscall_ptr, user_regs_struct& regs) {
-    switch (static_cast<Syscall>(regs.rax)) {
-    case Syscall::FORK:
+    switch (regs.rax) {
+    case SYS_fork:
       assert(false);
       break;
     }
@@ -345,7 +346,7 @@ namespace dbi {
     set_regs(saved_regs);
   }
 
-  uintptr_t Tracee::syscall_bare(void *syscall_ptr, Syscall syscallno, uintptr_t a0, uintptr_t a1,
+  uintptr_t Tracee::syscall_bare(void *syscall_ptr, long syscallno, uintptr_t a0, uintptr_t a1,
 				 uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5) {
     user_regs_struct regs = get_gpregs();
     regs.rax = static_cast<unsigned>(syscallno);
@@ -370,7 +371,7 @@ namespace dbi {
     const bool rewrite = syscall_ptr == nullptr;
     const auto saved_regs = get_gpregs();
     auto fork_regs = saved_regs;
-    fork_regs.rax = static_cast<unsigned>(Syscall::FORK);
+    fork_regs.rax = SYS_fork;
     if (!rewrite) {
       fork_regs.rip = reinterpret_cast<unsigned long>(syscall_ptr);
     }

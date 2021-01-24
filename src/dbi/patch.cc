@@ -4,9 +4,11 @@
 #include <fstream>
 #include <elf.h>
 #include <cstring>
+
 #include "patch.hh"
 #include "config.hh"
 #include "status.hh"
+#include "regs.hh"
 
 namespace dbi {
 

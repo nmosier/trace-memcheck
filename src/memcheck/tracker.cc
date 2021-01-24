@@ -257,9 +257,9 @@ namespace memcheck {
 
     // TODO: Perhaps this should be done in the SyscallTracker's initialization?
     switch (syscall_args.no()) {
-    case dbi::Syscall::BRK:
+    case Syscall::BRK:
       if (brk == nullptr) {
-	brk = sys.syscall<void *>(tracee, dbi::Syscall::BRK, nullptr);
+	brk = sys.syscall<void *>(tracee, Syscall::BRK, nullptr);
       }
     }
 
@@ -334,7 +334,7 @@ namespace memcheck {
     syscall_checker.post();
 
     // DEBUG
-    using Sys = dbi::Syscall;
+    using Sys = Syscall;
     switch (syscall_args.no()) {
     case Sys::OPEN:
       log() << "OPEN -> fd " << syscall_args.rv<int>() << "\n";
@@ -378,7 +378,7 @@ namespace memcheck {
     
     post_update_maps(tracee1, tracee2);
 
-    using Sys = dbi::Syscall;
+    using Sys = Syscall;
     switch (syscall_args.no()) {
     case Sys::CLOSE:
       log() << "CLOSE(fd=" << syscall_args.arg<0,int>() << ")\n";
@@ -397,7 +397,7 @@ namespace memcheck {
     // syscall_args.add_ret(tracee);
 
     switch (syscall_args.no()) {
-    case dbi::Syscall::MMAP:
+    case Syscall::MMAP:
       {
 	const auto rv = syscall_args.rv<void *>();
 	if (util::syscall_success(rv)) {
@@ -411,7 +411,7 @@ namespace memcheck {
 	  } else {
 	    util::for_each_arg([this, rv, length] (dbi::Tracee& tracee) {
 	      const auto res =
-		sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, rv, length, PROT_NONE);
+		sys.syscall<int>(tracee, Syscall::MPROTECT, rv, length, PROT_NONE);
 	      g_conf.assert_(res == 0, tracee);
 	    }, tracee, std::forward<Args>(args)...);
 	    page_set.track_range(rv, (char *) rv + length, PageInfo{flags, prot, PROT_NONE});
@@ -420,7 +420,7 @@ namespace memcheck {
       }
       break;
 
-    case dbi::Syscall::BRK:
+    case Syscall::BRK:
       {
 	const auto rv = syscall_args.rv<void *>();
 	if (rv != nullptr) {
@@ -438,10 +438,10 @@ namespace memcheck {
       }
       break;
     
-    case dbi::Syscall::MREMAP:
+    case Syscall::MREMAP:
       std::abort();
     
-    case dbi::Syscall::MUNMAP:
+    case Syscall::MUNMAP:
       {
 	const auto rv = syscall_args.rv<int>();
 	if (rv >= 0) {
@@ -453,7 +453,7 @@ namespace memcheck {
       }
       break;
 
-    case dbi::Syscall::MPROTECT:
+    case Syscall::MPROTECT:
       {
 	const auto rv = syscall_args.rv<int>();
 	if (rv >= 0) {
@@ -517,7 +517,7 @@ namespace memcheck {
   
   bool SharedMemSeqPt::step(dbi::Tracee& tracee) {
     g_conf.log() << "aligned_fault = " << fault_addr << "\n";
-    if (sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ)
+    if (sys.syscall<int>(tracee, Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ)
 	< 0) {
       g_conf.log() << "MPROTECT: failed\n";
       dbi::g_conf.abort(tracee);
@@ -527,7 +527,7 @@ namespace memcheck {
     assert(exited == false); (void) exited;
 
     const auto res =
-      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
+      sys.syscall<int>(tracee, Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
 
     return false;
@@ -535,7 +535,7 @@ namespace memcheck {
 
   bool SharedMemSeqPt::step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     g_conf.log() << "aligned_fault = " << fault_addr << "\n";
-    if (sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ) < 0)
+    if (sys.syscall<int>(tracee1, Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_READ) < 0)
       {
 	g_conf.log() << "MPROTECT: failed\n";
 	dbi::g_conf.abort(tracee1);
@@ -545,7 +545,7 @@ namespace memcheck {
     assert(!exited); (void) exited;
   
     const auto res =
-      sys.syscall<int>(tracee1, dbi::Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
+      sys.syscall<int>(tracee1, Syscall::MPROTECT, fault_addr, dbi::PAGESIZE, PROT_NONE);
     assert(res == 0); (void) res;
 
     return false;
@@ -566,12 +566,12 @@ namespace memcheck {
     instcheck.post();
   }
 
-  SyscallTracker_::Mode SyscallTracker_::mode(dbi::Syscall sys) {
+  SyscallTracker_::Mode SyscallTracker_::mode(Syscall sys) {
     constexpr Mode SIM = Mode::SIM;
     constexpr Mode DUP = Mode::DUP;
     constexpr Mode SEQ = Mode::SEQ;
 #define E(sys, ...)							\
-    case dbi::Syscall::sys:						\
+    case Syscall::sys:						\
       {									\
 	Mode modes[] = {__VA_ARGS__};					\
 	const auto idx = std::min<unsigned>(g_conf.syscall_mode_safety_level, arrlen(modes) - 1); \

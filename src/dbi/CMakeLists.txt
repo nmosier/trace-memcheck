@@ -9,7 +9,6 @@ add_library(dbi STATIC
   rsb.cc
   config.cc
   romcache.cc
-  syscall.cc
   regs.cc
   status.cc
   )

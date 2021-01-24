@@ -53,7 +53,7 @@ namespace memcheck {
     assert(orig_prot_ == cur_prot_);
     assert((orig_prot_ & mask) == mask);
     const auto res =
-      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, pageaddr, dbi::PAGESIZE, cur_prot_);
+      sys.syscall<int>(tracee, Syscall::MPROTECT, pageaddr, dbi::PAGESIZE, cur_prot_);
     assert(res == 0); (void) res;
 
     prot(orig_prot_, orig_prot_ & ~mask);
@@ -69,7 +69,7 @@ namespace memcheck {
     assert(tier() == Tier::RDWR_LOCKED);
 
     const auto res =
-      sys.syscall<int>(tracee, dbi::Syscall::MPROTECT, pageaddr, dbi::PAGESIZE, orig_prot_);
+      sys.syscall<int>(tracee, Syscall::MPROTECT, pageaddr, dbi::PAGESIZE, orig_prot_);
     assert(res == 0); (void) res;
     ++count_;
     prot(orig_prot_, orig_prot_);

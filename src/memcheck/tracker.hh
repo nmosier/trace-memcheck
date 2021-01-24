@@ -4,9 +4,10 @@
 #include <string>
 #include <vector>
 #include <type_traits>
+
 #include "dbi/block-term.hh"
 #include "dbi/patch.hh"
-#include "dbi/syscall-args.hh"
+#include "syscall-args.hh"
 #include "pageset.hh"
 #include "cksum.hh"
 #include "flags.hh"
@@ -484,7 +485,7 @@ namespace memcheck {
 
   class SyscallTracker_: public SequencePoint_Defaults {
   public:
-    SyscallTracker_(State& taint_state, PageSet& page_set, dbi::SyscallArgs& syscall_args,
+    SyscallTracker_(State& taint_state, PageSet& page_set, SyscallArgs& syscall_args,
 		    Memcheck& memcheck):
       taint_state(taint_state),
       page_set(page_set),
@@ -517,7 +518,7 @@ namespace memcheck {
   private:
     State& taint_state;
     PageSet& page_set;
-    dbi::SyscallArgs& syscall_args; // TODO: should use own copy, not reference to memcheck's.
+    SyscallArgs& syscall_args; // TODO: should use own copy, not reference to memcheck's.
     Memcheck& memcheck;
     void *brk = nullptr;
     Syscaller sys;
@@ -527,7 +528,7 @@ namespace memcheck {
       SIM, // this system call can be simuated using writes (i.e. effects only in memory)
       SEQ, // this system call cannot be duplicated or simulated, so treat it as full seq. pt.
     };
-    static Mode mode(dbi::Syscall sys);
+    static Mode mode(Syscall sys);
     Mode mode() const { return mode(syscall_args.no()); }
     template <typename... Args>
     void post_update_maps(dbi::Tracee& tracee, Args&&... args);

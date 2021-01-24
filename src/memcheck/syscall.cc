@@ -2,7 +2,7 @@
 #include <string>
 #include "syscall.hh"
 
-namespace dbi {
+namespace memcheck {
 
   const char *to_string(Syscall syscall) {
     switch (syscall) {

@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
-namespace dbi {
+namespace memcheck {
 
 #define sa0   int, a0_, sa1
 #define sa1   int, a1_, sa2
@@ -71,6 +71,7 @@ namespace dbi {
 #define SYS_FORK FORK, 57, pid_t, 0,
 #define SYS_WRITEV WRITEV, 20, ssize_t, 3, unsigned long, fd, const struct iovec *, iov, unsigned long, iovcnt,
 #define SYS_WAIT4 WAIT4, 61, pid_t, 4, pid_t, pid, int *, status, int, options, struct rusage *, rusage,
+  // #define SYS_MEMCHECK_GETFILLPTR MEMCHECK_GETFILLPTR,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -168,8 +169,8 @@ namespace dbi {
 }
 
 namespace std {
-  template <> struct hash<dbi::Syscall> {
-    size_t operator()(dbi::Syscall syscall) const {
+  template <> struct hash<memcheck::Syscall> {
+    size_t operator()(memcheck::Syscall syscall) const {
       return std::hash<int>()(static_cast<int>(syscall));
     }
   };
@@ -183,7 +184,7 @@ namespace std {
   };
 
 
-namespace dbi {  
+namespace memcheck {  
 
   // test
 #if 1

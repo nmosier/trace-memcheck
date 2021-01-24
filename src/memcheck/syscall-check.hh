@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dbi/syscall.hh"
+#include "syscall.hh"
 #include "addr-range.hh"
 #include "state.hh"
 #include "memcheck.hh"
@@ -11,7 +11,7 @@ namespace memcheck {
   class SyscallChecker {
   public:
     SyscallChecker(dbi::Tracee& tracee, PageSet& page_set, State& taint_state, void *stack_begin,
-		   const dbi::SyscallArgs& args, const Memcheck& memcheck):
+		   const SyscallArgs& args, const Memcheck& memcheck):
       tracee(tracee),
       page_set(page_set),
       taint_state(taint_state),
@@ -28,8 +28,8 @@ namespace memcheck {
     PageSet& page_set;
     State& taint_state;
     AddrRange stack_range;
-    const dbi::SyscallArgs& args;
-    dbi::SyscallArgs taint_args;
+    const SyscallArgs& args;
+    SyscallArgs taint_args;
     const Memcheck& memcheck;
 
     bool check_read(const void *begin, const void *end) const;
@@ -68,7 +68,7 @@ namespace memcheck {
       *dbi::g_conf.log << args.no() << ": ";
       for (const auto& pair : memcheck.thd_map) {
 	const State& state = pair.second.state;
-	const dbi::SyscallArgs args(state.gpregs());
+	const SyscallArgs args(state.gpregs());
 	*dbi::g_conf.log << args.arg<N, T>() << " ";
       }
       *dbi::g_conf.log << "\n";

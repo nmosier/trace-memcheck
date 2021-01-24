@@ -128,7 +128,7 @@ namespace memcheck {
   class SyscallChecker2 {
   public:
     SyscallChecker2(dbi::Tracee& tracee1, dbi::Tracee& tracee2, PageSet& page_set,
-		    void *stack_begin, const dbi::SyscallArgs& args, const Memcheck& memcheck):
+		    void *stack_begin, const SyscallArgs& args, const Memcheck& memcheck):
       tracee1(tracee1),
       tracee2(tracee2),
       page_set(page_set),
@@ -145,8 +145,8 @@ namespace memcheck {
     dbi::Tracee& tracee2;
     PageSet& page_set;
     AddrRange stack_range;
-    const dbi::SyscallArgs& args;
-    dbi::SyscallArgs taint_args;
+    const SyscallArgs& args;
+    SyscallArgs taint_args;
     const Memcheck& memcheck;
 
     using IOVec = std::vector<struct iovec>;

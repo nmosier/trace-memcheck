@@ -348,8 +348,7 @@ namespace memcheck {
     assert(status.stopped());
     assert(status.stopsig() == SIGCHLD);
     
-    const auto res2 = syscaller().syscall<pid_t>(tracee(), dbi::Syscall::WAIT4,
-						 pid2, nullptr, 0, nullptr);
+    const auto res2 = syscaller().syscall<pid_t>(tracee(), SYS_wait4, pid2, nullptr, 0, nullptr);
     assert(res2 == pid2); (void) res2;
   }
   
@@ -523,7 +522,7 @@ namespace memcheck {
     maps_gen.get_maps(std::back_inserter(maps));
     for (const auto& map : maps) {
       if (map.desc == name) {
-	const auto res = syscall<int>(tracee(), dbi::Syscall::MPROTECT, map.begin, map.size(), prot);
+	const auto res = syscall<int>(tracee(), Syscall::MPROTECT, map.begin, map.size(), prot);
 	assert(res == 0); (void) res;
 	return;
       }

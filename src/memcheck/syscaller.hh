@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dbi/syscall.hh"
+#include "syscall.hh"
 #include "dbi/tracee.hh"
 #include "dbi/status.hh"
 
@@ -16,9 +16,9 @@ namespace memcheck {
     void open(void *syscall_ptr) { this->syscall_ptr = syscall_ptr; }
     void close() { assert(good()); syscall_ptr = nullptr; }
     
-    template <typename Ret, typename... Args>
-    Ret syscall(dbi::Tracee& tracee, dbi::Syscall no, Args&&... args) const {
-      return tracee.syscall<Ret>(syscall_ptr, no, std::forward<Args>(args)...);
+    template <typename Ret, typename No, typename... Args>
+    Ret syscall(dbi::Tracee& tracee, No no, Args&&... args) const {
+      return tracee.syscall<Ret>(syscall_ptr, static_cast<long>(no), std::forward<Args>(args)...);
     }
 
     pid_t fork(dbi::Tracee& tracee, dbi::Status& status, dbi::Tracee& forked_tracee) const {

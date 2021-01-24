@@ -12,7 +12,6 @@
 #include "rsb.hh"
 #include "tmp-mem.hh"
 #include "romcache.hh"
-#include "syscall-args.hh"
 #include "status.hh"
 #include "types.hh"
 #include "shared-util.hh"
@@ -237,7 +236,7 @@ namespace dbi {
     void handle_bkpt(Tracee& tracee, uint8_t *bkpt_addr);
     void handle_signal(Tracee& tracee, int signum);
 
-    SyscallArgs syscall_args;
+    // SyscallArgs syscall_args;
     void pre_syscall_handler();
     void post_syscall_handler();
 
