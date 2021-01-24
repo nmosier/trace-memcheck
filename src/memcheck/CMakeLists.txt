@@ -21,6 +21,9 @@ add_dependencies(memcheck xed)
 add_library(memcheck-libc SHARED
   libc.c
   )
+# target_compile_options(memcheck-libc PRIVATE -Wall -Wextra -Werror)
+set_target_properties(memcheck-libc PROPERTIES COMPILE_OPTIONS -Wall -Wextra -Werror)  # b/c of -Wpedantic bug for C compiler
+target_link_libraries(memcheck-libc dl)
 
 target_compile_definitions(memcheck PRIVATE MEMCHECK_LIBC=\"$<TARGET_FILE:memcheck-libc>\")
 
