@@ -6,6 +6,11 @@
 
 namespace memcheck {
 
+  constexpr long memcheck_syscall_base = 0x10000;
+  enum memcheck_syscall {
+    MEMCHECK_SYS_GETFILLPTR = memcheck_syscall_base,
+  };
+
 #define sa0   int, a0_, sa1
 #define sa1   int, a1_, sa2
 #define sa2   int, a2_, sa3
@@ -71,7 +76,7 @@ namespace memcheck {
 #define SYS_FORK FORK, 57, pid_t, 0,
 #define SYS_WRITEV WRITEV, 20, ssize_t, 3, unsigned long, fd, const struct iovec *, iov, unsigned long, iovcnt,
 #define SYS_WAIT4 WAIT4, 61, pid_t, 4, pid_t, pid, int *, status, int, options, struct rusage *, rusage,
-  // #define SYS_MEMCHECK_GETFILLPTR MEMCHECK_GETFILLPTR,
+#define SYS_MEMCHECK_GETFILLPTR MEMCHECK_GETFILLPTR, MEMCHECK_SYS_GETFILLPTR, void *, 0,
 
 #define VA_ARGS(...) __VA_ARGS__
 #define sysxxx(m, ...) m(__VA_ARGS__)
@@ -135,6 +140,7 @@ namespace memcheck {
   sysx(e, SYS_FORK)				\
   sysx(e, SYS_WRITEV)				\
   sysx(e, SYS_WAIT4)				\
+  sysx(e, SYS_MEMCHECK_GETFILLPTR)		\
   
   
 #define SYSCALL(m, s) sysx(m, s)

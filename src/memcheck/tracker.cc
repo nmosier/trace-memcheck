@@ -275,23 +275,29 @@ namespace memcheck {
       g_conf.abort(tracee1);
       return CheckResult::FAIL;
     }
-#if 1
     return checkres();
-#else
-    return CheckResult::KILL;
-#endif
   }
 
   bool SyscallTracker_::step(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
     switch (mode()) {
     case Mode::DUP: return step_both(tracee1, tracee2);
     case Mode::SIM: return step_one(tracee1, tracee2);
+    case Mode::SYN: return step_syn(tracee1, tracee2);
     case Mode::SEQ:
     default:
       std::abort();
     }
   }
 
+  bool SyscallTracker_::step_syn(dbi::Tracee& tracee1, dbi::Tracee& tracee2) const {
+    /* both skip system call */
+    util::for_each_arg([] (auto& tracee) {
+      assert(dbi::Instruction(tracee.get_pc(), tracee).xed_iclass() == XED_ICLASS_SYSCALL);
+      tracee.set_pc(tracee.get_pc() + 2); // + sizeof syscall inst
+    }, tracee1, tracee2);
+    return false;
+  }
+  
   const char *to_string(SequencePoint_Defaults::CheckResult cr) {
     using CR = SequencePoint_Defaults::CheckResult;
     switch (cr) {
@@ -301,7 +307,6 @@ namespace memcheck {
     default: return nullptr;
     }
   }
-  
   
   bool SequencePoint_Defaults::step(dbi::Tracee& tracee) {
     tracee.singlestep();
@@ -328,23 +333,9 @@ namespace memcheck {
   bool SyscallTracker_::post(dbi::Tracee& tracee) {
     syscall_args.add_ret(tracee);
     post_update_maps(tracee);
-
     SyscallChecker syscall_checker(tracee, page_set, taint_state, memcheck.stack_begin(),
 				   syscall_args, memcheck);
     syscall_checker.post();
-
-    // DEBUG
-    using Sys = Syscall;
-    switch (syscall_args.no()) {
-    case Sys::OPEN:
-      log() << "OPEN -> fd " << syscall_args.rv<int>() << "\n";
-      break;
-
-    case Sys::SOCKET:
-      log() << "SOCKET -> fd " << syscall_args.rv<int>() << "\n";
-      break;
-    }
-    
     return true;
   }
   
@@ -371,6 +362,10 @@ namespace memcheck {
       res = true;
       break;
 
+    case Mode::SYN:
+      res = post_syn(tracee1, tracee2);
+      break;
+
     case Mode::SEQ:
     default:
       std::abort();
@@ -390,6 +385,26 @@ namespace memcheck {
     }
 
     return res;
+  }
+
+  bool SyscallTracker_::post_syn(dbi::Tracee& tracee1, dbi::Tracee& tracee2) {
+    switch (syscall_args.no()) {
+    case Syscall::MEMCHECK_GETFILLPTR:
+      {
+	const auto fillptr = memcheck.vars.fill_ptr(); 
+	util::for_each_arg([fillptr] (auto& tracee) {
+	  auto regs = tracee.get_gpregs();
+	  regs.rax = reinterpret_cast<unsigned long>(fillptr);
+	  tracee.set_gpregs(regs);
+	}, tracee1, tracee2);
+      }
+      break;
+      
+    default:
+      std::abort();
+    }
+
+    return true;
   }
 
   template <typename... Args>
@@ -480,6 +495,7 @@ namespace memcheck {
     switch (mode) {
     case Mode::DUP:
     case Mode::SIM:
+    case Mode::SYN:
       return CheckResult::KEEP;
     case Mode::SEQ:
       return CheckResult::KILL;
@@ -570,6 +586,7 @@ namespace memcheck {
     constexpr Mode SIM = Mode::SIM;
     constexpr Mode DUP = Mode::DUP;
     constexpr Mode SEQ = Mode::SEQ;
+    constexpr Mode SYN = Mode::SYN;
 #define E(sys, ...)							\
     case Syscall::sys:						\
       {									\
@@ -636,6 +653,7 @@ namespace memcheck {
       E(FORK,            SEQ);
       E(WRITEV,          SIM);
       E(WAIT4,           SEQ);
+      E(MEMCHECK_GETFILLPTR, SYN);
 #undef E
     default: std::abort();
     }

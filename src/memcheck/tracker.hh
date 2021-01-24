@@ -527,6 +527,7 @@ namespace memcheck {
       DUP, // this system call can be duplicated across threads
       SIM, // this system call can be simuated using writes (i.e. effects only in memory)
       SEQ, // this system call cannot be duplicated or simulated, so treat it as full seq. pt.
+      SYN, // this is a synthetic memcheck system call
     };
     static Mode mode(Syscall sys);
     Mode mode() const { return mode(syscall_args.no()); }
@@ -534,6 +535,8 @@ namespace memcheck {
     void post_update_maps(dbi::Tracee& tracee, Args&&... args);
     static CheckResult checkres(Mode mode);
     CheckResult checkres() const { return checkres(mode()); }
+    bool step_syn(dbi::Tracee& tracee1, dbi::Tracee& tracee2) const;
+    bool post_syn(dbi::Tracee& tracee1, dbi::Tracee& tracee2);
   };
   using SyscallTracker = SequencePoint_<SyscallTracker_>;
   

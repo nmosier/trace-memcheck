@@ -21,6 +21,7 @@ namespace memcheck {
 
     void open(dbi::Tracee& tracee, const dbi::Patcher& patcher, const ThreadMap& thd_map);
 
+    uint8_t *fill_ptr() const { return fill_ptr_; }
     uint8_t * const * fill_ptr_ptr() const { return &fill_ptr_; }
     uint8_t fill_val(dbi::Tracee& tracee) { return read_type(tracee, fill_ptr_); }
   

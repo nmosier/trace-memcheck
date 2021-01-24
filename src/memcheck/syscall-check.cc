@@ -499,6 +499,7 @@ namespace memcheck {
   PRE_ABORT(MREMAP)
   PRE_ABORT(FORK)
   PRE_ABORT(WAIT4)
+  PRE_ABORT(MEMCHECK_GETFILLPTR)
 
   void SyscallChecker::do_write(void *begin, void *end) {
     taint_state.fill(begin, end, 0);
@@ -781,5 +782,6 @@ namespace memcheck {
   POST_ABORT(TGKILL)
   POST_ABORT(FORK)
   POST_ABORT(WAIT4)
+  POST_ABORT(MEMCHECK_GETFILLPTR)
 
 }
